@@ -24,10 +24,14 @@ export function looksLikePdf(bytes: Uint8Array): boolean {
 /** Everything below a space except a new line and a tab, plus delete. Postgres refuses a text holding \u0000. */
 const CONTROL = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g;
 
+/** Half of a character outside the basic plane (an emoji cut in two by a PDF or a paste). Postgres refuses it too. */
+const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
+
 export function cleanResumeText(raw: string): string {
   return raw
     .replace(/\r\n?/g, "\n")
     .replace(CONTROL, "")
+    .replace(LONE_SURROGATE, "")
     .split("\n")
     .map((line) => line.trim())
     .join("\n")
@@ -44,8 +48,9 @@ export function checkResumeText(text: string, source: "pdf" | "typed"): string |
   return length === 0 ? PROFILE_COPY.emptyText : PROFILE_COPY.tooShort;
 }
 
-/** The file's own name, without any folder, at most as long as the column holds. */
+/** The file's own name, without any folder, at most as long as the column holds. The cut counts whole characters,
+ *  as the column's check does, so an emoji at the limit is kept or dropped, never halved. */
 export function displayName(name: string | null): string | null {
-  const base = (name ?? "").split(/[\\/]/).pop()?.trim() ?? "";
-  return base ? base.slice(0, MAX_RESUME_NAME_CHARS) : null;
+  const base = (name ?? "").split(/[\\/]/).pop()?.replace(LONE_SURROGATE, "").trim() ?? "";
+  return base ? Array.from(base).slice(0, MAX_RESUME_NAME_CHARS).join("") : null;
 }

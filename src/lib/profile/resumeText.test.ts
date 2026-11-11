@@ -48,6 +48,12 @@ describe("cleanResumeText: what is kept from a PDF or a paste", () => {
     expect(cleanResumeText("\n\n  Education   \n\n\n\n\nChicago  \n")).toBe("Education\n\nChicago");
   });
 
+  it("drops half of a broken emoji, which the database refuses, and keeps whole ones", () => {
+    expect(cleanResumeText("Built \uD83D dashboards")).toBe("Built  dashboards");
+    expect(cleanResumeText("Shipped\uDE80 it")).toBe("Shipped it");
+    expect(cleanResumeText("Launched 🚀 twice")).toBe("Launched 🚀 twice");
+  });
+
   it("does not change the text it is given", () => {
     const raw = "  a  ";
     cleanResumeText(raw);
@@ -86,6 +92,14 @@ describe("displayName: the file name as it is stored", () => {
     expect(displayName("C:\\Users\\me\\resume.pdf")).toBe("resume.pdf");
     expect(displayName("/home/me/resume final.pdf")).toBe("resume final.pdf");
     expect(displayName("a".repeat(500))).toHaveLength(200);
+  });
+
+  it("never cuts an emoji in half: the cut counts whole characters", () => {
+    const name = displayName("a".repeat(199) + "🚀.pdf");
+    expect(name).toBe("a".repeat(199) + "🚀");
+    expect(Array.from(name ?? "")).toHaveLength(200);
+    expect(displayName("🚀".repeat(300))).toBe("🚀".repeat(200));
+    expect(displayName("resume\uD83D.pdf")).toBe("resume.pdf");
   });
 
   it("is null when there is no name", () => {
