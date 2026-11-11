@@ -7,7 +7,8 @@
 -- user_id is the Clerk user id (`user_...`, text, not a uuid), read from the signed-in person's token, as in every
 -- other per-person table of this project (goals, companies, saves). Sign-in is Clerk, not Supabase Auth, so there is
 -- no auth.users row to reference and auth.uid() cannot be used: it casts the id to uuid and fails on a Clerk id.
--- The limits repeat src/lib/profile/constants.ts; change both together.
+-- The text and name limits repeat src/lib/profile/constants.ts; change both together. The 60 on tags is MAX_TAGS
+-- in supabase/functions/fh-jobs/lib/tags.ts (the most tags tagsOf ever returns) and must change with it.
 create table public.fh_profiles (
   user_id text primary key default (auth.jwt() ->> 'sub'),
   resume_text text not null check (char_length(resume_text) between 1 and 50000),
