@@ -1,13 +1,13 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  ATS_ORDER, boardUrl, clean, parseAshby, parseGem, parseGetroCompanies, parseGreenhouse, parseLever, parseRippling, parseRipplingJob,
-  parseWorkable, PARSERS, pickSystems, plain, ripplingJobUrl, slugCandidates, TEXT_MAX, withDetail,
+  ATS_ORDER, boardUrl, clean, DETAILS, parseAshby, parseBamboo, parseBambooJob, parseGem, parseGetroCompanies, parseGreenhouse, parseLever, parseRippling, parseRipplingJob,
+  parseWorkable, PARSERS, pickSystems, plain, slugCandidates, TEXT_MAX, withDetail,
 } from "./parse";
 
 // Real responses saved 2026-11-10, cut to two or three rows each: Accel's Getro board, PostHog on Ashby,
 // GiveDirectly on Greenhouse, Palantir on Lever. Saved 2026-11-11: Hugging Face on Workable, Rippling's own board
-// (the list, and one job's detail) and Gem's own board (it had one open role).
+// (the list, and one job's detail), Gem's own board (it had one open role) and Expedock on BambooHR (list and detail).
 const json = (name: string) => JSON.parse(readFileSync(new URL(`../fixtures/${name}`, import.meta.url), "utf8"));
 
 describe("parseGetroCompanies", () => {
@@ -135,6 +135,27 @@ describe("Workable, Rippling and Gem", () => {
     const [job] = parseGem([{ id: "g1", title: "Analyst", absolute_url: "https://jobs.gem.com/acme/g1", content: "<p>Two &amp; three</p>" }]);
     expect(job.text).toBe("Two & three");
   });
+  it("parses BambooHR's list, which has no link and no description: the link is built from the board name and the id", () => {
+    const jobs = parseBamboo(json("bamboohr.json"), "expedock");
+    expect(jobs).toHaveLength(3);
+    expect(jobs[0]).toMatchObject({ id: "108", title: "Pricing & Quotation Specialist (Pooling: Future Opportunities)", location: "Philippines" });
+    expect(jobs[0].url).toBe("https://expedock.bamboohr.com/careers/108");
+    expect(jobs[0].text).toBe(jobs[0].title);
+  });
+  it("drops a BambooHR row whose id could change the link, or a board name that is not a host label", () => {
+    const row = { jobOpeningName: "Engineer", location: { city: "Austin", state: "Texas" } };
+    expect(parseBamboo({ result: [{ ...row, id: "1/../x" }, { ...row, id: "9?a=b" }, { ...row, id: "" }] }, "acme")).toEqual([]);
+    expect(parseBamboo({ result: [{ ...row, id: "7" }] }, "evil.example/x")).toEqual([]);
+    expect(parseBamboo({ result: [{ ...row, id: 7 }] }, "acme")[0]).toMatchObject({ id: "7", location: "Austin, Texas", url: "https://acme.bamboohr.com/careers/7" });
+  });
+  it("reads a BambooHR job's detail as text, with the date", () => {
+    const detail = parseBambooJob(json("bamboohr-job.json"));
+    expect(detail.text).toMatch(/talent pool posting/);
+    expect(detail.text).not.toMatch(/<p|<span/);
+    expect(detail.postedAt).toMatch(/^2026-02-19T/);
+    expect(parseBambooJob(null)).toEqual({ text: null, postedAt: null });
+    expect(parseBambooJob({ result: { jobOpening: { description: 5, datePosted: {} } } })).toEqual({ text: null, postedAt: null });
+  });
   it("drops rows with no id, no title, no https link, a wrong type or null, and never throws on another shape", () => {
     const bad = [
       null, 7, "row", [],
@@ -147,31 +168,36 @@ describe("Workable, Rippling and Gem", () => {
     expect(parseWorkable({ jobs: bad })).toEqual([]);
     expect(parseRippling(bad)).toEqual([]);
     expect(parseGem(bad)).toEqual([]);
+    expect(parseBamboo({ result: bad }, "acme")).toEqual([]);
     for (const shape of [null, undefined, "Not Found", 404, {}, { jobs: "none" }, { error_code: "RESOURCE_NOT_FOUND" }]) {
       expect(parseWorkable(shape)).toEqual([]);
       expect(parseRippling(shape)).toEqual([]);
       expect(parseGem(shape)).toEqual([]);
+      expect(parseBamboo(shape, "acme")).toEqual([]);
     }
   });
   it("builds each new board's public address and has a parser for every system", () => {
     expect(boardUrl("workable", "acme")).toBe("https://apply.workable.com/api/v1/widget/accounts/acme?details=true");
     expect(boardUrl("rippling", "acme")).toBe("https://api.rippling.com/platform/api/ats/v1/board/acme/jobs");
     expect(boardUrl("gem", "acme")).toBe("https://api.gem.com/job_board/v0/acme/job_posts/");
-    expect(ripplingJobUrl("acme", "u-1")).toBe("https://api.rippling.com/platform/api/ats/v1/board/acme/jobs/u-1");
-    expect(Object.keys(PARSERS).sort()).toEqual(["ashby", "gem", "greenhouse", "lever", "rippling", "workable"]);
+    expect(boardUrl("bamboohr", "acme")).toBe("https://acme.bamboohr.com/careers/list");
+    expect(DETAILS.rippling?.url("acme", "u-1")).toBe("https://api.rippling.com/platform/api/ats/v1/board/acme/jobs/u-1");
+    expect(DETAILS.bamboohr?.url("acme", "108")).toBe("https://acme.bamboohr.com/careers/108/detail");
+    expect(Object.keys(PARSERS).sort()).toEqual(["ashby", "bamboohr", "gem", "greenhouse", "lever", "rippling", "workable"]);
   });
 });
 
 describe("which systems a run tries", () => {
-  it("tries all six by default, the three first ones first", () => {
-    expect(ATS_ORDER).toEqual(["ashby", "greenhouse", "lever", "gem", "rippling", "workable"]);
+  it("tries six by default, the three first ones first, and Workable only when asked", () => {
+    expect(ATS_ORDER).toEqual(["ashby", "greenhouse", "lever", "gem", "rippling", "bamboohr"]);
     expect(pickSystems(undefined)).toEqual(ATS_ORDER);
     expect(pickSystems(null)).toEqual(ATS_ORDER);
   });
   it("keeps only known names from a request, in the usual order, without repeats", () => {
     expect(pickSystems(["workable", "gem", "gem", "nope", 7, null])).toEqual(["gem", "workable"]);
+    expect(pickSystems(["workable"])).toEqual(["workable"]);
   });
-  it("falls back to all six when the request names none it knows", () => {
+  it("falls back to the six when the request names none it knows", () => {
     expect(pickSystems(["nope"])).toEqual(ATS_ORDER);
     expect(pickSystems("workable")).toEqual(ATS_ORDER);
     expect(pickSystems([])).toEqual(ATS_ORDER);

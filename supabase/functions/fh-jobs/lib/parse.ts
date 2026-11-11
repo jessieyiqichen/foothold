@@ -1,8 +1,8 @@
 // Parsers for the jobs worker: a Getro board's company list (VC job boards), and the public job boards of
-// Greenhouse, Ashby, Lever, Workable, Rippling and Gem. Every value from outside is checked; a row missing what a posting needs is dropped.
+// Greenhouse, Ashby, Lever, Workable, Rippling, Gem and BambooHR. Every value from outside is checked; a row missing what a posting needs is dropped.
 // No Deno or Node imports, so vitest tests this code and the Edge Function runs it unchanged.
 
-export type Ats = "ashby" | "greenhouse" | "lever" | "workable" | "rippling" | "gem";
+export type Ats = "ashby" | "greenhouse" | "lever" | "workable" | "rippling" | "gem" | "bamboohr";
 
 export interface VcCompany {
   name: string;
@@ -102,10 +102,10 @@ const BOARD_URLS: Record<Ats, (slug: string) => string> = {
   workable: (slug) => `https://apply.workable.com/api/v1/widget/accounts/${slug}?details=true`,
   rippling: (slug) => `${RIPPLING_API}/${slug}/jobs`,
   gem: (slug) => `https://api.gem.com/job_board/v0/${slug}/job_posts/`,
+  bamboohr: (slug) => `https://${slug}.bamboohr.com/careers/list`,
 };
 export const boardUrl = (ats: Ats, slug: string): string => BOARD_URLS[ats](slug);
-/** Rippling's list has no descriptions; each job's text is at its own address. */
-export const ripplingJobUrl = (slug: string, id: string): string => `${RIPPLING_API}/${slug}/jobs/${encodeURIComponent(id)}`;
+
 
 function push(out: AtsJob[], id: unknown, title: unknown, location: unknown, text: string | null, url: unknown, postedAt: unknown): void {
   const jobId = typeof id === "string" || typeof id === "number" ? String(id) : null;
@@ -195,8 +195,10 @@ export function parseRippling(raw: unknown): AtsJob[] {
   return out;
 }
 
+export interface JobDetail { text: string | null; postedAt: string | null }
+
 /** One Rippling job: {description: {role, company} (HTML), createdOn}. */
-export function parseRipplingJob(raw: unknown): { text: string | null; postedAt: string | null } {
+export function parseRipplingJob(raw: unknown): JobDetail {
   const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const d = (r.description && typeof r.description === "object" ? r.description : {}) as Record<string, unknown>;
   const text = [d.role, d.company].filter((v): v is string => typeof v === "string").map(plain).filter(Boolean).join("\n");
@@ -217,19 +219,57 @@ export function parseGem(raw: unknown): AtsJob[] {
   return out;
 }
 
-export const PARSERS: Record<Ats, (raw: unknown) => AtsJob[]> = {
+/** BambooHR's list: {result: [{id, jobOpeningName, location: {city, state}, atsLocation: {country, state, city}, isRemote}]},
+ *  with no link and no description. The link is the board's own address plus the id, so both are checked first. */
+export function parseBamboo(raw: unknown, slug: string): AtsJob[] {
+  const rows = (raw as { result?: unknown } | null)?.result;
+  if (!Array.isArray(rows) || !/^[a-z0-9][a-z0-9-]{0,62}$/.test(slug)) return [];
+  const out: AtsJob[] = [];
+  for (const j of rows) {
+    if (!j || typeof j !== "object") continue;
+    const r = j as Record<string, unknown>;
+    const id = typeof r.id === "string" || typeof r.id === "number" ? String(r.id) : "";
+    if (!/^[A-Za-z0-9-]{1,40}$/.test(id)) continue;
+    const here = (r.location ?? {}) as Record<string, unknown>;
+    const ats = (r.atsLocation ?? {}) as Record<string, unknown>;
+    const place = [here.city ?? ats.city, here.state ?? ats.state, ats.country].map((v) => str(v, 100)).filter(Boolean).join(", ");
+    push(out, id, r.jobOpeningName, place || (r.isRemote === true ? "Remote" : null), null, `https://${slug}.bamboohr.com/careers/${id}`, null);
+  }
+  return out;
+}
+
+/** One BambooHR job: {result: {jobOpening: {description (HTML), datePosted}}}. */
+export function parseBambooJob(raw: unknown): JobDetail {
+  const result = (raw as { result?: unknown } | null)?.result;
+  const o = ((result as { jobOpening?: unknown } | null)?.jobOpening ?? {}) as Record<string, unknown>;
+  const text = typeof o.description === "string" ? plain(o.description) : "";
+  return { text: text ? clean(text.slice(0, TEXT_MAX)) : null, postedAt: isoDate(typeof o.datePosted === "string" ? o.datePosted : null) };
+}
+
+/** Each system's parser. The board name is passed for the one system (BambooHR) whose rows carry no link. */
+export const PARSERS: Record<Ats, (raw: unknown, slug: string) => AtsJob[]> = {
   ashby: parseAshby, greenhouse: parseGreenhouse, lever: parseLever, workable: parseWorkable, rippling: parseRippling, gem: parseGem,
+  bamboohr: parseBamboo,
 };
 
-/** The order a company's board is looked for. Workable is last: it allows few requests a minute. */
-export const ATS_ORDER: Ats[] = ["ashby", "greenhouse", "lever", "gem", "rippling", "workable"];
+/** Systems whose list has no descriptions: where one job's own text is, and how to read it. */
+export const DETAILS: Partial<Record<Ats, { url: (slug: string, id: string) => string; parse: (raw: unknown) => JobDetail }>> = {
+  rippling: { url: (slug, id) => `${RIPPLING_API}/${slug}/jobs/${encodeURIComponent(id)}`, parse: parseRipplingJob },
+  bamboohr: { url: (slug, id) => `https://${slug}.bamboohr.com/careers/${encodeURIComponent(id)}/detail`, parse: parseBambooJob },
+};
 
-/** The systems a request asked for (`systems` in the body), in the usual order; all of them when it names none we know. */
+/** The order a company's board is looked for when a request names no system. */
+export const ATS_ORDER: Ats[] = ["ashby", "greenhouse", "lever", "gem", "rippling", "bamboohr"];
+/** Workable is tried only when a request names it: it refused us after about six requests a minute (measured 2026-11-11),
+ *  so a normal batch would be refused part way through. */
+const ATS_ON_REQUEST: Ats[] = ["workable"];
+
+/** The systems a request asked for (`systems` in the body), in the usual order; the default six when it names none we know. */
 export function pickSystems(v: unknown): Ats[] {
-  const asked = Array.isArray(v) ? ATS_ORDER.filter((a) => v.includes(a)) : [];
+  const asked = Array.isArray(v) ? [...ATS_ORDER, ...ATS_ON_REQUEST].filter((a) => v.includes(a)) : [];
   return asked.length > 0 ? asked : ATS_ORDER;
 }
 
-/** A job with the text and date read from its own address (Rippling), as a new object. */
-export const withDetail = (job: AtsJob, d: { text: string | null; postedAt: string | null }): AtsJob =>
+/** A job with the text and date read from its own address (Rippling, BambooHR), as a new object. */
+export const withDetail = (job: AtsJob, d: JobDetail): AtsJob =>
   ({ ...job, text: d.text ?? job.text, postedAt: d.postedAt ?? job.postedAt });

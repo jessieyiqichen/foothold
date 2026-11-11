@@ -1,16 +1,16 @@
 // Foothold jobs worker, three tasks:
 //   {"task":"vc","board":"accel"}  reads one VC job board's company list (Getro) into fh_companies
 //   {"task":"ats","limit":20}      takes the next companies, looks for each one's public job board on Ashby,
-//                                  Greenhouse, Lever, Gem, Rippling or Workable, and writes its open roles into
-//                                  fh_postings. "systems":["gem","rippling","workable"] tries only those
+//                                  Greenhouse, Lever, Gem, Rippling or BambooHR, and writes its open roles into
+//                                  fh_postings. "systems":["gem","rippling"] tries only those; Workable is tried
+//                                  only when named there, a few companies a call (it allows few requests a minute)
 //   {"task":"tag","limit":200}     tags postings not yet tagged with this version of the skill vocabulary
 // Only company lists come from the VC boards; the roles always come from the company's own board.
 // It writes with the project's secret key, which Supabase gives the function on its own servers.
 
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import {
-  type Ats, type AtsJob, boardUrl, parseGetroCompanies, parseRipplingJob, PARSERS, pickSystems, ripplingJobUrl, slugCandidates,
-  type VcCompany, withDetail,
+  type Ats, type AtsJob, boardUrl, DETAILS, parseGetroCompanies, PARSERS, pickSystems, slugCandidates, type VcCompany, withDetail,
 } from "./lib/parse.ts";
 import { SKILLS_VERSION } from "./lib/skills.ts";
 import { tagsOf } from "./lib/tags.ts";
@@ -19,11 +19,11 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SECRET_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const USER_AGENT = "Foothold/1.0 (class project; https://github.com/jessieyiqichen/foothold)";
 const TIMEOUT_MS = 12_000;
-/** Workable refuses a caller after a burst (429 for minutes, measured 2026-11-11): its requests go one at a time, spaced. */
-const WORKABLE_GAP_MS = 2_500;
-/** Rippling's list has no descriptions: the first jobs' texts are read one by one, a few at a time. */
-const RIPPLING_DETAILS_MAX = 60;
-const RIPPLING_DETAILS_AT_ONCE = 5;
+/** Workable refuses a caller after about six requests a minute (429, measured 2026-11-11): its requests go one at a time, spaced. */
+const WORKABLE_GAP_MS = 11_000;
+/** Rippling's and BambooHR's lists have no descriptions: the first jobs' texts are read one by one, a few at a time. */
+const DETAILS_MAX = 60;
+const DETAILS_AT_ONCE = 5;
 const DEFAULT_LIMIT = 20;
 const TAG_LIMIT_DEFAULT = 200;
 const TAG_LIMIT_MAX = 400;
@@ -86,7 +86,10 @@ function workableTurn(): Promise<void> {
 async function getBoard(ats: Ats, slug: string): Promise<{ raw: unknown | null; limited: boolean }> {
   if (ats === "workable") await workableTurn();
   try {
-    const res = await fetch(boardUrl(ats, slug), { headers: { "User-Agent": USER_AGENT, Accept: "application/json" }, signal: AbortSignal.timeout(TIMEOUT_MS) });
+    // BambooHR sends an unknown board name to its home page: that redirect is not followed.
+    const res = await fetch(boardUrl(ats, slug), {
+      headers: { "User-Agent": USER_AGENT, Accept: "application/json" }, redirect: ats === "bamboohr" ? "manual" : "follow", signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
     if (res.status === 429) return { raw: null, limited: true };
     return { raw: res.ok ? await res.json() : null, limited: false };
   } catch {
@@ -94,15 +97,17 @@ async function getBoard(ats: Ats, slug: string): Promise<{ raw: unknown | null; 
   }
 }
 
-/** Rippling jobs with their descriptions, for the first RIPPLING_DETAILS_MAX; the rest keep the title as their text. */
-async function withRipplingText(slug: string, jobs: AtsJob[]): Promise<AtsJob[]> {
-  const head = jobs.slice(0, RIPPLING_DETAILS_MAX);
+/** Jobs with their descriptions, on a system whose list has none, for the first DETAILS_MAX; the rest keep the title as text. */
+async function withText(ats: Ats, slug: string, jobs: AtsJob[]): Promise<AtsJob[]> {
+  const detail = DETAILS[ats];
+  if (!detail) return jobs;
+  const head = jobs.slice(0, DETAILS_MAX);
   const filled: AtsJob[] = [];
-  for (let i = 0; i < head.length; i += RIPPLING_DETAILS_AT_ONCE) {
-    const part = head.slice(i, i + RIPPLING_DETAILS_AT_ONCE);
-    filled.push(...await Promise.all(part.map(async (j) => withDetail(j, parseRipplingJob(await getJson(ripplingJobUrl(slug, j.id)))))));
+  for (let i = 0; i < head.length; i += DETAILS_AT_ONCE) {
+    const part = head.slice(i, i + DETAILS_AT_ONCE);
+    filled.push(...await Promise.all(part.map(async (j) => withDetail(j, detail.parse(await getJson(detail.url(slug, j.id)))))));
   }
-  return [...filled, ...jobs.slice(RIPPLING_DETAILS_MAX)];
+  return [...filled, ...jobs.slice(DETAILS_MAX)];
 }
 
 /** The first board that answers with at least one job, trying each candidate name on each system asked for. */
@@ -114,8 +119,8 @@ async function findBoard(c: Claimed, systems: Ats[]): Promise<{ found: Found | n
       const board = await getBoard(ats, slug);
       if (board.limited) limited.add(ats);
       if (board.raw === null) continue;
-      const jobs = PARSERS[ats](board.raw);
-      if (jobs.length > 0) return { found: { ats, slug, jobs: ats === "rippling" ? await withRipplingText(slug, jobs) : jobs }, limited: [...limited] };
+      const jobs = PARSERS[ats](board.raw, slug);
+      if (jobs.length > 0) return { found: { ats, slug, jobs: await withText(ats, slug, jobs) }, limited: [...limited] };
     }
   }
   return { found: null, limited: [...limited] };
