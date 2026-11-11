@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-// @ts-expect-error the hook is plain JavaScript run by Claude Code, with no type file
 import { decide, isEnvPath, stagesTooMuch } from "../../../.claude/hooks/guard.mjs";
 
 const ROOT = "/repo";
