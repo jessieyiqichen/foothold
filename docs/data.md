@@ -41,13 +41,19 @@ Row-level security is on for all three. Signed-in people read companies and post
 
 Adding a source goes through the `add-source` skill.
 
-## Measured (2026-11-10)
+## Measured (2026-11-10, read from the database while the last batches were still running)
 
 | What | Number |
 |---|---|
-| Active YC companies | 4,413 |
-| Companies from the nine Getro boards | 3,019 before merging with YC by domain |
-| HN November postings parsed | 206 of 221 top-level comments |
-| Companies with a job board found, guessing its name | About 38% of those checked |
+| Postings | 35,757: 35,551 from company job boards, 206 from the HN November thread |
+| Companies | 7,144: 4,413 active YC companies and 2,731 from the nine Getro boards after merging by domain |
+| Companies checked for a job board | 5,820 of 7,144 |
+| Companies with a board found, guessing its name | 1,589: Ashby 987 (18,324 roles), Greenhouse 460 (15,745), Lever 142 (3,464) |
+| Companies cut off at 300 roles | 14 |
+| Database size | 208 MB of the free tier's 500 MB; `fh_postings` is 139 MB |
+
+Known gaps:
+- One company's roles were refused by the database ("invalid input syntax for type json", most likely a character Postgres does not accept in JSON). Its roles are missing and the parser does not yet strip such characters.
+- The roles include large companies from the VC lists and roles outside the US. The count says nothing yet about how many suit a new grad; the Judge will.
 
 Row counts change with every run; read them from the database, not from this file.
