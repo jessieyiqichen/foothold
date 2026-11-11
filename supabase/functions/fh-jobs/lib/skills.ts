@@ -2,9 +2,9 @@
 // Each row is [group, tag, pattern, "cs"?]. The pattern is a regular expression matched as a whole word, ignoring
 // case unless the fourth item is "cs" (case-sensitive: "Excel" the tool, not "excel at"; "Go" the language).
 // Drafted 2026-11-10 from the most frequent tool names and proper nouns in 4,000 job-board roles plus a hand-written
-// list; the user reviews it. Changing it: edit a row, raise SKILLS_VERSION, and the worker re-tags every posting.
+// list; the user reviews it. Version 2 (same day) narrows the words that fired on benefits and legal boilerplate. Changing it: edit a row, raise SKILLS_VERSION, and the worker re-tags every posting.
 
-export const SKILLS_VERSION = 1;
+export const SKILLS_VERSION = 2;
 
 export type SkillRow = [group: string, tag: string, pattern: string, flag?: "cs"];
 
@@ -73,7 +73,7 @@ export const SKILLS: SkillRow[] = [
   ["data", "data science", "data scien(?:ce|tist)\\w*"],
   ["data", "data engineering", "data engineer\\w*|data pipelines?|etl"],
   ["data", "statistics", "statistic(?:s|al)\\w*"],
-  ["data", "experimentation", "a/b test\\w*|experimentation|experiment design|controlled experiments?"],
+  ["data", "experimentation", "a/b test\\w*|experimentation|experiment design|controlled experiments?|(?:design|designing|run|running|analy[sz]e|analy[sz]ing) experiments?"],
   ["data", "causal inference", "causal inference|causal (?:analysis|modell?ing)|difference[- ]in[- ]differences?"],
   ["data", "econometrics", "econometric\\w*"],
   ["data", "regression", "regression (?:analysis|models?|modell?ing)|regressions"],
@@ -150,20 +150,20 @@ export const SKILLS: SkillRow[] = [
   ["marketing", "communications", "public relations|communications|PR", "cs"],
 
   // Operations, finance, people
-  ["operations", "operations", "operations"],
-  ["operations", "strategy", "strategy (?:and|&) operations|business operations|bizops|chief of staff"],
+  ["operations", "operations", "operations (?:manager|associate|analyst|lead|specialist|coordinator|team)\\w*|business operations|bizops"],
+  ["operations", "strategy", "strategy (?:and|&) operations|chief of staff|corporate strategy"],
   ["operations", "project management", "project manage(?:r|ment)\\w*|program manage(?:r|ment)\\w*"],
   ["operations", "supply chain", "supply chain|logistics|procurement"],
   ["operations", "customer support", "customer support|customer service|technical support"],
   ["operations", "consulting", "consult(?:ing|ant)\\w*"],
-  ["finance", "finance", "finance|financial"],
+  ["finance", "finance", "finance"],
   ["finance", "fp&a", "fp&a|financial planning"],
   ["finance", "financial modeling", "financial modell?ing|valuation|three[- ]statement"],
   ["finance", "accounting", "accounting|accountant|bookkeeping|CPA"],
   ["finance", "investment banking", "investment banking|private equity|venture capital"],
-  ["people", "recruiting", "recruit(?:ing|er|ment)\\w*|talent acquisition|sourcing candidates"],
+  ["people", "recruiting", "recruiters?|talent acquisition|technical recruiting|recruiting (?:team|coordinator|operations|manager|lead)\\w*|sourcing candidates"],
   ["people", "people operations", "people operations|human resources|HR", "cs"],
-  ["legal", "legal", "legal|counsel|paralegal|contracts?"],
+  ["legal", "legal", "legal (?:team|operations|counsel|department)|counsel|paralegal|attorneys?|lawyers?|litigation"],
   ["legal", "compliance", "compliance|risk management|audit"],
 
   // Industries (what the company does)
@@ -171,11 +171,11 @@ export const SKILLS: SkillRow[] = [
   ["industry", "saas", "saas"],
   ["industry", "b2b", "b2b"],
   ["industry", "fintech", "fintech|payments|banking|lending"],
-  ["industry", "healthcare", "health ?care|healthtech|clinical|medical|patients?"],
+  ["industry", "healthcare", "health ?care|healthtech|clinical|patients?|hospitals?"],
   ["industry", "biotech", "biotech\\w*|drug discovery|life sciences|genomics"],
   ["industry", "climate", "climate|clean energy|renewables?|decarboni[sz]\\w*|nuclear"],
   ["industry", "defense", "defen[sc]e|aerospace|national security"],
-  ["industry", "education", "edtech|education|learning platform"],
+  ["industry", "education", "edtech|education (?:technology|sector|company|platform)|learning platform|k-12|higher education"],
   ["industry", "crypto", "crypto\\w*|blockchain|web3"],
   ["industry", "e-commerce", "e-?commerce|marketplace|retail"],
   ["industry", "developer tools", "developer tools?|devtools|developer experience|open[- ]source"],
@@ -184,7 +184,7 @@ export const SKILLS: SkillRow[] = [
   ["industry", "manufacturing", "manufacturing"],
   ["industry", "government", "government|public sector|govtech"],
   ["industry", "real estate", "real estate|proptech|construction"],
-  ["industry", "insurance", "insurance|insurtech"],
+  ["industry", "insurance", "insurtech|underwriting|insurance (?:carriers?|compan(?:y|ies)|industry|products?|brokers?|claims)"],
 
   // Spoken languages
   ["language", "spanish", "Spanish", "cs"],

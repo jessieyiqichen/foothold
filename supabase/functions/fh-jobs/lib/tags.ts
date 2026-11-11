@@ -14,9 +14,21 @@ const MATCHERS: { tag: string; re: RegExp }[] = SKILLS.map(([, tag, pattern, fla
   re: whole(pattern, flag === "cs" ? "" : "i"),
 }));
 
+/** Headings after which a posting stops describing the job: benefits, perks, the equal-opportunity statement. */
+const TAIL = /^\s*(?:#+\s*)?(?:our |the |your |employee |perks (?:and|&) )?(?:benefits|perks|what we offer|what you(?:'|\u2019)ll get|compensation (?:and|&) benefits|equal (?:employment )?opportunity|we are an equal|privacy notice|candidate privacy)\b[^\n]{0,60}$/im;
+/** A heading this early is an introduction ("What we offer" before the role), not the tail. */
+const TAIL_MIN_SHARE = 0.3;
+
+/** The part of a posting that describes the job. Version 1 of the vocabulary tagged 14,107 postings "healthcare"
+ *  because the benefits list said "medical insurance"; this cuts the text at the first tail heading. */
+export function jobPart(text: string): string {
+  const at = text.search(TAIL);
+  return (at > text.length * TAIL_MIN_SHARE ? text.slice(0, at) : text).trimEnd();
+}
+
 /** The vocabulary tags found in a title and a text, each once, sorted. */
 export function tagsOf(title: string | null, text: string | null): string[] {
-  const haystack = `${title ?? ""}\n${text ?? ""}`;
+  const haystack = `${title ?? ""}\n${jobPart(text ?? "")}`;
   if (haystack.trim().length === 0) return [];
   const found = new Set<string>();
   for (const { tag, re } of MATCHERS) {

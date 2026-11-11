@@ -29,7 +29,21 @@ A posting is matched on skill tags, not on its full text. The vocabulary is `sup
 
 Why tags (measured 2026-11-10): full-text search of the descriptions matched 2,828 of 3,000 sampled postings for a seven-word query and took 5.9 seconds on those 3,000, because every match has to be re-analysed to be ranked; storing the analysis would need about 170 MB. Searching tags for twelve skills over all 36,551 postings took 101 ms, and the index is 4.4 MB.
 
-Known problem with version 1 of the vocabulary: several industry and function tags fire on benefits and legal boilerplate, not on the job. `healthcare` is on 14,107 postings (medical insurance in the benefits list), `insurance` on 9,756, `finance` on 10,702, `legal` on 9,143, `recruiting` on 8,274. Skill tags look right (`experimentation` 1,933, `causal inference` 147, `econometrics` 27). To fix in version 2, with the user's review of the vocabulary: stop tagging at the benefits or equal-opportunity heading, and narrow those patterns.
+Version 2 (2026-11-10) fixed version 1's worst fault, tags firing on benefits and legal boilerplate: tagging stops at the first benefits, perks or equal-opportunity heading (`jobPart`), and eight patterns were narrowed. Counted over all 36,551 postings:
+
+| Tag | Version 1 | Version 2 |
+|---|---|---|
+| healthcare | 14,107 | 6,184 |
+| insurance | 9,756 | 584 |
+| finance | 10,702 | 5,762 |
+| legal | 9,143 | 1,700 |
+| recruiting | 8,274 | 3,205 |
+| education | 5,420 | 421 |
+| operations | 14,205 | 3,594 |
+| compliance | 9,606 | 9,217 |
+| experimentation | 1,933 | 2,279 |
+
+Still doubtful, not yet checked by reading samples: `compliance` (9,217, a quarter of all postings) and `healthcare` (6,184); benefits written without a heading are not cut. 304 postings have no tag at all. The user has not reviewed the vocabulary yet.
 
 ## Sources
 

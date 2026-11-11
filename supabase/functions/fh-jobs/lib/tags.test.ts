@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { SKILLS } from "./skills";
-import { MAX_TAGS, tagsOf } from "./tags";
+import { jobPart, MAX_TAGS, tagsOf } from "./tags";
 
 const tags = (text: string, title = "") => tagsOf(title, text);
 
@@ -43,6 +43,34 @@ describe("tagsOf", () => {
     expect(tagsOf("", "")).toEqual([]);
     const everything = SKILLS.map(([, tag]) => tag).join(", ");
     expect(tagsOf("", everything).length).toBeLessThanOrEqual(MAX_TAGS);
+  });
+});
+
+describe("benefits and legal boilerplate", () => {
+  const role = "About the role\nYou will run SQL analyses for our growth team and design experiments.\nRequirements\n2 years with Python.\n";
+  const tail = "Benefits\nMedical, dental and vision insurance. 401k and financial planning. Education stipend.\nEqual Opportunity\nWe are an equal opportunity employer. Our recruiting and legal teams follow all contracts and compliance rules.";
+
+  it("stops reading at the benefits or equal-opportunity heading", () => {
+    expect(jobPart(role + tail)).toBe(role.trimEnd());
+    const out = tagsOf("Growth Analyst", role + tail);
+    expect(out).toEqual(expect.arrayContaining(["sql", "python", "experimentation"]));
+    for (const wrong of ["healthcare", "insurance", "finance", "legal", "recruiting", "education", "compliance"]) expect(out, wrong).not.toContain(wrong);
+  });
+
+  it("keeps the whole text when such a heading comes at the very start, or there is none", () => {
+    const upfront = "What we offer\nA chance to build.\n" + role;
+    expect(jobPart(upfront)).toBe(upfront.trimEnd());
+    expect(jobPart(role)).toBe(role.trimEnd());
+  });
+
+  it("does not take everyday words for an industry", () => {
+    expect(tagsOf("", "We offer medical insurance and financial wellness. Legal name required. Recruiting now.")).toEqual([]);
+    expect(tagsOf("", "Build software for hospitals and clinical teams")).toContain("healthcare");
+    expect(tagsOf("", "Underwriting models for insurance carriers")).toContain("insurance");
+    expect(tagsOf("Corporate Counsel", "Advise on litigation")).toContain("legal");
+    expect(tagsOf("Technical Recruiter", "Own talent acquisition")).toContain("recruiting");
+    expect(tagsOf("Operations Associate", "Join business operations")).toContain("operations");
+    expect(tagsOf("", "Smooth operations are important to us")).not.toContain("operations");
   });
 });
 
