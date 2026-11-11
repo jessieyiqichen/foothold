@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { boardUrl, parseAshby, parseGetroCompanies, parseGreenhouse, parseLever, plain, slugCandidates, TEXT_MAX } from "./parse";
+import { boardUrl, clean, parseAshby, parseGetroCompanies, parseGreenhouse, parseLever, plain, slugCandidates, TEXT_MAX } from "./parse";
 
 // Real responses saved 2026-11-10, cut to two or three rows each: Accel's Getro board, PostHog on Ashby,
 // GiveDirectly on Greenhouse, Palantir on Lever.
@@ -67,6 +67,14 @@ describe("the three job boards", () => {
     expect(job.text).toBe("Analyst");
     const [long] = parseAshby({ jobs: [{ id: "1", title: "A", jobUrl: "https://x.io/1", descriptionPlain: "x".repeat(TEXT_MAX + 50) }] });
     expect(long.text).toHaveLength(TEXT_MAX);
+  });
+  it("removes characters the database refuses, including half an emoji left by the cut", () => {
+    expect(clean("a\u0000b")).toBe("ab");
+    expect(clean("ok \uD83D")).toBe("ok ");
+    expect(clean("fine \uD83D\uDE00")).toBe("fine \uD83D\uDE00");
+    const [job] = parseAshby({ jobs: [{ id: "1", title: "A", jobUrl: "https://x.io/1", descriptionPlain: "x".repeat(TEXT_MAX - 1) + "\uD83D\uDE00" }] });
+    expect(job.text).toHaveLength(TEXT_MAX - 1);
+    expect(() => JSON.parse(JSON.stringify(job.text))).not.toThrow();
   });
   it("builds each board's public address", () => {
     expect(boardUrl("ashby", "acme")).toBe("https://api.ashbyhq.com/posting-api/job-board/acme");

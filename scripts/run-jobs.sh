@@ -2,6 +2,7 @@
 # Drives the fh-jobs worker and prints one line per call.
 #   scripts/run-jobs.sh vc accel menlo     import these VC boards' company lists
 #   scripts/run-jobs.sh ats                look for job boards, 25 companies a call, until none is left
+#   scripts/run-jobs.sh tag                tag postings with the current skill vocabulary, 300 a call, until none is left
 # The worker's address is public and needs no key: a call only re-reads public lists.
 # After a run, read the real row counts from the database; do not add up this output.
 set -u
@@ -34,8 +35,19 @@ case "${1:-}" in
     done
     echo "done"
     ;;
+  tag)
+    for i in $(seq 1 "$MAX_CALLS"); do
+      result=$(call '{"task":"tag","limit":300}')
+      echo "tag $i $result"
+      case "$result" in
+        *'"ok":false'*) echo "stopped: the worker reported a failure" >&2; exit 1 ;;
+        *'"tagged":0'*) break ;;
+      esac
+    done
+    echo "done"
+    ;;
   *)
-    echo "usage: scripts/run-jobs.sh vc <board>... | ats" >&2
+    echo "usage: scripts/run-jobs.sh vc <board>... | ats | tag" >&2
     exit 2
     ;;
 esac

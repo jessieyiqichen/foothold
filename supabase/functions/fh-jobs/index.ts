@@ -2,11 +2,14 @@
 //   {"task":"vc","board":"accel"}  reads one VC job board's company list (Getro) into fh_companies
 //   {"task":"ats","limit":20}      takes the next companies, looks for each one's public job board on Ashby,
 //                                  Greenhouse or Lever, and writes its open roles into fh_postings
+//   {"task":"tag","limit":200}     tags postings not yet tagged with this version of the skill vocabulary
 // Only company lists come from the VC boards; the roles always come from the company's own board.
 // It writes with the project's secret key, which Supabase gives the function on its own servers.
 
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { type Ats, type AtsJob, boardUrl, parseGetroCompanies, PARSERS, slugCandidates, type VcCompany } from "./lib/parse.ts";
+import { SKILLS_VERSION } from "./lib/skills.ts";
+import { tagsOf } from "./lib/tags.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SECRET_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -14,6 +17,8 @@ const USER_AGENT = "Foothold/1.0 (class project; https://github.com/jessieyiqich
 const TIMEOUT_MS = 12_000;
 const ATS_ORDER: Ats[] = ["ashby", "greenhouse", "lever"];
 const DEFAULT_LIMIT = 20;
+const TAG_LIMIT_DEFAULT = 200;
+const TAG_LIMIT_MAX = 400;
 const GETRO_PAGES_MAX = 120;
 const CHUNK = 200;
 /** Getro collection ids of the VC boards, read from each board's own page on 2026-11-10. */
@@ -80,6 +85,7 @@ async function checkCompany(db: SupabaseClient, c: Claimed): Promise<number> {
   const rows = found.jobs.map((j) => ({
     source: "ats", source_id: `${found.ats}:${found.slug}:${j.id}`, company_id: c.id, company_name: c.name,
     title: j.title, location: j.location, text: j.text, url: j.url, posted_at: j.postedAt, updated_at: now,
+    tags: tagsOf(j.title, j.text), tags_version: SKILLS_VERSION,
   }));
   for (let i = 0; i < rows.length; i += CHUNK) {
     const { error } = await db.from("fh_postings").upsert(rows.slice(i, i + CHUNK), { onConflict: "source,source_id" });
@@ -101,12 +107,26 @@ async function runAts(db: SupabaseClient, limit: number) {
   return { claimed: claimed.length, found: counts.filter((n) => n > 0).length, written: counts.reduce((a, b) => a + b, 0), errors };
 }
 
+/** Tags the next postings whose tags are from an older vocabulary (or none). Returns how many are left. */
+async function runTag(db: SupabaseClient, limit: number) {
+  const { data, error } = await db.from("fh_postings").select("id, title, text")
+    .lt("tags_version", SKILLS_VERSION).order("id").limit(limit);
+  if (error) throw new Error(`fh_postings: ${error.message}`);
+  const rows = ((data ?? []) as { id: number; title: string | null; text: string }[])
+    .map((p) => ({ id: p.id, tags: tagsOf(p.title, p.text) }));
+  if (rows.length > 0) {
+    const { error: setError } = await db.rpc("fh_set_tags", { version: SKILLS_VERSION, rows });
+    if (setError) throw new Error(`fh_set_tags: ${setError.message}`);
+  }
+  return { tagged: rows.length, version: SKILLS_VERSION };
+}
+
 Deno.serve(async (req) => {
   if (!SUPABASE_URL || !SECRET_KEY) return json({ ok: false, error: "missing Supabase settings" }, 500);
   let body: { task?: unknown; board?: unknown; limit?: unknown };
   try { body = await req.json(); } catch { return json({ ok: false, error: "body must be JSON" }, 400); }
-  const task = body.task === "vc" || body.task === "ats" ? body.task : null;
-  if (!task) return json({ ok: false, error: 'task must be "vc" or "ats"' }, 400);
+  const task = body.task === "vc" || body.task === "ats" || body.task === "tag" ? body.task : null;
+  if (!task) return json({ ok: false, error: 'task must be "vc", "ats" or "tag"' }, 400);
 
   const db = createClient(SUPABASE_URL, SECRET_KEY, { auth: { persistSession: false } });
   const started = new Date();
@@ -117,6 +137,11 @@ Deno.serve(async (req) => {
     if (task === "vc") {
       written = await importVcBoard(db, String(body.board ?? ""));
       out = { board: body.board };
+    } else if (task === "tag") {
+      const limit = Number.isInteger(body.limit) ? Math.min(Math.max(body.limit as number, 1), TAG_LIMIT_MAX) : TAG_LIMIT_DEFAULT;
+      const r = await runTag(db, limit);
+      written = r.tagged;
+      out = r;
     } else {
       const limit = Number.isInteger(body.limit) ? Math.min(Math.max(body.limit as number, 1), 50) : DEFAULT_LIMIT;
       const r = await runAts(db, limit);

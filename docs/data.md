@@ -10,6 +10,8 @@ One Supabase project, shared with Assignments 4 and 5. Foothold's tables start w
 | `fh_postings` | A posting | `source` (hn: a "Who is hiring" comment; ats: a role on the company's own board) + `source_id`; `company_id`; `title`, `location`, `text` (cut at 6,000 characters for ats); `url`; `emails`, `author` (hn) | Workers only |
 | `fh_runs` | A worker run | `source`, `ok`, `rows_written`, `error` | Workers only |
 
+`fh_postings.tags` holds a posting's skill tags and `tags_version` the vocabulary version they came from (see Matching below).
+
 Row-level security is on for all three. Signed-in people read companies and postings; nobody but the workers (the secret key) writes; `fh_runs` is not readable from the app. Per-person tables (profiles, cards, messages) are not built yet and will be each person's own.
 
 ## Workers
@@ -19,6 +21,15 @@ Row-level security is on for all three. Signed-in people read companies and post
 | `fh-scout` | `{"source":"yc"}` weekly, `{"source":"hn"}` daily (Cron) | Reads the YC directory JSON (active companies only) or the newest HN "Who is hiring" thread; upserts on `(source, source_id)`; links HN postings to YC companies of the same name |
 | `fh-jobs` | `{"task":"vc","board":"accel"}` | Reads one VC board's company list (Getro) into `fh_companies`, one row per domain |
 | `fh-jobs` | `{"task":"ats","limit":25}` | Claims the next unchecked companies (hiring ones first), tries each one's likely board names on Ashby, Greenhouse and Lever, writes the roles found. At most 300 roles a company |
+| `fh-jobs` | `{"task":"tag","limit":300}` | Tags the next postings whose tags are older than the current vocabulary. `scripts/run-jobs.sh tag` runs it until none is left |
+
+## Matching a person to postings
+
+A posting is matched on skill tags, not on its full text. The vocabulary is `supabase/functions/fh-jobs/lib/skills.ts`: about 170 rows of group, tag and pattern. `tagsOf(title, text)` in `lib/tags.ts` tags a posting and, later, a resume with the same function, so both sides use the same words. To change the vocabulary: edit a row, raise `SKILLS_VERSION`, redeploy, run `scripts/run-jobs.sh tag`.
+
+Why tags (measured 2026-11-10): full-text search of the descriptions matched 2,828 of 3,000 sampled postings for a seven-word query and took 5.9 seconds on those 3,000, because every match has to be re-analysed to be ranked; storing the analysis would need about 170 MB. Searching tags for twelve skills over all 36,551 postings took 101 ms, and the index is 4.4 MB.
+
+Known problem with version 1 of the vocabulary: several industry and function tags fire on benefits and legal boilerplate, not on the job. `healthcare` is on 14,107 postings (medical insurance in the benefits list), `insurance` on 9,756, `finance` on 10,702, `legal` on 9,143, `recruiting` on 8,274. Skill tags look right (`experimentation` 1,933, `causal inference` 147, `econometrics` 27). To fix in version 2, with the user's review of the vocabulary: stop tagging at the benefits or equal-opportunity heading, and narrow those patterns.
 
 ## Sources
 
@@ -49,11 +60,11 @@ Adding a source goes through the `add-source` skill.
 | Companies | 7,144: 4,413 active YC companies and 2,731 from the nine Getro boards after merging by domain |
 | Companies checked for a job board | 6,941. The other 203 are VC-list rows whose domain YC also lists; the YC row was checked instead |
 | Companies with a board found, guessing its name | 1,664 (24% of those checked; 38% among the first 975, which were the ones marked as hiring) |
-| Database size | 212 MB of the free tier's 500 MB |
+| Database size | 228 MB of the free tier's 500 MB, after adding tags |
 
 Known gaps:
 - 14 companies were cut off at 300 roles (counted when 5,820 companies had been checked).
-- One company's roles were refused by the database ("invalid input syntax for type json", most likely a character Postgres does not accept in JSON). Its roles are missing and the parser does not yet strip such characters.
+- One company's roles were refused by the database ("invalid input syntax for type json"). The cause, half an emoji left by cutting the text at 6,000 characters, is fixed and tested in `lib/parse.ts`; that company's roles are still missing until it is checked again.
 - The roles include large companies from the VC lists and roles outside the US. The count says nothing yet about how many suit a new grad; the Judge will.
 
 Row counts change with every run; read them from the database, not from this file.

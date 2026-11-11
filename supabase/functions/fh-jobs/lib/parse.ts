@@ -55,8 +55,13 @@ export function plain(html: string): string {
     .replace(/[ \t ]+/g, " ").replace(/\s*\n\s*/g, "\n").trim();
 }
 
+/** Characters Postgres refuses in JSON: the null character, and half of a surrogate pair (cutting a text at a fixed
+ *  length can split an emoji in two; one company's roles were refused for this on 2026-11-10). */
+export const clean = (s: string): string =>
+  s.replace(/\u0000/g, "").replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "");
+
 /** A posting must have text; a job with no description falls back to its title. */
-const body = (text: string | null, title: string) => (text && text.length > 0 ? text : title).slice(0, TEXT_MAX);
+const body = (text: string | null, title: string) => clean((text && text.length > 0 ? text : title).slice(0, TEXT_MAX));
 
 /** Getro's company search: {results: {companies: [{name, domain, description, head_count, stage, active_jobs_count}]}}. */
 export function parseGetroCompanies(raw: unknown): VcCompany[] {
@@ -99,7 +104,8 @@ function push(out: AtsJob[], id: unknown, title: unknown, location: unknown, tex
   const t = str(title, TITLE_MAX);
   const u = httpsUrl(url);
   if (!jobId || !t || !u || out.length >= JOBS_PER_COMPANY_MAX) return;
-  out.push({ id: jobId, title: t, location: str(location, 300), text: body(text, t), url: u, postedAt: isoDate(postedAt) });
+  const place = str(location, 300);
+  out.push({ id: jobId, title: clean(t), location: place ? clean(place) : null, text: body(text, t), url: u, postedAt: isoDate(postedAt) });
 }
 
 export function parseAshby(raw: unknown): AtsJob[] {
