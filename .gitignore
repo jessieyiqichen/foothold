@@ -41,6 +41,8 @@ yarn-error.log*
 next-env.d.ts
 .claude/*
 !.claude/settings.json
+!.claude/agents/
+!.claude/hooks/
 
 # Playwright (step 7)
 /test-results/

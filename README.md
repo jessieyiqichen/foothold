@@ -5,7 +5,7 @@ For students curious about startups whose background isn't a direct match: an AI
 Design, Build, Ship (MPCS 51238, Autumn 2026) · **Final project**, focus: **AI**. v1 is due November 17, v2 at the project fair on December 1.
 
 - **Proposal:** [dbs-proposal-xi.vercel.app](https://dbs-proposal-xi.vercel.app) ([repo](https://github.com/jessieyiqichen/dbs-proposal)), with three user interviews
-- **This week's plan (Chinese):** [docs/v1-plan.md](docs/v1-plan.md)
+- **This week's plan:** [docs/v1-plan.md](docs/v1-plan.md) · **Who owns what, and the agent harness:** [docs/ownership.md](docs/ownership.md), [AGENTS.md](AGENTS.md) · **Log:** [log.md](log.md)
 - **Built on:** Assignment 5's worker and Realtime ([docs/README-a5.md](docs/README-a5.md)) and Assignment 4's job board code and goal tables ([docs/README-a4.md](docs/README-a4.md)). Same Clerk app and Supabase project; Foothold's tables start with `fh_` and the earlier tables are untouched.
 
 ## Status (November 10)

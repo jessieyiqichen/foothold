@@ -8,6 +8,36 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
+# Foothold · DBS final project (focus: AI)
+
+For students curious about startups whose background isn't a direct match: an agent finds startups that fit, judges whether they really hire new grads (quoting the posting), finds the student's way in (quoting their resume and a company fact), and names one person to contact. Proposal: https://dbs-proposal-xi.vercel.app. v1 due 2026-11-17, v2 at the fair 2026-12-01. Plan: `docs/v1-plan.md`. The sections below this one are Assignments 5, 4 and 3, whose code this repo is built on; their rules still apply unless this section says otherwise.
+
+## Harness (decided with the user, 2026-11-10)
+- Agents are split by file area, not by product role, so two agents never edit the same file: `docs/ownership.md` says who owns which paths. Read it before starting; if a row is wrong, fix the row.
+- Role briefs: `.claude/agents/data-scout.md`, `judge-eval.md`, `web-ui.md`, `reviewer.md`.
+- Only the lead session (the one talking to the user) applies migrations, deploys Edge Functions, pushes, deploys to Vercel, or changes Cron, RLS or keys. Other agents write the migration file and the function and hand them back. Any agent may read the database and logs.
+- Checking a hand-back: read-only research, the lead spot-checks the key numbers and says which it re-checked; ordinary code, the lead runs the tests and reads the diff; anything touching RLS, permissions, user data or keys goes through `reviewer` first, then the lead, then it is applied.
+- Enforced by `.claude/hooks/guard.mjs`, not just written here: no agent touches an env file by any tool or shell command, and staging names files one by one (no `git add -A`, `git add .`, a directory, or `git commit -a`).
+- Everything in this repo is written in English (user, 2026-11-10): code, docs, the log, commit messages. Earlier Chinese docs from Assignments 3 to 5 stay as they are under `docs/`.
+- Log every request, push-back and decision in `log.md`.
+- Design is decided with the user, one question at a time, before it is built. Carrying out an agreed step alone is fine; choosing the shape of something is not.
+
+## Data (Supabase project shared with A4 and A5; Foothold tables start with `fh_`)
+| Table | Holds | Written by |
+|---|---|---|
+| `fh_companies` | One row per company per list (`source`: yc, hn, vc); domain for merging; `lists` = the VC boards naming it; `ats`, `ats_slug`, `ats_jobs` once its job board is found | Workers only |
+| `fh_postings` | One posting: HN "Who is hiring" comment (`hn`) or a role from the company's own board (`ats`); text, link, emails, poster | Workers only |
+| `fh_runs` | One row per worker run | Workers only |
+
+Signed-in people read companies and postings; nobody but the workers writes. Per-person tables (profiles, cards, messages) come later and are each person's own under RLS.
+
+## Never
+- Never crawl LinkedIn, Wellfound or Fast AI Jobs; a card links out. A site whose robots.txt forbids us (Greylock names Claude) is skipped, with no workaround through another site's API.
+- VC job boards give company lists only. Roles always come from the company's own Greenhouse, Lever or Ashby board.
+- Never send a message for the user. Foothold names the person and the reason; the user writes and sends.
+- Never invent an interview, a quote, a label or a number. A quote counts only if it appears word for word in the posting or the resume. Claude's pre-labels in `evals/new-grad` are not the user's labels and are never scored as ground truth.
+- Tests never call a paid or rate-limited model API; mock it. Only the eval script does, and it prints how many calls it will make first.
+
 # Builder's Board · DBS Assignment 5 (Live Data System), built on the Assignment 4 code
 
 Brief: a worker that runs every few seconds, fetches a live source and saves only what changed, with a page that updates on its own (Supabase Edge Function + Supabase Cron + Realtime). Due Tue 2026-11-03 17:30. A4 stays as it is at dbs-a4.vercel.app; this repo was copied from dbs-a4 `main` (7ae4aad) on 2026-10-30 and keeps its Clerk sign-in, Supabase project and deploy setup.
@@ -125,5 +155,5 @@ Checking and working together
 - Forms: one column, a real label on every field, errors next to the field saying what to do next, keep what the person typed.
 - Shared components (Button, Field, Input...) used everywhere. Keyboard access, real labels, contrast checked.
 - Every step is discussed and approved by the user before it is built. Small fixes to approved work are fine.
-- Log every request, push-back and decision in `log.md` (Chinese). Pages, code and this file stay in English.
+- Log every request, push-back and decision in `log.md` (English since 2026-11-10; the earlier log is `docs/log-a3-a5.md`).
 - Commits: one small step each; add files by name, never `git add -A`.
