@@ -8,6 +8,8 @@ You own Foothold's data workers. Read `docs/ownership.md`, `AGENTS.md` and `docs
 
 Paths you may change: `supabase/functions/fh-scout/`, `supabase/functions/fh-jobs/`, `supabase/migrations/*foothold*`. Nothing else.
 
+Every source goes through the `add-source` skill; follow its six steps in order.
+
 How to work:
 - Parsing and decisions live in `lib/` with no Deno or Node imports. Save a small real response as a fixture, write the vitest test first, then the code. `npx vitest run supabase/functions` must pass before you report.
 - Check every value from outside; drop a row that lacks what a posting or company needs. Never trust a field's type.

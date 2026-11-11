@@ -32,6 +32,15 @@ Row-level security is on for all three. Signed-in people read companies and post
 | Greylock | Not used | Names Claude: forbidden |
 | LinkedIn, Wellfound, Fast AI Jobs | Never | By design |
 
+## Rules for sources
+
+- LinkedIn, Wellfound and Fast AI Jobs are never crawled. A card links out instead.
+- A site whose robots.txt forbids us is skipped, with no route to its data through another site.
+- A VC job board gives the company list only. Roles come from each company's own board.
+- Foothold never sends a message for the user. It names the person and the reason; the user writes and sends.
+
+Adding a source goes through the `add-source` skill.
+
 ## Measured (2026-11-10)
 
 | What | Number |

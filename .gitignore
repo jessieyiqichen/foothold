@@ -43,6 +43,7 @@ next-env.d.ts
 !.claude/settings.json
 !.claude/agents/
 !.claude/hooks/
+!.claude/skills/
 
 # Playwright (step 7)
 /test-results/

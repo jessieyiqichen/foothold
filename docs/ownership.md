@@ -8,7 +8,7 @@ The four design decisions were made with the user on 2026-11-10, one at a time: 
 
 | Role | Brief | May change only | Does not touch |
 |---|---|---|---|
-| lead (the session talking to the user) | `AGENTS.md` | `docs/`, `README.md`, `AGENTS.md`, `log.md`, `.claude/` | Code owned by another role, unless that role is not running |
+| lead (the session talking to the user) | `AGENTS.md` | `docs/`, `README.md`, `AGENTS.md`, `log.md`, `.claude/`, `scripts/` | Code owned by another role, unless that role is not running |
 | data-scout | `.claude/agents/data-scout.md` | `supabase/functions/fh-scout/`, `supabase/functions/fh-jobs/`, `supabase/migrations/*foothold*` | `src/`, `evals/` |
 | judge-eval | `.claude/agents/judge-eval.md` | `supabase/functions/fh-judge/`, `evals/`, `src/lib/judge/` | Data workers, pages |
 | web-ui | `.claude/agents/web-ui.md` | `src/app/`, `src/components/`, `src/lib/` (not `src/lib/judge/`), `e2e/` | `supabase/` |
