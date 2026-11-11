@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # Foothold · DBS final project (focus: AI)
 
-Finds startups that fit a student, judges whether they really hire new grads, finds the student's way in, and names one person to contact. Every judgment quotes its source. v1 is due 2026-11-17, v2 at the project fair on 2026-12-01. Proposal: https://dbs-proposal-xi.vercel.app
+Helps a person find the startups, the roles and the people that fit them, from their own resume. Every judgment quotes its source. The first users are students. v1 is due 2026-11-17, v2 at the project fair on 2026-12-01. Proposal: https://dbs-proposal-xi.vercel.app
 
 ## Adding or fixing a data source
 

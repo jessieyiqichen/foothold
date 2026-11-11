@@ -1,6 +1,6 @@
 # Foothold
 
-For students curious about startups whose background isn't a direct match: an AI agent that finds startups that fit you, checks whether they really hire new grads, and shows you a way in, based on your own resume.
+Foothold helps a person find the startups, the roles and the people that fit them, from their own resume. Every judgment quotes its source. The first users are students: it started from students curious about startups whose background isn't a direct match, and that is who v1 is tested with.
 
 Design, Build, Ship (MPCS 51238, Autumn 2026) · **Final project**, focus: **AI**. v1 is due November 17, v2 at the project fair on December 1.
 
@@ -28,7 +28,7 @@ Four agents with one job each, reporting into one room, and a card per company a
 | Agent | Job | How it is measured |
 |---|---|---|
 | Scout | Finds companies and postings from YC, Hacker News, VC job boards and company job boards; merges the same company across sources | Same company merged correctly, 90%+ |
-| Judge | Reads a posting and says whether it really hires new grads, quoting the sentence it relied on | Agrees with my labels on 40 postings, 80%+ |
+| Judge | Reads a posting and says what level it is and what it strictly requires, quoting the sentences it relied on. It labels; it never hides a role | Its level agrees with my labels on 40 postings, 80%+ |
 | Insider | Writes "your way in": one line from your resume against one fact about the company | Every quote exists in the posting or the resume, 100% (checked automatically) |
 | Connector | Names one person to contact: the founder, or whoever posted the job on Hacker News | Of 5 classmates who sign up, 2 reach out |
 
