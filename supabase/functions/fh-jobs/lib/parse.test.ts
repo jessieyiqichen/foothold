@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  boardUrl, clean, parseAshby, parseGem, parseGetroCompanies, parseGreenhouse, parseLever, parseRippling, parseRipplingJob,
-  parseWorkable, PARSERS, plain, ripplingJobUrl, slugCandidates, TEXT_MAX,
+  ATS_ORDER, boardUrl, clean, parseAshby, parseGem, parseGetroCompanies, parseGreenhouse, parseLever, parseRippling, parseRipplingJob,
+  parseWorkable, PARSERS, pickSystems, plain, ripplingJobUrl, slugCandidates, TEXT_MAX, withDetail,
 } from "./parse";
 
 // Real responses saved 2026-11-10, cut to two or three rows each: Accel's Getro board, PostHog on Ashby,
@@ -159,5 +159,33 @@ describe("Workable, Rippling and Gem", () => {
     expect(boardUrl("gem", "acme")).toBe("https://api.gem.com/job_board/v0/acme/job_posts/");
     expect(ripplingJobUrl("acme", "u-1")).toBe("https://api.rippling.com/platform/api/ats/v1/board/acme/jobs/u-1");
     expect(Object.keys(PARSERS).sort()).toEqual(["ashby", "gem", "greenhouse", "lever", "rippling", "workable"]);
+  });
+});
+
+describe("which systems a run tries", () => {
+  it("tries all six by default, the three first ones first", () => {
+    expect(ATS_ORDER).toEqual(["ashby", "greenhouse", "lever", "gem", "rippling", "workable"]);
+    expect(pickSystems(undefined)).toEqual(ATS_ORDER);
+    expect(pickSystems(null)).toEqual(ATS_ORDER);
+  });
+  it("keeps only known names from a request, in the usual order, without repeats", () => {
+    expect(pickSystems(["workable", "gem", "gem", "nope", 7, null])).toEqual(["gem", "workable"]);
+  });
+  it("falls back to all six when the request names none it knows", () => {
+    expect(pickSystems(["nope"])).toEqual(ATS_ORDER);
+    expect(pickSystems("workable")).toEqual(ATS_ORDER);
+    expect(pickSystems([])).toEqual(ATS_ORDER);
+  });
+});
+
+describe("withDetail", () => {
+  const job = { id: "u1", title: "Engineer", location: null, text: "Engineer", url: "https://x.io/u1", postedAt: null };
+  it("returns a new job with the detail's text and date, leaving the first untouched", () => {
+    const filled = withDetail(job, { text: "Build things", postedAt: "2026-10-06T23:36:07.947Z" });
+    expect(filled).toMatchObject({ id: "u1", text: "Build things", postedAt: "2026-10-06T23:36:07.947Z" });
+    expect(job.text).toBe("Engineer");
+  });
+  it("keeps what the job had when the detail is empty", () => {
+    expect(withDetail(job, { text: null, postedAt: null })).toEqual(job);
   });
 });

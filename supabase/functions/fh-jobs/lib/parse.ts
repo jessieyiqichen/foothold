@@ -220,3 +220,16 @@ export function parseGem(raw: unknown): AtsJob[] {
 export const PARSERS: Record<Ats, (raw: unknown) => AtsJob[]> = {
   ashby: parseAshby, greenhouse: parseGreenhouse, lever: parseLever, workable: parseWorkable, rippling: parseRippling, gem: parseGem,
 };
+
+/** The order a company's board is looked for. Workable is last: it allows few requests a minute. */
+export const ATS_ORDER: Ats[] = ["ashby", "greenhouse", "lever", "gem", "rippling", "workable"];
+
+/** The systems a request asked for (`systems` in the body), in the usual order; all of them when it names none we know. */
+export function pickSystems(v: unknown): Ats[] {
+  const asked = Array.isArray(v) ? ATS_ORDER.filter((a) => v.includes(a)) : [];
+  return asked.length > 0 ? asked : ATS_ORDER;
+}
+
+/** A job with the text and date read from its own address (Rippling), as a new object. */
+export const withDetail = (job: AtsJob, d: { text: string | null; postedAt: string | null }): AtsJob =>
+  ({ ...job, text: d.text ?? job.text, postedAt: d.postedAt ?? job.postedAt });
