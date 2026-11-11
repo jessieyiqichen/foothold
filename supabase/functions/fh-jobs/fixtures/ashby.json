@@ -1,0 +1,49 @@
+{
+ "jobs": [
+  {
+   "id": "db808740-242e-4a40-ad43-d41f26c049d7",
+   "title": " Technical Support Engineer",
+   "department": "Support Engineering",
+   "team": "Support Engineering",
+   "employmentType": "FullTime",
+   "location": "Remote",
+   "secondaryLocations": [],
+   "publishedAt": "2026-11-06T15:25:28.875+00:00",
+   "isListed": true,
+   "isRemote": true,
+   "workplaceType": "Remote",
+   "address": {
+    "postalAddress": {
+     "addressCountry": "US | EU"
+    }
+   },
+   "jobUrl": "https://jobs.ashbyhq.com/PostHog/db808740-242e-4a40-ad43-d41f26c049d7",
+   "applyUrl": "https://jobs.ashbyhq.com/PostHog/db808740-242e-4a40-ad43-d41f26c049d7/application",
+   "descriptionHtml": "(cut)",
+   "descriptionPlain": "ABOUT POSTHOG\n\nPostHog is your product\u2019s context layer. It ingests and stores your analytics, errors, replays, and business data so you and your agents can query and act on it.\n\nWe launched out of Y Combinator's W20 cohort https://posthog.com/handbook/story. We've since shipped more than a dozen products, including:\n\n - A suite of analytics and observability tools, including product analytics https://posthog.com/product-analytics, replay vision https://posthog.com/replay-vision, AI observability https://posthog.com/ai-observability, and error tracking https://posthog.com/error-tracking\n\n - PostHog MCP https://posthog.com/mcp for users and their agents to query and act on their product and business data\n\n - Data warehouse https://posthog.com/context-warehouse/managed-warehouse so users can query product and customer data together using custom SQL insights.\n\nWe are:\n\n 1. Product-led. More than 500K organizations have installed PostHog, mostly driven by word-of-mouth. We have intensely strong product-market fit.\n\n 2. Default alive https://paulgraham.com/aord.html. Revenue is growing incredibly quickly, and we're very efficient. We raise money to push ambition and grow faster, not to keep the lights on.\n\n 3. Well-funded. We've raised more than $180m from some of the world's top investors. We're set up for a long, ambitious journey.\n\nWe're focused on building an awesome product for end users, hiring exceptional teammates, shipping fast, and being as weird as possible https://posth"
+  },
+  {
+   "id": "0be1b52c-2401-4ae2-b7fc-5d018c1ff96f",
+   "title": "Technical Customer Success Manager - EMEA",
+   "department": "Sales & Customer Success",
+   "team": "Customer Success",
+   "employmentType": "FullTime",
+   "location": "Remote (EMEA)",
+   "secondaryLocations": [],
+   "publishedAt": "2026-09-18T08:41:19.683+00:00",
+   "isListed": true,
+   "isRemote": true,
+   "workplaceType": "Remote",
+   "address": {
+    "postalAddress": {
+     "addressCountry": "European Union"
+    }
+   },
+   "jobUrl": "https://jobs.ashbyhq.com/PostHog/0be1b52c-2401-4ae2-b7fc-5d018c1ff96f",
+   "applyUrl": "https://jobs.ashbyhq.com/PostHog/0be1b52c-2401-4ae2-b7fc-5d018c1ff96f/application",
+   "descriptionHtml": "(cut)",
+   "descriptionPlain": "ABOUT POSTHOG\n\nPostHog is your product\u2019s context layer. It ingests and stores your analytics, errors, replays, and business data so you and your agents can query and act on it.\n\nWe launched out of Y Combinator's W20 cohort https://posthog.com/handbook/story. We've since shipped more than a dozen products, including:\n\n - A suite of analytics and observability tools, including product analytics https://posthog.com/product-analytics, replay vision https://posthog.com/replay-vision, AI observability https://posthog.com/ai-observability, and error tracking https://posthog.com/error-tracking\n\n - PostHog MCP https://posthog.com/mcp for users and their agents to query and act on their product and business data\n\n - Data warehouse https://posthog.com/context-warehouse/managed-warehouse so users can query product and customer data together using custom SQL insights.\n\nWe are:\n\n 1. Product-led. More than 500K organizations have installed PostHog, mostly driven by word-of-mouth. We have intensely strong product-market fit.\n\n 2. Default alive https://paulgraham.com/aord.html. Revenue is growing incredibly quickly, and we're very efficient. We raise money to push ambition and grow faster, not to keep the lights on.\n\n 3. Well-funded. We've raised more than $180m from some of the world's top investors. We're set up for a long, ambitious journey.\n\nWe're focused on building an awesome product for end users, hiring exceptional teammates, shipping fast, and being as weird as possible https://posth"
+  }
+ ],
+ "apiVersion": "1"
+}

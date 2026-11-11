@@ -1,0 +1,99 @@
+{
+ "jobs": [
+  {
+   "absolute_url": "https://job-boards.greenhouse.io/givedirectly/jobs/4736976005",
+   "data_compliance": [
+    {
+     "type": "gdpr",
+     "requires_consent": false,
+     "requires_processing_consent": false,
+     "requires_retention_consent": false,
+     "retention_period": null,
+     "demographic_data_consent_applies": false
+    }
+   ],
+   "internal_job_id": 4455941005,
+   "location": {
+    "name": "RDC : BUKAVU et KINSHASA"
+   },
+   "id": 4736976005,
+   "updated_at": "2026-09-29T14:13:15-04:00",
+   "requisition_id": "854",
+   "title": "002-09-2026 SUPERVISEUR TERRAIN & CONTR\u00d4LEUR DE RISQUE / BUKAVU et KINSHASA     ",
+   "company_name": "GiveDirectly",
+   "first_published": "2026-09-23T04:47:03-04:00",
+   "language": "fr",
+   "application_deadline": null,
+   "content": "&lt;div class=&quot;content-intro&quot;&gt;&lt;p&gt;&lt;strong&gt;About GiveDirectly&lt;/strong&gt;&lt;strong&gt;&amp;nbsp;&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;What if the most effective way to fight poverty was also the simplest: give people money and trust them to decide what they need?&lt;/p&gt;\n&lt;p&gt;Since 2011, GiveDirectly has proven that idea at scale. We\u2019ve delivered more than $1B in cash directly to 2+ million people living in poverty and crisis across 15 countries, and rigorous research shows the results: healthier kids, stronger businesses, sturdier homes, and more resilient families and local economies. Cash is now widely recognized as one of the most scalable, cost-effective, and dignified forms of aid.&lt;/p&gt;\n&lt;p&gt;Our ambition goes beyond our own programs. We want cash to become the benchmark for aid, much as the index fund became the benchmark for investing, so that every aid dollar is held to one question: &lt;em&gt;is this doing more good than giving the money directly to people living in poverty?&lt;/em&gt;&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;We\u2019re growing fast, and this is a rare and important moment to join.&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;We expect to hit $1B in revenue in 2026 with significant growth forecast for 2027. At the same time we are building a new technology stack and operating model designed for a roughly 10x change in scale, and we are actively pursuing partnerships with major funders to move even more money in bigger ways, to people w",
+   "departments": [
+    {
+     "id": 4021334005,
+     "name": "Internal Audit",
+     "child_ids": [],
+     "parent_id": 4149368005
+    }
+   ],
+   "offices": [
+    {
+     "id": 4010594005,
+     "name": "DRC",
+     "location": null,
+     "child_ids": [],
+     "parent_id": 4008799005
+    }
+   ],
+   "ai_disclaimer": null,
+   "include_ai_disclaimer": false,
+   "ai_opt_out_request_url": "http://app5.greenhouse.io/ai_opt_out_request/job_post/4736976005/ai_opt_out"
+  },
+  {
+   "absolute_url": "https://job-boards.greenhouse.io/givedirectly/jobs/4747980005",
+   "data_compliance": [
+    {
+     "type": "gdpr",
+     "requires_consent": false,
+     "requires_processing_consent": false,
+     "requires_retention_consent": false,
+     "retention_period": null,
+     "demographic_data_consent_applies": false
+    }
+   ],
+   "internal_job_id": 4461022005,
+   "location": {
+    "name": "LUKULA AU KONGO CENTRAL"
+   },
+   "id": 4747980005,
+   "updated_at": "2026-10-27T10:35:09-04:00",
+   "requisition_id": "877",
+   "title": "002-10-2026/GD-RDC/ Associate Logistique Lukula Kongo Central",
+   "company_name": "GiveDirectly",
+   "first_published": "2026-10-27T09:24:06-04:00",
+   "language": "fr",
+   "application_deadline": null,
+   "content": "&lt;div class=&quot;content-intro&quot;&gt;&lt;p&gt;&lt;strong&gt;About GiveDirectly&lt;/strong&gt;&lt;strong&gt;&amp;nbsp;&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;What if the most effective way to fight poverty was also the simplest: give people money and trust them to decide what they need?&lt;/p&gt;\n&lt;p&gt;Since 2011, GiveDirectly has proven that idea at scale. We\u2019ve delivered more than $1B in cash directly to 2+ million people living in poverty and crisis across 15 countries, and rigorous research shows the results: healthier kids, stronger businesses, sturdier homes, and more resilient families and local economies. Cash is now widely recognized as one of the most scalable, cost-effective, and dignified forms of aid.&lt;/p&gt;\n&lt;p&gt;Our ambition goes beyond our own programs. We want cash to become the benchmark for aid, much as the index fund became the benchmark for investing, so that every aid dollar is held to one question: &lt;em&gt;is this doing more good than giving the money directly to people living in poverty?&lt;/em&gt;&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;We\u2019re growing fast, and this is a rare and important moment to join.&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;We expect to hit $1B in revenue in 2026 with significant growth forecast for 2027. At the same time we are building a new technology stack and operating model designed for a roughly 10x change in scale, and we are actively pursuing partnerships with major funders to move even more money in bigger ways, to people w",
+   "departments": [
+    {
+     "id": 4041195005,
+     "name": "Administrative",
+     "child_ids": [],
+     "parent_id": 4019527005
+    }
+   ],
+   "offices": [
+    {
+     "id": 4010594005,
+     "name": "DRC",
+     "location": null,
+     "child_ids": [],
+     "parent_id": 4008799005
+    }
+   ],
+   "ai_disclaimer": null,
+   "include_ai_disclaimer": false,
+   "ai_opt_out_request_url": "http://app5.greenhouse.io/ai_opt_out_request/job_post/4747980005/ai_opt_out"
+  }
+ ],
+ "meta": {
+  "total": 30
+ }
+}
