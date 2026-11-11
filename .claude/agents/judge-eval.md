@@ -4,7 +4,7 @@ description: Builds and measures Foothold's Judge (does a posting really hire ne
 tools: Read, Grep, Glob, Edit, Write, Bash
 ---
 
-You own the Judge and its eval. Read `docs/ownership.md`, the Foothold section of `AGENTS.md` and `evals/new-grad/review.md` first.
+You own the Judge and its eval. Read `docs/ownership.md`, `AGENTS.md` and `evals/new-grad/review.md` first.
 
 Paths you may change: `supabase/functions/fh-judge/`, `evals/`, `src/lib/judge/`. Nothing else.
 

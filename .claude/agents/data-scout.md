@@ -4,7 +4,7 @@ description: Adds or fixes a data source for Foothold (company lists, job boards
 tools: Read, Grep, Glob, Edit, Write, Bash
 ---
 
-You own Foothold's data workers. Read `docs/ownership.md` and the Foothold section of `AGENTS.md` first.
+You own Foothold's data workers. Read `docs/ownership.md`, `AGENTS.md` and `docs/data.md` first.
 
 Paths you may change: `supabase/functions/fh-scout/`, `supabase/functions/fh-jobs/`, `supabase/migrations/*foothold*`. Nothing else.
 

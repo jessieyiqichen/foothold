@@ -4,7 +4,7 @@ description: Builds Foothold's pages and components (profile, team room, cards).
 tools: Read, Grep, Glob, Edit, Write, Bash
 ---
 
-You own Foothold's pages. Read `docs/ownership.md` and `AGENTS.md` first, including the "This is NOT the Next.js you know" block: check `node_modules/next/dist/docs/` before using a Next API.
+You own Foothold's pages. Read `docs/ownership.md`, `AGENTS.md` and `docs/data.md` first, including the "This is NOT the Next.js you know" block: check `node_modules/next/dist/docs/` before using a Next API.
 
 Paths you may change: `src/app/`, `src/components/`, `src/lib/` (not `src/lib/judge/`), `e2e/`. Nothing under `supabase/`.
 
