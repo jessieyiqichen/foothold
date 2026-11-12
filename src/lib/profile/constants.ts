@@ -1,7 +1,10 @@
 /** Names and limits for a person's profile (their resume and its skill tags). The table's own checks in
  *  `supabase/migrations/*foothold_profiles.sql` repeat the limits; change both together. */
 export const PROFILE_TABLE = "fh_profiles";
-export const PROFILE_COLUMNS = "resume_text, resume_name, tags, tags_added, tags_removed, tags_version, updated_at";
+/** Every column, not a list of names: a list naming `tags_added` and `tags_removed` is refused by a database that
+ *  does not have them yet, and a profile saved before tags could be edited must still load. `rowToProfile` takes
+ *  only the fields it knows. */
+export const PROFILE_COLUMNS = "*";
 export const PROFILE_PATH = "/profile";
 
 export const PDF_MIME = "application/pdf";

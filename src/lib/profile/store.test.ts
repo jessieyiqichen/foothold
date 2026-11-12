@@ -89,7 +89,7 @@ describe("loadProfile", () => {
     const { db, calls } = fakeDb(savedRow);
     const result = await loadProfile(db, USER);
     expect(result).toEqual({ ok: true, value: rowToProfile(savedRow) });
-    expect(calls).toEqual([`select ${PROFILE_TABLE} (resume_text, resume_name, tags, tags_added, tags_removed, tags_version, updated_at) where user_id=${USER}`]);
+    expect(calls).toEqual([`select ${PROFILE_TABLE} (*) where user_id=${USER}`]);
   });
 
   it("is an empty profile, not an error, when nothing is saved yet", async () => {
