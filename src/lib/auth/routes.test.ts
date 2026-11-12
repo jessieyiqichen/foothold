@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isBoardPath, isPublicPath } from "./routes";
+import { PROFILE_PATH } from "../profile/constants";
 
 describe("isPublicPath: which pages a signed-out visitor may open", () => {
   it("opens the sign-in and sign-up pages, with every step Clerk adds under them", () => {
@@ -12,6 +13,10 @@ describe("isPublicPath: which pages a signed-out visitor may open", () => {
     for (const path of ["/", "/goals", "/goals/new", "/session", "/reminders", "/progress/abc"]) {
       expect(isPublicPath(path), path).toBe(false);
     }
+  });
+
+  it("closes the profile page, which shows a person's resume: the proxy sends a signed-out visitor to sign in", () => {
+    expect(isPublicPath(PROFILE_PATH)).toBe(false);
   });
 
   it("does not open a page that only starts with the same letters", () => {

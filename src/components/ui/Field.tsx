@@ -53,6 +53,13 @@ export function TextInput({ className = "", ...props }: ComponentProps<"input">)
   return <input className={`${inputClass} ${className}`} {...props} />;
 }
 
+/** For long text (a resume): the same box, in the reading weight rather than the bold of a one-line answer. */
+const textAreaClass = `${inputClass.replace("font-bold", "font-semibold")} py-3 leading-relaxed`;
+
+export function TextArea({ className = "", ...props }: ComponentProps<"textarea">) {
+  return <textarea className={`${textAreaClass} ${className}`} {...props} />;
+}
+
 export function Select({ className = "", ...props }: ComponentProps<"select">) {
   return <select className={`${inputClass} ${className}`} {...props} />;
 }
