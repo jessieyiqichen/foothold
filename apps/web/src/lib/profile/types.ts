@@ -1,3 +1,5 @@
+import type { Family, Level } from "./roles";
+
 /** What a step gives back: its value, or a line to show the person. Nothing here throws at the screen. */
 export type Result<T> = { ok: true; value: T } | { ok: false; message: string };
 
@@ -15,6 +17,10 @@ export interface Profile {
   tagsAdded: string[];
   /** Vocabulary tags the person took off; kept so a tag stays off when the text yields it again. */
   tagsRemoved: string[];
+  /** The kinds of work the person wants, up to three; empty until they pick. Matches rank these first. */
+  families: Family[];
+  /** The levels the person filters matches by; empty means every level. */
+  levels: Level[];
   /** The vocabulary version the tags came from (`SKILLS_VERSION` when saved). */
   tagsVersion: number;
   updatedAt: string;
