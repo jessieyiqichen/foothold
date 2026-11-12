@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_TAG_EDITS } from "./constants";
+import { MAX_TAG_EDITS, MAX_TAG_LISTS_BYTES } from "./constants";
 import { addTag, canAdd, cleanEdits, effectiveTags, isVocabularyTag, NO_EDITS, offProfileGroups, removeTag } from "./tagEdits";
 import { MAX_TAGS, SKILLS } from "./vocabulary";
 
@@ -146,5 +146,22 @@ describe("offProfileGroups: the vocabulary tags a person could add, by group", (
     const open = groups.filter((g) => g.open).map((g) => g.group);
     expect(open.sort()).toEqual(["data", "engineering"]);
     expect(groups.find((g) => g.group === "sales")?.open).toBe(false);
+  });
+});
+
+describe("MAX_TAG_LISTS_BYTES: the database's cap on the three tag lists together", () => {
+  /** A list as Postgres writes it as text, which is what the check measures: {python,"machine learning"}. */
+  const asText = (tags: string[]) => `{${tags.map((tag) => (/[\s,{}"\\]/.test(tag) ? `"${tag}"` : tag)).join(",")}}`;
+  const bytes = (tags: string[]) => new TextEncoder().encode(asText(tags)).length;
+
+  it("leaves the largest row this page can write at most half the cap", () => {
+    const longestFirst = [...ALL].sort((a, b) => b.length - a.length);
+    // tags: the MAX_TAGS longest; added and removed never share a tag, so together at most the whole vocabulary
+    const largest = bytes(longestFirst.slice(0, MAX_TAGS)) + bytes(ALL) + bytes([]);
+    expect(largest * 2).toBeLessThanOrEqual(MAX_TAG_LISTS_BYTES);
+  });
+
+  it("is far below what unbounded elements would allow", () => {
+    expect(MAX_TAG_LISTS_BYTES).toBeLessThanOrEqual(16_384);
   });
 });

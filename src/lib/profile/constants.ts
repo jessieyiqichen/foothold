@@ -25,6 +25,11 @@ export const MAX_RESUME_NAME_CHARS = 200;
 /** The most tags a person may have added, and the most they may have removed. Above the vocabulary's size (164
  *  tags on 2026-11-11), so it only ever stops a row that is not from this page. */
 export const MAX_TAG_EDITS = 200;
+/** The three tag lists of a row together, as text, in bytes. The element counts alone leave each element's length
+ *  open, so someone writing to their own row past the page could store megabytes. Measured on 2026-11-11: the
+ *  longest tag is 22 characters and the largest row this page can write is 2,852 bytes (the 60 longest tags, plus
+ *  every vocabulary tag once across added and removed); tagEdits.test.ts keeps the cap at twice that or more. */
+export const MAX_TAG_LISTS_BYTES = 8192;
 
 /** Tags from an older vocabulary whose row is gone are still shown, under this group. */
 export const OTHER_GROUP = "other";
