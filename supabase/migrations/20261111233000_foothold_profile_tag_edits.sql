@@ -1,7 +1,7 @@
 -- fh_profiles: a person can correct their own skill tags (user, 2026-11-11: the first real resume got a wrong tag,
 -- and the page gave no way to see or add what was missing).
 --
--- NOT APPLIED. Touches user data: goes to `reviewer`, then the lead applies it.
+-- Reviewed, then applied by the lead on 2026-11-11.
 --
 -- tags_added holds the vocabulary tags the person put on their profile, tags_removed the ones they took off. `tags`
 -- stays what roles are matched on: found in the resume text, plus tags_added, minus tags_removed, still at most
