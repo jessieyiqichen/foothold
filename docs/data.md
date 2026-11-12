@@ -21,6 +21,7 @@ Row-level security is on for all three. Signed-in people read companies and post
 | `fh-scout` | `{"source":"yc"}` weekly, `{"source":"hn"}` daily (Cron) | Reads the YC directory JSON (active companies only) or the newest HN "Who is hiring" thread; upserts on `(source, source_id)`; links HN postings to YC companies of the same name |
 | `fh-jobs` | `{"task":"vc","board":"accel"}` | Reads one VC board's company list (Getro) into `fh_companies`, one row per domain |
 | `fh-jobs` | `{"task":"ats","limit":25}` | Claims the next unchecked companies (hiring ones first), tries each one's likely board names on Ashby, Greenhouse and Lever, writes the roles found. At most 300 roles a company |
+| `fh-roles` | `{"limit":500}` | Labels the next postings with a family and a level read from the title (`packages/core/src/roles.ts`). The call that labels the last ones recounts `fh_tag_counts`. A call with nothing to do writes nothing. `scripts/run-jobs.sh roles` runs it until none is left |
 | `fh-jobs` | `{"task":"tag","limit":300}` | Tags the next postings whose tags are older than the current vocabulary. `scripts/run-jobs.sh tag` runs it until none is left |
 
 ## Matching a person to postings
@@ -90,6 +91,19 @@ There is no Supabase CLI here: a worker is deployed by uploading its files. `fh-
 | Worker | Entry point | Files to upload |
 |---|---|---|
 | `fh-jobs` | `supabase/functions/fh-jobs/index.ts` | that file, `supabase/functions/fh-jobs/lib/parse.ts`, `packages/core/src/skills.ts`, `packages/core/src/tags.ts` |
+| `fh-roles` | `supabase/functions/fh-roles/index.ts` | that file, `supabase/functions/fh-roles/lib/batch.ts`, `packages/core/src/roles.ts` |
 | `fh-scout` | `index.ts` | its own folder only; it imports nothing from `packages/core` |
 
 `fh-jobs` as deployed is still version 4, from before the restructure and before the four new hiring systems; the code in the repo has not run on Supabase yet. `fh-layout-check` is the throwaway: it now answers 410 behind a key and can be deleted from the dashboard.
+
+## Matching (written 2026-11-12, see `supabase/migrations/20261112100000_foothold_matching.sql`)
+
+`fh_matches(p_limit, p_offset)` runs as the signed-in person and reads only their own profile: postings sharing at least one tag, in the families and levels they picked (none picked means all), one row per company and title, ranked by the shared tags with rare ones worth more (`fh_tag_counts`).
+
+Known gaps, none measured yet:
+
+- Nothing schedules `fh-roles`. A posting added by the daily import has no family or level until `scripts/run-jobs.sh roles` is run, and is invisible to a person who picked a family. A cron is the user's decision.
+- `fh_tag_counts` goes stale after a re-tag; the lead then runs `select public.fh_refresh_tag_counts();` in the database.
+- A posting whose title changes under the same id keeps its old label until `ROLES_VERSION` is raised.
+- The same role shows twice when one copy is linked to a company row and the other is not.
+- A company's two different roles with the same title are shown as one.
