@@ -1,15 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MAX_RESUME_CHARS, PROFILE_TABLE } from "./constants";
 import { PROFILE_COPY } from "./copy";
-import { deleteProfile, loadProfile, rowToProfile, saveProfile, type Db } from "./store";
+import { deleteProfile, loadProfile, rowToProfile, saveProfile, saveTagEdits, type Db } from "./store";
 import { SKILLS_VERSION } from "./vocabulary";
 
 const USER = "user_2abc";
 const RESUME = "Econometrics coursework; regression models in Stata and R; SQL and Python dashboards. ".repeat(4);
 const savedRow = {
-  resume_text: RESUME.trim(), resume_name: "resume.pdf", tags: ["python", "sql"], tags_version: SKILLS_VERSION,
-  updated_at: "2026-11-11T18:00:00.000Z",
+  resume_text: RESUME.trim(), resume_name: "resume.pdf", tags: ["python", "sql"], tags_added: ["tableau"], tags_removed: ["accounting"],
+  tags_version: SKILLS_VERSION, updated_at: "2026-11-11T18:00:00.000Z",
 };
+/** A row as the database held it before tags could be edited: the two columns do not exist. */
+const rowBeforeEdits = Object.fromEntries(Object.entries(savedRow).filter(([column]) => column !== "tags_added" && column !== "tags_removed"));
+
+const EDITED_AT = "2026-11-11T19:30:00.000Z";
 
 type Answer = { data: unknown; error: { message: string } | null };
 type Mode = "ok" | "refused" | "offline";
@@ -40,6 +44,19 @@ function fakeDb(row: unknown, mode: Mode = "ok") {
             },
           }),
         }),
+        // Answers like the database: the rows that matched both filters, changed; none when the row is gone or newer
+        update: (values: Record<string, unknown>) => ({
+          eq: (first: string, firstValue: string) => ({
+            eq: (second: string, secondValue: string) => ({
+              select: () => {
+                calls.push(`update ${table} where ${first}=${firstValue} and ${second}=${secondValue}`);
+                written.push(values);
+                const current = row as { updated_at?: string } | null;
+                return answer(current?.updated_at === secondValue ? [{ ...current, ...values, updated_at: EDITED_AT }] : []);
+              },
+            }),
+          }),
+        }),
         delete: () => ({
           eq: (column: string, value: string) => { calls.push(`delete ${table} where ${column}=${value}`); return answer(null); },
         }),
@@ -60,10 +77,19 @@ afterEach(() => {
 describe("rowToProfile: a row is checked before it is shown", () => {
   it("reads a well-formed row", () => {
     expect(rowToProfile(savedRow)).toEqual({
-      resumeText: savedRow.resume_text, resumeName: "resume.pdf", tags: ["python", "sql"], tagsVersion: SKILLS_VERSION,
-      updatedAt: "2026-11-11T18:00:00.000Z",
+      resumeText: savedRow.resume_text, resumeName: "resume.pdf", tags: ["python", "sql"], tagsAdded: ["tableau"], tagsRemoved: ["accounting"],
+      tagsVersion: SKILLS_VERSION, updatedAt: "2026-11-11T18:00:00.000Z",
     });
     expect(rowToProfile({ ...savedRow, resume_name: null })?.resumeName).toBeNull();
+  });
+
+  it("still reads a row from before tags could be edited, as a profile with no edits", () => {
+    expect(rowToProfile(rowBeforeEdits)).toEqual({ ...rowToProfile(savedRow), tagsAdded: [], tagsRemoved: [] });
+  });
+
+  it("keeps only vocabulary tags from the person's adds and removes", () => {
+    const profile = rowToProfile({ ...savedRow, tags_added: ["tableau", "cobol", 3], tags_removed: "accounting" });
+    expect(profile).toMatchObject({ tagsAdded: ["tableau"], tagsRemoved: [] });
   });
 
   it("refuses a row with a missing or mistyped field", () => {
@@ -78,7 +104,7 @@ describe("loadProfile", () => {
     const { db, calls } = fakeDb(savedRow);
     const result = await loadProfile(db, USER);
     expect(result).toEqual({ ok: true, value: rowToProfile(savedRow) });
-    expect(calls).toEqual([`select ${PROFILE_TABLE} (resume_text, resume_name, tags, tags_version, updated_at) where user_id=${USER}`]);
+    expect(calls).toEqual([`select ${PROFILE_TABLE} (*) where user_id=${USER}`]);
   });
 
   it("is an empty profile, not an error, when nothing is saved yet", async () => {
@@ -103,7 +129,8 @@ describe("saveProfile", () => {
     expect(calls).toEqual([`upsert ${PROFILE_TABLE} on user_id`]);
     expect(written[0]).toEqual({
       user_id: USER, resume_text: RESUME.trim(), resume_name: "resume.pdf",
-      tags: expect.arrayContaining(["econometrics", "python", "regression", "sql", "stata"]), tags_version: SKILLS_VERSION,
+      tags: expect.arrayContaining(["econometrics", "python", "regression", "sql", "stata"]), tags_added: [], tags_removed: [],
+      tags_version: SKILLS_VERSION,
     });
     expect(result).toEqual({ ok: true, value: expect.objectContaining({ resumeText: RESUME.trim(), updatedAt: "2026-11-11T18:00:00.000Z" }) });
   });
@@ -115,6 +142,25 @@ describe("saveProfile", () => {
     expect(calls).toEqual([`upsert ${PROFILE_TABLE} on user_id`, `upsert ${PROFILE_TABLE} on user_id`]);
     expect(written[1]).toMatchObject({ user_id: USER, resume_name: null });
     expect(written[1].tags).toContain("tableau");
+  });
+
+  it("writes the person's adds and removes, and tags as found plus added minus removed", async () => {
+    const { db, written } = fakeDb(null);
+    const result = await saveProfile(db, USER, { text: RESUME, name: null }, { added: ["tableau", "cobol"], removed: ["sql"] });
+    expect(written[0]).toMatchObject({ tags_added: ["tableau"], tags_removed: ["sql"] });
+    expect(written[0].tags).toEqual(expect.arrayContaining(["python", "stata", "tableau"]));
+    expect(written[0].tags).not.toContain("sql");
+    expect(result).toMatchObject({ ok: true, value: { tagsAdded: ["tableau"], tagsRemoved: ["sql"] } });
+  });
+
+  it("on Replace, tags the new text afresh and keeps the edits it is given", async () => {
+    const { db, written } = fakeDb(savedRow);
+    await saveProfile(db, USER, { text: "Financial accounting and bookkeeping in Excel for a campus society. ".repeat(4), name: "new.pdf" }, { added: ["tableau"], removed: ["accounting"] });
+    expect(written[0]).toMatchObject({ resume_name: "new.pdf", tags_added: ["tableau"], tags_removed: ["accounting"] });
+    expect(written[0].tags).toContain("tableau");
+    expect(written[0].tags).toContain("excel");
+    expect(written[0].tags).not.toContain("accounting");
+    expect(written[0].tags).not.toContain("python");
   });
 
   it("does not send a text that is empty, too short or too long, and says why", async () => {
@@ -146,6 +192,49 @@ describe("deleteProfile", () => {
 
   it.each(["refused", "offline"] as const)("gives a message to show and logs the cause when the delete is %s", async (mode) => {
     expect(await deleteProfile(fakeDb(savedRow, mode).db, USER)).toEqual({ ok: false, message: PROFILE_COPY.deleteFailed });
+    expect(logged).toHaveBeenCalledOnce();
+  });
+});
+
+describe("saveTagEdits: a tag click changes the tag lists and nothing else", () => {
+  const loaded = rowToProfile(savedRow)!;
+  const edits = { added: ["tableau", "excel"], removed: ["accounting"] };
+
+  it("updates only the four tag columns of the row the page loaded, and returns the row as saved", async () => {
+    const { db, calls, written } = fakeDb(savedRow);
+    const result = await saveTagEdits(db, USER, loaded, edits);
+    expect(calls).toEqual([`update ${PROFILE_TABLE} where user_id=${USER} and updated_at=${savedRow.updated_at}`]);
+    expect(Object.keys(written[0]).sort()).toEqual(["tags", "tags_added", "tags_removed", "tags_version"]);
+    expect(written[0]).toMatchObject({ tags_added: ["excel", "tableau"], tags_removed: ["accounting"], tags_version: SKILLS_VERSION });
+    expect(written[0].tags).toEqual(expect.arrayContaining(["excel", "python", "sql", "tableau"]));
+    expect(result).toMatchObject({ ok: true, value: { resumeText: savedRow.resume_text, tagsAdded: ["excel", "tableau"], updatedAt: EDITED_AT } });
+  });
+
+  it("never sends the resume text or its name, so an old tab cannot write an old resume back", async () => {
+    const { db, written } = fakeDb(savedRow);
+    await saveTagEdits(db, USER, loaded, edits);
+    expect(JSON.stringify(written)).not.toContain("Econometrics");
+    expect(written[0]).not.toHaveProperty("resume_text");
+    expect(written[0]).not.toHaveProperty("resume_name");
+    expect(written[0]).not.toHaveProperty("user_id");
+  });
+
+  it("deleted in another tab: changes nothing, never re-creates the row, and says the profile changed elsewhere", async () => {
+    const { db, calls } = fakeDb(null);
+    expect(await saveTagEdits(db, USER, loaded, edits)).toEqual({ ok: false, message: PROFILE_COPY.changedElsewhere });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatch(/^update /);
+  });
+
+  it("replaced in another tab: the row is newer than the one this page loaded, so nothing is written over it", async () => {
+    const replaced = { ...savedRow, resume_text: "A newer resume. ".repeat(20), updated_at: "2026-11-11T19:00:00.000Z" };
+    const { db, calls } = fakeDb(replaced);
+    expect(await saveTagEdits(db, USER, loaded, edits)).toEqual({ ok: false, message: PROFILE_COPY.changedElsewhere });
+    expect(calls).toEqual([`update ${PROFILE_TABLE} where user_id=${USER} and updated_at=${savedRow.updated_at}`]);
+  });
+
+  it.each(["refused", "offline"] as const)("gives a message to show and logs the cause when the update is %s", async (mode) => {
+    expect(await saveTagEdits(fakeDb(savedRow, mode).db, USER, loaded, edits)).toEqual({ ok: false, message: PROFILE_COPY.editFailed });
     expect(logged).toHaveBeenCalledOnce();
   });
 });

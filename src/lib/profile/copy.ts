@@ -1,4 +1,5 @@
 import { MAX_PDF_BYTES, MAX_PDF_PAGES, MAX_RESUME_CHARS, MIN_RESUME_CHARS } from "./constants";
+import { MAX_TAGS } from "./vocabulary";
 
 const count = (n: number) => n.toLocaleString("en-US");
 const MAX_MB = `${MAX_PDF_BYTES / (1024 * 1024)} MB`;
@@ -27,6 +28,12 @@ export const PROFILE_COPY = {
   saved: "Profile saved",
 
   savedHeading: "Your skills",
+  editHint: "Roles are matched on these, tap one to take it off if it isn't you",
+  yours: "added by you",
+  addHeading: "Add a skill",
+  addHint: "Skills from the same word list that aren't on your profile yet, tap one to add it",
+  savingEdit: "Saving…",
+  undo: "Undo",
   replace: "Replace resume",
   delete: "Delete my resume",
   confirmTitle: "Delete your resume?",
@@ -50,6 +57,9 @@ export const PROFILE_COPY = {
   saveFailed: "Your profile didn't save, check your connection and try again",
   deleteFailed: "Your resume wasn't deleted, check your connection and try again",
   signedOut: "You're signed out, sign in again to see your profile",
+  editFailed: "That change didn't save and your skills are as they were, check your connection and try again",
+  changedElsewhere: "Your profile changed in another tab, this is how it is now, make that change again if you still want it",
+  tagsFull: `A profile holds ${MAX_TAGS} skills, take one off to add another`,
 };
 
 /** The lines that report a problem, for the style check. */
@@ -57,7 +67,14 @@ export const PROFILE_ERRORS = [
   PROFILE_COPY.notPdf, PROFILE_COPY.emptyFile, PROFILE_COPY.tooBig, PROFILE_COPY.tooManyPages, PROFILE_COPY.noTextInPdf,
   PROFILE_COPY.locked, PROFILE_COPY.unreadable, PROFILE_COPY.emptyText, PROFILE_COPY.tooShort, PROFILE_COPY.tooLong,
   PROFILE_COPY.loadFailed, PROFILE_COPY.saveFailed, PROFILE_COPY.deleteFailed, PROFILE_COPY.signedOut,
+  PROFILE_COPY.editFailed, PROFILE_COPY.changedElsewhere, PROFILE_COPY.tagsFull,
 ];
+
+export const removeLabel = (tag: string, mine: boolean) => (mine ? `Remove ${tag}, ${PROFILE_COPY.yours}` : `Remove ${tag}`);
+export const addLabel = (tag: string) => `Add ${tag}`;
+export const removedLine = (tag: string) => `Took off ${tag}`;
+export const addedLine = (tag: string) => `Added ${tag}`;
+export const offeredCount = (label: string, count: number) => `${label} · ${count} more`;
 
 export const charCountLine = (chars: number) => `${count(chars)} of ${count(MAX_RESUME_CHARS)} characters`;
 
@@ -66,6 +83,6 @@ export function savedLine(updatedAt: string, resumeName: string | null, timeZone
   const when = new Date(updatedAt)
     .toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone })
     // Newer browsers put a narrow no-break space before AM and PM
-    .replace(/ /g, " ");
+    .replace(/\u202f/g, " ");
   return resumeName ? `Saved ${when} from ${resumeName}` : `Saved ${when}`;
 }

@@ -7,6 +7,7 @@ import { PDF_EXTENSION, PDF_MIME } from "@/lib/profile/constants";
 import { charCountLine, PROFILE_COPY } from "@/lib/profile/copy";
 import { extractPdfText } from "@/lib/profile/pdf";
 import { checkPdfFile, checkResumeText, cleanResumeText } from "@/lib/profile/resumeText";
+import { editsOf, effectiveTags } from "@/lib/profile/tagEdits";
 import { resumeTags } from "@/lib/profile/tags";
 import { fail, type Profile, type Result } from "@/lib/profile/types";
 import { TagGroups } from "./TagGroups";
@@ -86,7 +87,8 @@ export function ResumeEditor({ initial, onSave, onCancel }: ResumeEditorProps) {
   // Tagging runs after typing settles, so a long resume never makes the keys lag
   const settled = useDeferredValue(text);
   const cleaned = useMemo(() => cleanResumeText(settled), [settled]);
-  const tags = useMemo(() => resumeTags(cleaned), [cleaned]);
+  // When replacing, the skills the person added or took off before are laid over what the new text yields
+  const tags = useMemo(() => effectiveTags(resumeTags(cleaned), editsOf(initial)), [cleaned, initial]);
 
   return (
     <form onSubmit={submit} noValidate className="flex flex-col gap-6">
