@@ -35,7 +35,7 @@ The Judge's eval comes before any interface. Without an agreement number on Nove
 | From | Used for |
 |---|---|
 | Assignment 5: worker, Cron, Realtime | The Scout and the agents' message stream |
-| Assignment 4: `src/lib/jobs` (Greenhouse, Lever, Ashby) | Job boards |
+| Assignment 4: `apps/web/src/lib/jobs` (Greenhouse, Lever, Ashby) | Job boards |
 | Assignment 4: goals, entries, reminders | "Reach out to N this week", "I reached out", the seven-day follow-up |
 
 ## The user's own tasks

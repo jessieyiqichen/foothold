@@ -9,9 +9,10 @@ The four design decisions were made with the user on 2026-11-10, one at a time: 
 | Role | Brief | May change only | Does not touch |
 |---|---|---|---|
 | lead (the session talking to the user) | `AGENTS.md` | `docs/`, `README.md`, `AGENTS.md`, `log.md`, `.claude/`, `scripts/` | Code owned by another role, unless that role is not running |
-| data-scout | `.claude/agents/data-scout.md` | `supabase/functions/fh-scout/`, `supabase/functions/fh-jobs/`, `supabase/migrations/*foothold*` | `src/`, `evals/` |
-| judge-eval | `.claude/agents/judge-eval.md` | `supabase/functions/fh-judge/`, `evals/`, `src/lib/judge/` | Data workers, pages |
-| web-ui | `.claude/agents/web-ui.md` | `src/app/`, `src/components/`, `src/lib/` (not `src/lib/judge/`), `e2e/` | `supabase/` |
+| data-scout | `.claude/agents/data-scout.md` | `supabase/functions/fh-scout/`, `supabase/functions/fh-jobs/`, `supabase/migrations/*foothold*` (profile migrations are web-ui's) | `apps/web/src/`, `evals/` |
+| judge-eval | `.claude/agents/judge-eval.md` | `supabase/functions/fh-judge/`, `evals/`, `apps/web/src/lib/judge/` | Data workers, pages |
+| web-ui | `.claude/agents/web-ui.md` | `apps/web/src/app/`, `apps/web/src/components/`, `apps/web/src/lib/` (not `apps/web/src/lib/judge/`), `apps/web/e2e/` | `supabase/` |
+| (shared) | none | `packages/core/` belongs to the lead: the vocabulary is reviewed by the user, and a change there re-tags every posting and every profile. Another role proposes a change, the lead makes it | |
 | reviewer | `.claude/agents/reviewer.md` | Nothing: it reads and reports | Any write |
 
 ## Only the lead does these
@@ -58,4 +59,4 @@ Read the database, read logs, run the tests. Read-only, without going through th
 | Date | Role | Doing | State |
 |---|---|---|---|
 | 2026-11-10 | lead | Jobs worker (fh-jobs): batches over every company | In progress |
-| 2026-11-11 | ci-baseline (one-off session, branch `chore/ci-baseline`) | CI workflow, `typecheck` script, README "Checks"; touches `.github/`, `package.json`, `README.md`, `src/lib/harness/guard.test.ts` | Committed, not pushed |
+| 2026-11-11 | ci-baseline (one-off session, branch `chore/ci-baseline`) | CI workflow, `typecheck` script, README "Checks"; touches `.github/`, `package.json`, `README.md`, `apps/web/src/lib/harness/guard.test.ts` | Committed, not pushed |

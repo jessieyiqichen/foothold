@@ -6,7 +6,7 @@ Design, Build, Ship (MPCS 51238, Autumn 2026) · **Final project**, focus: **AI*
 
 - **Proposal:** [dbs-proposal-xi.vercel.app](https://dbs-proposal-xi.vercel.app) ([repo](https://github.com/jessieyiqichen/dbs-proposal)), with three user interviews
 - **This week's plan:** [docs/v1-plan.md](docs/v1-plan.md) · **Who owns what, and the agent harness:** [docs/ownership.md](docs/ownership.md), [AGENTS.md](AGENTS.md) · **Log:** [log.md](log.md)
-- **Built on:** Assignment 5's worker and Realtime ([docs/README-a5.md](docs/README-a5.md)) and Assignment 4's job board code and goal tables ([docs/README-a4.md](docs/README-a4.md)). Same Clerk app and Supabase project; Foothold's tables start with `fh_` and the earlier tables are untouched.
+- **Built on:** Assignment 5's worker and Realtime ([docs/archive/README-a5.md](docs/archive/README-a5.md)) and Assignment 4's job board code and goal tables ([docs/archive/README-a4.md](docs/archive/README-a4.md)). Same Clerk app and Supabase project; Foothold's tables start with `fh_` and the earlier tables are untouched.
 
 ## Status (November 10)
 
@@ -19,7 +19,19 @@ Design, Build, Ship (MPCS 51238, Autumn 2026) · **Final project**, focus: **AI*
 | Team room and cards (New / Saved / Reached out) | Not started |
 | Deployed | Not yet |
 
-The pages in `src/` are still Assignment 5's; they are replaced as the parts above land.
+The profile page (upload a resume, check its skill tags, add or remove them) is built and runs locally. The other pages in `apps/web/src/` are from the earlier assignments (goals, reminders, a job board) and still wear that app's look; Foothold's own design is not decided yet.
+
+## Layout
+
+| Folder | What it holds |
+|---|---|
+| `apps/web/` | The Next.js app: pages, components, end-to-end tests |
+| `packages/core/` | Code shared by the app and the workers: the skill vocabulary and the tagger |
+| `supabase/` | Migrations and the Edge Function workers |
+| `evals/` | The labelled postings the Judge is scored on |
+| `docs/` | Plan, data notes, ownership; `docs/archive/` holds the earlier assignments' notes |
+
+It is one npm workspace: `npm install` at the root, and `npm run dev`, `npm test`, `npm run typecheck`, `npm run lint` from there.
 
 ## What it will do
 
@@ -87,11 +99,11 @@ Every push and pull request to `main` runs [.github/workflows/ci.yml](.github/wo
 
 | Check | Run it locally | What it covers |
 |---|---|---|
-| Type-check | `npm run typecheck` | Generates Next's route types, then `tsc --noEmit` over `src/` and `e2e/` |
-| Lint | `npm run lint` | ESLint with the Next.js rules, whole repo |
-| Unit tests | `npm test` | Every vitest file in `src/` and `supabase/functions/` |
+| Type-check | `npm run typecheck` | Generates Next's route types, then `tsc --noEmit` over `apps/web/src/` and `apps/web/e2e/` |
+| Lint | `npm run lint` | ESLint with the Next.js rules over `apps/web/` |
+| Unit tests | `npm test` | Every vitest file in `apps/web/src/`, `packages/`, `supabase/functions/` and the hook in `.claude/hooks/` |
 
-Not yet in CI: type-checking `supabase/functions` (Deno code, excluded in `tsconfig.json`; its `lib/` logic is covered by the unit tests), and the Playwright tests and `next build`, which need Clerk and Supabase keys.
+Not yet in CI: type-checking `supabase/functions` (Deno code, outside the app's `tsconfig.json`; its `lib/` logic is covered by the unit tests), and the Playwright tests and `next build`, which need Clerk and Supabase keys.
 
 ## Tests
 

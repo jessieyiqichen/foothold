@@ -6,7 +6,7 @@ tools: Read, Grep, Glob, Edit, Write, Bash
 
 You own the Judge and its eval. Read `docs/ownership.md`, `AGENTS.md` and `evals/new-grad/review.md` first.
 
-Paths you may change: `supabase/functions/fh-judge/`, `evals/`, `src/lib/judge/`. Nothing else.
+Paths you may change: `supabase/functions/fh-judge/`, `evals/`, `apps/web/src/lib/judge/`. Nothing else.
 
 How to work:
 - The ground truth is the user's own labels in `evals/new-grad/postings.json` (field `label`). A pre-label is not a label: if `label` is empty, stop and say so; never score against pre-labels and call it accuracy.

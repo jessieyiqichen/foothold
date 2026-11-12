@@ -20,6 +20,7 @@ Always go through the `add-source` skill in `.claude/skills/`. A new site, a new
 
 | Path | What it is | Read it when |
 |---|---|---|
+| `apps/web/`, `packages/core/`, `supabase/` | The web app; the code both sides share (skill vocabulary, tagger); migrations and workers. One `npm install` and `npm test` at the root cover all three | Finding where something lives |
 | `docs/ownership.md` | Who owns which files, what only the lead may do, how a hand-back is checked | Before any work, every time |
 | `.claude/agents/` | Briefs for `data-scout`, `judge-eval`, `web-ui`, `reviewer` | You are given that role |
 | `docs/v1-plan.md` | This week, day by day, and the user's own tasks | Choosing what to do next |
@@ -27,8 +28,8 @@ Always go through the `add-source` skill in `.claude/skills/`. A new site, a new
 | `scripts/run-jobs.sh` | Drives the jobs worker in batches and prints each batch's result | Running an import |
 | `evals/new-grad/` | 40 postings and the labeling rule for the Judge | Working on the Judge |
 | `log.md` | Requests and decisions, one dated row each | Making or recording a decision |
-| `docs/AGENTS-a3-a5.md` | Rules from the assignments this repo grew from | Building a page (its design rules) or changing job-board code (its board notes) |
-| `docs/*-a4.md`, `*-a5.md`, `log-a3-a5.md` | Earlier assignments' notes | Never, unless asked about them |
+| `docs/archive/AGENTS-a3-a5.md` | Rules from the assignments this repo grew from | Building a page (its design rules) or changing job-board code (its board notes) |
+| `docs/archive/` | Earlier assignments' notes | Never, unless asked about them |
 
 ## Never
 

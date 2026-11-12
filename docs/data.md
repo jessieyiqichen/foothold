@@ -25,7 +25,7 @@ Row-level security is on for all three. Signed-in people read companies and post
 
 ## Matching a person to postings
 
-A posting is matched on skill tags, not on its full text. The vocabulary is `supabase/functions/fh-jobs/lib/skills.ts`: about 170 rows of group, tag and pattern. `tagsOf(title, text)` in `lib/tags.ts` tags a posting and, later, a resume with the same function, so both sides use the same words. To change the vocabulary: edit a row, raise `SKILLS_VERSION`, redeploy, run `scripts/run-jobs.sh tag`.
+A posting is matched on skill tags, not on its full text. The vocabulary is `packages/core/src/skills.ts`: about 170 rows of group, tag and pattern. `tagsOf(title, text)` in `lib/tags.ts` tags a posting and, later, a resume with the same function, so both sides use the same words. To change the vocabulary: edit a row, raise `SKILLS_VERSION`, redeploy, run `scripts/run-jobs.sh tag`.
 
 Why tags (measured 2026-11-10): full-text search of the descriptions matched 2,828 of 3,000 sampled postings for a seven-word query and took 5.9 seconds on those 3,000, because every match has to be re-analysed to be ranked; storing the analysis would need about 170 MB. Searching tags for twelve skills over all 36,551 postings took 101 ms, and the index is 4.4 MB.
 

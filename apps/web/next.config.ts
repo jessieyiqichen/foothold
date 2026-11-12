@@ -4,7 +4,8 @@ import type { NextConfig } from "next";
 
 // Monorepo: the keys stay in one file at the repository root, which the user owns. Next.js would only look in this
 // folder, so it is told to read the root as well. Agents never read or move that file.
-loadEnvConfig(path.join(__dirname, "../.."));
+// Next.js has already looked in this folder by the time this file runs, and keeps that answer; `true` makes it look again.
+loadEnvConfig(path.join(__dirname, "../.."), process.env.NODE_ENV !== "production", console, true);
 
 /** Security review (2026-10-26): no other site may show these pages in a frame (clickjacking), the browser doesn't
  *  guess file types, other sites only learn our origin when a link is followed, and camera, mic and location are off.
