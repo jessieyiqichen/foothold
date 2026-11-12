@@ -25,7 +25,7 @@ Row-level security is on for all three. Signed-in people read companies and post
 
 ## Matching a person to postings
 
-A posting is matched on skill tags, not on its full text. The vocabulary is `packages/core/src/skills.ts`: about 170 rows of group, tag and pattern. `tagsOf(title, text)` in `lib/tags.ts` tags a posting and, later, a resume with the same function, so both sides use the same words. To change the vocabulary: edit a row, raise `SKILLS_VERSION`, redeploy, run `scripts/run-jobs.sh tag`.
+A posting is matched on skill tags, not on its full text. The vocabulary is `packages/core/src/skills.ts`: about 170 rows of group, tag and pattern. `tagsOf(title, text)` in `packages/core/src/tags.ts` tags a posting and, later, a resume with the same function, so both sides use the same words. To change the vocabulary: edit a row, raise `SKILLS_VERSION`, redeploy, run `scripts/run-jobs.sh tag`.
 
 Why tags (measured 2026-11-10): full-text search of the descriptions matched 2,828 of 3,000 sampled postings for a seven-word query and took 5.9 seconds on those 3,000, because every match has to be re-analysed to be ranked; storing the analysis would need about 170 MB. Searching tags for twelve skills over all 36,551 postings took 101 ms, and the index is 4.4 MB.
 
@@ -82,3 +82,14 @@ Known gaps:
 - The roles include large companies from the VC lists and roles outside the US. The count says nothing yet about how many suit a new grad; the Judge will.
 
 Row counts change with every run; read them from the database, not from this file.
+
+## Deploying a worker
+
+There is no Supabase CLI here: a worker is deployed by uploading its files. `fh-jobs` imports `packages/core` by relative path, so the files are uploaded under their repository paths and the entry point is given the same way. Checked on 2026-11-11 with a throwaway function: a file under `supabase/functions/<name>/` resolved `../../../packages/core/src/...`, and that file resolved its own sibling import.
+
+| Worker | Entry point | Files to upload |
+|---|---|---|
+| `fh-jobs` | `supabase/functions/fh-jobs/index.ts` | that file, `supabase/functions/fh-jobs/lib/parse.ts`, `packages/core/src/skills.ts`, `packages/core/src/tags.ts` |
+| `fh-scout` | `index.ts` | its own folder only; it imports nothing from `packages/core` |
+
+`fh-jobs` as deployed is still version 4, from before the restructure and before the four new hiring systems; the code in the repo has not run on Supabase yet. `fh-layout-check` is the throwaway: it now answers 410 behind a key and can be deleted from the dashboard.
