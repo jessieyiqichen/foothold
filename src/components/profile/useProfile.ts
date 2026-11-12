@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createBrowserDb } from "@/lib/db/client";
 import { PROFILE_COPY } from "@/lib/profile/copy";
 import { deleteProfile, loadProfile, saveProfile, type Db } from "@/lib/profile/store";
+import { editsOf, type TagEdits } from "@/lib/profile/tagEdits";
 import { fail, type Profile, type Result } from "@/lib/profile/types";
 
 export type ProfileState =
@@ -60,12 +61,21 @@ export function useProfile() {
     setAttempt((n) => n + 1);
   }, []);
 
-  const save = useCallback(async (draft: { text: string; name: string | null }): Promise<Result<Profile>> => {
+  const saved = state.kind === "ready" ? state.profile : null;
+  /** A first resume or a replacement (the new text is tagged afresh and the person's tag edits are kept), or new
+   *  tag edits on the resume already saved. Shown only once the database has it. */
+  const save = useCallback(async (draft: { text: string; name: string | null }, edits: TagEdits = editsOf(saved)): Promise<Result<Profile>> => {
     if (!userId) return fail(PROFILE_COPY.signedOut);
-    const result = await withDb(PROFILE_COPY.saveFailed, (db) => saveProfile(db, userId, draft));
+    const result = await withDb(PROFILE_COPY.saveFailed, (db) => saveProfile(db, userId, draft, edits));
     if (result.ok) setState({ kind: "ready", profile: result.value });
     return result;
-  }, [userId, withDb]);
+  }, [userId, withDb, saved]);
+
+  const saveEdits = useCallback(async (edits: TagEdits): Promise<Result<Profile>> => {
+    const result = saved ? await save({ text: saved.resumeText, name: saved.resumeName }, edits) : null;
+    // Whatever stopped it, the edit did not happen: say that, and that the skills are as they were
+    return result?.ok ? result : fail(PROFILE_COPY.editFailed);
+  }, [save, saved]);
 
   const remove = useCallback(async (): Promise<Result<null>> => {
     if (!userId) return fail(PROFILE_COPY.signedOut);
@@ -76,5 +86,5 @@ export function useProfile() {
 
   // The proxy sends a signed-out visitor to sign in before this page; this covers a session that ended while it was open
   const shown: ProfileState = isLoaded && !userId ? { kind: "failed", message: PROFILE_COPY.signedOut } : state;
-  return { state: shown, retry, save, remove };
+  return { state: shown, retry, save, saveEdits, remove };
 }

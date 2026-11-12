@@ -12,7 +12,7 @@ import { useProfile } from "./useProfile";
 /** The profile page: loading, couldn't load, no resume yet (the editor), a saved profile, or replacing it (the editor
  *  again, starting from what is saved). */
 export function ProfileScreen() {
-  const { state, retry, save, remove } = useProfile();
+  const { state, retry, save, saveEdits, remove } = useProfile();
   const [replacing, setReplacing] = useState(false);
   // What just happened, said once under the heading
   const [notice, setNotice] = useState<string | null>(null);
@@ -52,7 +52,7 @@ export function ProfileScreen() {
       {state.kind === "ready" && (state.profile === null || replacing ? (
         <ResumeEditor initial={state.profile} onSave={saveDraft} onCancel={state.profile ? () => setReplacing(false) : undefined} />
       ) : (
-        <SavedProfile profile={state.profile} onReplace={startReplacing} onDelete={deleteResume} />
+        <SavedProfile profile={state.profile} onEdit={saveEdits} onReplace={startReplacing} onDelete={deleteResume} />
       ))}
     </div>
   );
