@@ -20,7 +20,8 @@ function useTagEdits(profile: Profile, onEdit: TagEditorProps["onEdit"]) {
   const found = useMemo(() => resumeTags(profile.resumeText), [profile.resumeText]);
   const [pending, setPending] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
-  // After a change the pressed button is gone; focus moves here, where the result and Undo are
+  // After a change the pressed button is gone; focus moves here, where the result and Undo are. The page must not
+  // scroll to it (user, 2026-11-11: every add or remove jumped to the top); the line follows the reader instead
   const noticeRef = useRef<HTMLDivElement>(null);
 
   async function change({ kind, tag }: Change, undoable = true) {
@@ -34,7 +35,7 @@ function useTagEdits(profile: Profile, onEdit: TagEditorProps["onEdit"]) {
     if (!result.ok) setNotice(result.message === PROFILE_COPY.changedElsewhere ? null : { error: result.message });
     else if (kind === "add") setNotice({ line: addedLine(tag) });
     else setNotice({ line: removedLine(tag), undo: undoable ? { kind: "add", tag } : undefined });
-    noticeRef.current?.focus();
+    noticeRef.current?.focus({ preventScroll: true });
   }
 
   return { pending, notice, noticeRef, change };
@@ -54,7 +55,7 @@ export function TagEditor({ profile, onEdit }: TagEditorProps) {
       </div>
       <p className="-mt-2 text-sm text-muted">{PROFILE_COPY.editHint}</p>
 
-      <div ref={noticeRef} tabIndex={-1} className="flex min-h-11 flex-wrap items-center gap-x-3 focus:outline-none">
+      <div ref={noticeRef} tabIndex={-1} className="sticky top-0 z-10 flex min-h-11 flex-wrap items-center gap-x-3 bg-page/95 backdrop-blur-sm focus:outline-none">
         <p role="status" className="font-semibold text-ink">{pending ? PROFILE_COPY.savingEdit : notice && "line" in notice ? notice.line : ""}</p>
         {!pending && notice && "error" in notice && <p role="alert" className="font-semibold text-danger">{notice.error}</p>}
         {!pending && notice && "undo" in notice && notice.undo && (
