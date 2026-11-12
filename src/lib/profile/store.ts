@@ -77,6 +77,21 @@ export async function saveProfile(db: Db, userId: string, draft: { text: string;
     readSaved);
 }
 
+/** Saves the person's adds and removes on the resume already saved: only the tag lists are written, never the
+ *  resume, and only to the row this page loaded (same `updated_at`). If that row was deleted or replaced in another
+ *  tab nothing matches, nothing is written or re-created, and the answer says the profile changed elsewhere. */
+export async function saveTagEdits(db: Db, userId: string, loaded: Profile, edits: TagEdits): Promise<Result<Profile>> {
+  const kept = cleanEdits(edits);
+  const lists = {
+    tags: effectiveTags(resumeTags(loaded.resumeText), kept), tags_added: kept.added, tags_removed: kept.removed, tags_version: SKILLS_VERSION,
+  };
+  const result = await attempt("change the tags of", PROFILE_COPY.editFailed,
+    () => db.from(PROFILE_TABLE).update(lists).eq("user_id", userId).eq("updated_at", loaded.updatedAt).select(PROFILE_COLUMNS),
+    (rows) => (Array.isArray(rows) ? (rows.length === 0 ? null : readSaved(rows[0])) : undefined));
+  if (!result.ok) return result;
+  return result.value === null ? fail(PROFILE_COPY.changedElsewhere) : ok(result.value);
+}
+
 /** Removes the person's row: the resume text, its name and its tags, all of it. */
 export function deleteProfile(db: Db, userId: string): Promise<Result<null>> {
   return attempt("delete", PROFILE_COPY.deleteFailed,

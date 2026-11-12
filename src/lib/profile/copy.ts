@@ -58,6 +58,7 @@ export const PROFILE_COPY = {
   deleteFailed: "Your resume wasn't deleted, check your connection and try again",
   signedOut: "You're signed out, sign in again to see your profile",
   editFailed: "That change didn't save and your skills are as they were, check your connection and try again",
+  changedElsewhere: "Your profile changed in another tab, this is how it is now, make that change again if you still want it",
   tagsFull: `A profile holds ${MAX_TAGS} skills, take one off to add another`,
 };
 
@@ -66,7 +67,7 @@ export const PROFILE_ERRORS = [
   PROFILE_COPY.notPdf, PROFILE_COPY.emptyFile, PROFILE_COPY.tooBig, PROFILE_COPY.tooManyPages, PROFILE_COPY.noTextInPdf,
   PROFILE_COPY.locked, PROFILE_COPY.unreadable, PROFILE_COPY.emptyText, PROFILE_COPY.tooShort, PROFILE_COPY.tooLong,
   PROFILE_COPY.loadFailed, PROFILE_COPY.saveFailed, PROFILE_COPY.deleteFailed, PROFILE_COPY.signedOut,
-  PROFILE_COPY.editFailed, PROFILE_COPY.tagsFull,
+  PROFILE_COPY.editFailed, PROFILE_COPY.changedElsewhere, PROFILE_COPY.tagsFull,
 ];
 
 export const removeLabel = (tag: string, mine: boolean) => (mine ? `Remove ${tag}, ${PROFILE_COPY.yours}` : `Remove ${tag}`);

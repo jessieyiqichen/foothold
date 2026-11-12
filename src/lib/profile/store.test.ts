@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MAX_RESUME_CHARS, PROFILE_TABLE } from "./constants";
 import { PROFILE_COPY } from "./copy";
-import { deleteProfile, loadProfile, rowToProfile, saveProfile, type Db } from "./store";
+import { deleteProfile, loadProfile, rowToProfile, saveProfile, saveTagEdits, type Db } from "./store";
 import { SKILLS_VERSION } from "./vocabulary";
 
 const USER = "user_2abc";
@@ -12,6 +12,8 @@ const savedRow = {
 };
 /** A row as the database held it before tags could be edited: the two columns do not exist. */
 const rowBeforeEdits = Object.fromEntries(Object.entries(savedRow).filter(([column]) => column !== "tags_added" && column !== "tags_removed"));
+
+const EDITED_AT = "2026-11-11T19:30:00.000Z";
 
 type Answer = { data: unknown; error: { message: string } | null };
 type Mode = "ok" | "refused" | "offline";
@@ -40,6 +42,19 @@ function fakeDb(row: unknown, mode: Mode = "ok") {
               written.push(values);
               return answer({ ...values, updated_at: "2026-11-11T18:00:00.000Z" });
             },
+          }),
+        }),
+        // Answers like the database: the rows that matched both filters, changed; none when the row is gone or newer
+        update: (values: Record<string, unknown>) => ({
+          eq: (first: string, firstValue: string) => ({
+            eq: (second: string, secondValue: string) => ({
+              select: () => {
+                calls.push(`update ${table} where ${first}=${firstValue} and ${second}=${secondValue}`);
+                written.push(values);
+                const current = row as { updated_at?: string } | null;
+                return answer(current?.updated_at === secondValue ? [{ ...current, ...values, updated_at: EDITED_AT }] : []);
+              },
+            }),
           }),
         }),
         delete: () => ({
@@ -177,6 +192,49 @@ describe("deleteProfile", () => {
 
   it.each(["refused", "offline"] as const)("gives a message to show and logs the cause when the delete is %s", async (mode) => {
     expect(await deleteProfile(fakeDb(savedRow, mode).db, USER)).toEqual({ ok: false, message: PROFILE_COPY.deleteFailed });
+    expect(logged).toHaveBeenCalledOnce();
+  });
+});
+
+describe("saveTagEdits: a tag click changes the tag lists and nothing else", () => {
+  const loaded = rowToProfile(savedRow)!;
+  const edits = { added: ["tableau", "excel"], removed: ["accounting"] };
+
+  it("updates only the four tag columns of the row the page loaded, and returns the row as saved", async () => {
+    const { db, calls, written } = fakeDb(savedRow);
+    const result = await saveTagEdits(db, USER, loaded, edits);
+    expect(calls).toEqual([`update ${PROFILE_TABLE} where user_id=${USER} and updated_at=${savedRow.updated_at}`]);
+    expect(Object.keys(written[0]).sort()).toEqual(["tags", "tags_added", "tags_removed", "tags_version"]);
+    expect(written[0]).toMatchObject({ tags_added: ["excel", "tableau"], tags_removed: ["accounting"], tags_version: SKILLS_VERSION });
+    expect(written[0].tags).toEqual(expect.arrayContaining(["excel", "python", "sql", "tableau"]));
+    expect(result).toMatchObject({ ok: true, value: { resumeText: savedRow.resume_text, tagsAdded: ["excel", "tableau"], updatedAt: EDITED_AT } });
+  });
+
+  it("never sends the resume text or its name, so an old tab cannot write an old resume back", async () => {
+    const { db, written } = fakeDb(savedRow);
+    await saveTagEdits(db, USER, loaded, edits);
+    expect(JSON.stringify(written)).not.toContain("Econometrics");
+    expect(written[0]).not.toHaveProperty("resume_text");
+    expect(written[0]).not.toHaveProperty("resume_name");
+    expect(written[0]).not.toHaveProperty("user_id");
+  });
+
+  it("deleted in another tab: changes nothing, never re-creates the row, and says the profile changed elsewhere", async () => {
+    const { db, calls } = fakeDb(null);
+    expect(await saveTagEdits(db, USER, loaded, edits)).toEqual({ ok: false, message: PROFILE_COPY.changedElsewhere });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatch(/^update /);
+  });
+
+  it("replaced in another tab: the row is newer than the one this page loaded, so nothing is written over it", async () => {
+    const replaced = { ...savedRow, resume_text: "A newer resume. ".repeat(20), updated_at: "2026-11-11T19:00:00.000Z" };
+    const { db, calls } = fakeDb(replaced);
+    expect(await saveTagEdits(db, USER, loaded, edits)).toEqual({ ok: false, message: PROFILE_COPY.changedElsewhere });
+    expect(calls).toEqual([`update ${PROFILE_TABLE} where user_id=${USER} and updated_at=${savedRow.updated_at}`]);
+  });
+
+  it.each(["refused", "offline"] as const)("gives a message to show and logs the cause when the update is %s", async (mode) => {
+    expect(await saveTagEdits(fakeDb(savedRow, mode).db, USER, loaded, edits)).toEqual({ ok: false, message: PROFILE_COPY.editFailed });
     expect(logged).toHaveBeenCalledOnce();
   });
 });
