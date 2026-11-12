@@ -1,0 +1,67 @@
+{
+ "meta": {
+  "totalCount": 22
+ },
+ "result": [
+  {
+   "id": "108",
+   "jobOpeningName": "Pricing & Quotation Specialist (Pooling: Future Opportunities)",
+   "departmentId": "18701",
+   "departmentLabel": "Service Delivery Team",
+   "employmentStatusLabel": "Expedock Services",
+   "employmentType": null,
+   "location": {
+    "city": null,
+    "state": null
+   },
+   "atsLocation": {
+    "country": "Philippines",
+    "state": null,
+    "province": null,
+    "city": null
+   },
+   "isRemote": null,
+   "locationType": "1"
+  },
+  {
+   "id": "110",
+   "jobOpeningName": "Sales Development Representative",
+   "departmentId": "18701",
+   "departmentLabel": "Service Delivery Team",
+   "employmentStatusLabel": "Expedock Services",
+   "employmentType": null,
+   "location": {
+    "city": null,
+    "state": null
+   },
+   "atsLocation": {
+    "country": "Philippines",
+    "state": null,
+    "province": null,
+    "city": null
+   },
+   "isRemote": null,
+   "locationType": "1"
+  },
+  {
+   "id": "153",
+   "jobOpeningName": "AI Data Annotator - Philippines",
+   "departmentId": "18701",
+   "departmentLabel": "Service Delivery Team",
+   "employmentStatusLabel": "Expedock Services",
+   "employmentType": null,
+   "location": {
+    "city": null,
+    "state": null
+   },
+   "atsLocation": {
+    "country": "United States",
+    "state": null,
+    "province": null,
+    "city": null
+   },
+   "isRemote": null,
+   "locationType": "1"
+  }
+ ]
+}
