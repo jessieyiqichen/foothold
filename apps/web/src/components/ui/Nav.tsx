@@ -4,11 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useStore } from "@/lib/store";
 
-/** The core needs only: today's task, the jobs you're going after (Assignment 4, user 2026-10-26), and your goals.
- *  Reminders are a setting, reached from Goals and the done screen. */
+/** Matches first: it is the front door (user, 2026-11-12). The older Jobs page left the navigation the same day; its
+ *  page and code stay for the save feature. Reminders are a setting, reached from Goals and the done screen. */
 const LINKS = [
+  { href: "/matches", label: "Matches", also: [] },
   { href: "/", label: "Today", also: ["/session"] },
-  { href: "/jobs", label: "Jobs", also: [] },
   { href: "/goals", label: "Goals", also: ["/reminders"] },
   { href: "/profile", label: "Profile", also: [] },
 ];

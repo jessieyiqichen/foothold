@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { isPublicPath } from "./routes";
+import { readFileSync } from "node:fs";
+import { HOME_PATH, isPublicPath } from "./routes";
+import { MATCHES_PATH } from "../matches/constants";
 import { PROFILE_PATH } from "../profile/constants";
 
 describe("isPublicPath: which pages a signed-out visitor may open", () => {
@@ -23,5 +25,17 @@ describe("isPublicPath: which pages a signed-out visitor may open", () => {
     for (const path of ["/sign-inside", "/sign-up-later", "/goals/sign-in"]) {
       expect(isPublicPath(path), path).toBe(false);
     }
+  });
+});
+
+describe("HOME_PATH: the front door", () => {
+  it("is the matches page, which a signed-out visitor cannot open", () => {
+    expect(HOME_PATH).toBe(MATCHES_PATH);
+    expect(isPublicPath(HOME_PATH)).toBe(false);
+  });
+
+  it("is where next.config.ts sends \"/\"", () => {
+    const config = readFileSync(new URL("../../../next.config.ts", import.meta.url), "utf8");
+    expect(config).toContain(`{ source: "/", destination: "${HOME_PATH}", permanent: false }`);
   });
 });
