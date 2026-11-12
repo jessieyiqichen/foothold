@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { PROFILE_COLUMNS, PROFILE_TABLE } from "./constants";
 import { PROFILE_COPY } from "./copy";
 import { checkResumeText, cleanResumeText, displayName } from "./resumeText";
+import { cleanEdits, effectiveTags, NO_EDITS, type TagEdits } from "./tagEdits";
 import { resumeTags } from "./tags";
 import { fail, ok, type Profile, type Result } from "./types";
 import { SKILLS_VERSION } from "./vocabulary";
@@ -19,7 +20,9 @@ export function rowToProfile(row: unknown): Profile | null {
   if (typeof text !== "string" || !(name === null || typeof name === "string")) return null;
   if (!Array.isArray(tags) || !tags.every((tag) => typeof tag === "string")) return null;
   if (typeof version !== "number" || typeof updatedAt !== "string" || Number.isNaN(Date.parse(updatedAt))) return null;
-  return { resumeText: text, resumeName: name, tags: [...tags], tagsVersion: version, updatedAt };
+  // A row from before tags could be edited has neither column: that reads as no edits
+  const edits = cleanEdits({ added: row.tags_added, removed: row.tags_removed });
+  return { resumeText: text, resumeName: name, tags: [...tags], tagsAdded: edits.added, tagsRemoved: edits.removed, tagsVersion: version, updatedAt };
 }
 
 /** What went wrong goes to the console for whoever debugs it; the resume itself is never logged. */
@@ -57,14 +60,17 @@ export function loadProfile(db: Db, userId: string): Promise<Result<Profile | nu
     (data) => (data === null ? null : readSaved(data)));
 }
 
-/** Saves the resume text with the tags found in it. One row a person: saving again replaces it. The text is checked
- *  here as well as on the page, so nothing empty or oversized is ever sent. */
-export async function saveProfile(db: Db, userId: string, draft: { text: string; name: string | null }): Promise<Result<Profile>> {
+/** Saves the resume text with its tags. One row a person: saving again replaces it. The text is tagged afresh every
+ *  time and the person's own adds and removes (`edits`) are laid over it, so they survive a new resume. The text is
+ *  checked here as well as on the page, so nothing empty or oversized is ever sent. */
+export async function saveProfile(db: Db, userId: string, draft: { text: string; name: string | null }, edits: TagEdits = NO_EDITS): Promise<Result<Profile>> {
   const problem = checkResumeText(draft.text, "typed");
   if (problem) return fail(problem);
   const text = cleanResumeText(draft.text);
+  const kept = cleanEdits(edits);
   const row = {
-    user_id: userId, resume_text: text, resume_name: displayName(draft.name), tags: resumeTags(text), tags_version: SKILLS_VERSION,
+    user_id: userId, resume_text: text, resume_name: displayName(draft.name), tags: effectiveTags(resumeTags(text), kept),
+    tags_added: kept.added, tags_removed: kept.removed, tags_version: SKILLS_VERSION,
   };
   return attempt("save", PROFILE_COPY.saveFailed,
     () => db.from(PROFILE_TABLE).upsert(row, { onConflict: "user_id" }).select(PROFILE_COLUMNS).single(),
