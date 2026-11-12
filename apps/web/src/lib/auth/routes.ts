@@ -10,9 +10,6 @@ export function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
-/** Builder's Board (A5) lives inside this app but is not Nudge: Nudge's goal sync and reminders stay off there. */
-export const BOARD_PATH = "/board";
-
-export function isBoardPath(pathname: string): boolean {
-  return pathname === BOARD_PATH || pathname.startsWith(`${BOARD_PATH}/`);
-}
+/** Where a person lands after signing in, and where "/" goes. The profile for now: it is the only Foothold page so
+ *  far. What the front door should be is the user's decision and is still open (log.md, 2026-11-11). */
+export const HOME_PATH = "/profile";

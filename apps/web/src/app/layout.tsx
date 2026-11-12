@@ -4,9 +4,9 @@ import { Fredoka, Nunito } from "next/font/google";
 import { preload } from "react-dom";
 import { DataSync } from "@/components/auth/DataSync";
 import { Notifier } from "@/components/Notifier";
-import { boardClerkAppearance } from "@/lib/board/clerkAppearance";
+import { clerkAppearance } from "@/lib/auth/appearance";
 import { clerkLocalization } from "@/lib/auth/copy";
-import { BOARD_PATH, SIGN_IN_PATH, SIGN_UP_PATH } from "@/lib/auth/routes";
+import { HOME_PATH, SIGN_IN_PATH, SIGN_UP_PATH } from "@/lib/auth/routes";
 import "./globals.css";
 
 // Fredoka for headings and Nunito for text, as in the A2 Trail Quest design system: round and friendly.
@@ -14,8 +14,8 @@ const fredoka = Fredoka({ variable: "--font-fredoka", subsets: ["latin"], weight
 const nunito = Nunito({ variable: "--font-nunito", subsets: ["latin"], weight: ["400", "600", "700", "800"] });
 
 export const metadata: Metadata = {
-  title: "Nudge",
-  description: "Turns the thing you keep putting off into today's number, and nudges you until you start",
+  title: "Foothold",
+  description: "Find the startups, the roles and the people that fit you, from your own resume",
 };
 
 // The week's shelf is fixed at the foot of a phone screen, so the page reaches into the home-indicator area and pads for it
@@ -32,12 +32,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex min-h-full flex-col">
         <ClerkProvider
-          appearance={boardClerkAppearance}
+          appearance={clerkAppearance}
           localization={clerkLocalization}
           signInUrl={SIGN_IN_PATH}
           signUpUrl={SIGN_UP_PATH}
-          signInFallbackRedirectUrl={BOARD_PATH}
-          signUpFallbackRedirectUrl={BOARD_PATH}
+          signInFallbackRedirectUrl={HOME_PATH}
+          signUpFallbackRedirectUrl={HOME_PATH}
         >
           <DataSync />
           {children}

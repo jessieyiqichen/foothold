@@ -1,5 +1,5 @@
-/** What Titi says on the sign-in and sign-up pages: what Nudge is, in one line (user, 2026-10-25). */
-export const AUTH_INTRO = "Hi, I'm Titi! I turn your big job-search goal into today's number and cheer you on";
+/** The one line on the sign-in and sign-up pages: what Foothold is (positioning agreed with the user, 2026-11-10). */
+export const AUTH_INTRO = "Find the startups, the roles and the people that fit you, from your own resume";
 
 /** Clerk's own lines, rewritten to the house style: no full stops, errors say what to do next and take no "!"
  *  (copy.test.ts). Clerk's English file leaves its error lines blank and shows the server's wording instead ("Password
@@ -7,7 +7,7 @@ export const AUTH_INTRO = "Hi, I'm Titi! I turn your big job-search goal into to
  *  email, a password, a code or Google are written out here (user, 2026-10-26: cover the edge cases too). */
 export const clerkLocalization = {
   signIn: {
-    // Clerk would say "Sign in to Nudge", the Clerk app's name; this deployment is the board (2026-11-01)
+    // Clerk would say "Sign in to Nudge", the Clerk app's name; this app is Foothold
     start: { title: "Sign in", subtitle: "Good to see you again!" },
     alternativeMethods: {
       subtitle: "Pick another way to sign in",

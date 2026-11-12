@@ -21,9 +21,10 @@ const SECURITY_HEADERS = [
 const nextConfig: NextConfig = {
   // @foothold/core ships TypeScript source, not built files
   transpilePackages: ["@foothold/core"],
-  // This deployment is Builder's Board (Assignment 5): the front door is the board, not Nudge's Today page
+  // The front door is the profile for now, the only Foothold page so far (HOME_PATH in src/lib/auth/routes.ts).
+  // What it should be is still to be decided with the user
   async redirects() {
-    return [{ source: "/", destination: "/board", permanent: false }];
+    return [{ source: "/", destination: "/profile", permanent: false }];
   },
   async headers() {
     return [{ source: "/:path*", headers: SECURITY_HEADERS }];

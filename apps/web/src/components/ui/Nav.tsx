@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/", label: "Today", also: ["/session"] },
   { href: "/jobs", label: "Jobs", also: [] },
   { href: "/goals", label: "Goals", also: ["/reminders"] },
+  { href: "/profile", label: "Profile", also: [] },
 ];
 
 function isCurrent({ href, also }: (typeof LINKS)[number], pathname: string | null): boolean {
