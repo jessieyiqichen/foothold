@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Code shared by the web app and the workers: the skill vocabulary and the tagger. Plain TypeScript, no Deno or Node imports.",
+  "description": "Code shared by the web app and the workers: the skill vocabulary, the tagger, and a role's family and level from its title. Plain TypeScript, no Deno or Node imports.",
   "exports": {
     "./skills": "./src/skills.ts",
-    "./tags": "./src/tags.ts"
+    "./tags": "./src/tags.ts",
+    "./roles": "./src/roles.ts"
   }
 }
