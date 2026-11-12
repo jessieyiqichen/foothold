@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decide, isEnvPath, stagesTooMuch } from "../../../.claude/hooks/guard.mjs";
+import { decide, isEnvPath, stagesTooMuch } from "./guard.mjs";
 
 const ROOT = "/repo";
 const dirs = new Set(["docs", "supabase/functions/fh-jobs", "src"]);

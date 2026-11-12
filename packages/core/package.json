@@ -1,0 +1,11 @@
+{
+  "name": "@foothold/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Code shared by the web app and the workers: the skill vocabulary and the tagger. Plain TypeScript, no Deno or Node imports.",
+  "exports": {
+    "./skills": "./src/skills.ts",
+    "./tags": "./src/tags.ts"
+  }
+}

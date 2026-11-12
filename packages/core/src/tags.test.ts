@@ -33,7 +33,7 @@ describe("tagsOf", () => {
   });
 
   it("tags a real job-board role", () => {
-    const [job] = JSON.parse(readFileSync(new URL("../fixtures/ashby.json", import.meta.url), "utf8")).jobs;
+    const [job] = JSON.parse(readFileSync(new URL("../../../supabase/functions/fh-jobs/fixtures/ashby.json", import.meta.url), "utf8")).jobs;
     const out = tagsOf(job.title, job.descriptionPlain);
     expect(out.length).toBeGreaterThan(2);
     expect(out.length).toBeLessThanOrEqual(MAX_TAGS);

@@ -1,4 +1,10 @@
+import path from "node:path";
+import { loadEnvConfig } from "@next/env";
 import type { NextConfig } from "next";
+
+// Monorepo: the keys stay in one file at the repository root, which the user owns. Next.js would only look in this
+// folder, so it is told to read the root as well. Agents never read or move that file.
+loadEnvConfig(path.join(__dirname, "../.."));
 
 /** Security review (2026-10-26): no other site may show these pages in a frame (clickjacking), the browser doesn't
  *  guess file types, other sites only learn our origin when a link is followed, and camera, mic and location are off.
@@ -13,6 +19,8 @@ const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
+  // @foothold/core ships TypeScript source, not built files
+  transpilePackages: ["@foothold/core"],
   // This deployment is Builder's Board (Assignment 5): the front door is the board, not Nudge's Today page
   async redirects() {
     return [{ source: "/", destination: "/board", permanent: false }];

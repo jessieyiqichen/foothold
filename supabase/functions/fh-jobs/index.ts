@@ -12,8 +12,8 @@ import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import {
   type Ats, type AtsJob, boardUrl, DETAILS, parseGetroCompanies, PARSERS, pickSystems, slugCandidates, type VcCompany, withDetail,
 } from "./lib/parse.ts";
-import { SKILLS_VERSION } from "./lib/skills.ts";
-import { tagsOf } from "./lib/tags.ts";
+import { SKILLS_VERSION } from "../../../packages/core/src/skills.ts";
+import { tagsOf } from "../../../packages/core/src/tags.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SECRET_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");

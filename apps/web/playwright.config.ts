@@ -1,9 +1,10 @@
+import { fileURLToPath } from "node:url";
 import { loadEnvConfig } from "@next/env";
 import { defineConfig, devices } from "@playwright/test";
 
-// The test process reads the keys from .env.local the same way Next.js does; Clerk's testing helper needs them to let a
-// test browser past its bot protection. The agent never reads that file (deny rule in .claude/settings.json).
-loadEnvConfig(process.cwd());
+// The test process reads the keys the same way Next.js does, from the repository root (two folders up); Clerk's
+// testing helper needs them to let a test browser past its bot protection. Agents never read that file.
+loadEnvConfig(fileURLToPath(new URL("../..", import.meta.url)));
 
 const PORT = 3001;
 
