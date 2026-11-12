@@ -2,7 +2,7 @@
 -- store the raw text in the person's own row, readable and writable only by them, with a one-click delete). The PDF
 -- is parsed in the browser and never uploaded; only the text the person checked is written here.
 --
--- NOT APPLIED. Touches user data: goes to `reviewer`, then the lead applies it.
+-- Reviewed, then applied by the lead on 2026-11-11.
 --
 -- user_id is the Clerk user id (`user_...`, text, not a uuid), read from the signed-in person's token, as in every
 -- other per-person table of this project (goals, companies, saves). Sign-in is Clerk, not Supabase Auth, so there is
