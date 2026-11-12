@@ -30,7 +30,8 @@ function useTagEdits(profile: Profile, onEdit: TagEditorProps["onEdit"]) {
     setPending(tag);
     const result = await onEdit(kind === "add" ? addTag(found, edits, tag) : removeTag(found, edits, tag));
     setPending(null);
-    if (!result.ok) setNotice({ error: result.message });
+    // "Changed in another tab" is said by the screen, which also reloads the profile
+    if (!result.ok) setNotice(result.message === PROFILE_COPY.changedElsewhere ? null : { error: result.message });
     else if (kind === "add") setNotice({ line: addedLine(tag) });
     else setNotice({ line: removedLine(tag), undo: undoable ? { kind: "add", tag } : undefined });
     noticeRef.current?.focus();

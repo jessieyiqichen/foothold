@@ -4,17 +4,16 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PROFILE_COPY } from "@/lib/profile/copy";
+import type { TagEdits } from "@/lib/profile/tagEdits";
 import type { Profile, Result } from "@/lib/profile/types";
 import { ResumeEditor } from "./ResumeEditor";
 import { SavedProfile } from "./SavedProfile";
 import { useProfile } from "./useProfile";
 
-/** The profile page: loading, couldn't load, no resume yet (the editor), a saved profile, or replacing it (the editor
- *  again, starting from what is saved). */
-export function ProfileScreen() {
+/** What the screen does with a profile, and the one line saying what just happened. */
+function useProfileActions() {
   const { state, retry, save, saveEdits, remove } = useProfile();
   const [replacing, setReplacing] = useState(false);
-  // What just happened, said once under the heading
   const [notice, setNotice] = useState<string | null>(null);
 
   async function saveDraft(draft: { text: string; name: string | null }): Promise<Result<Profile>> {
@@ -32,10 +31,25 @@ export function ProfileScreen() {
     return result;
   }
 
-  function startReplacing() {
-    setNotice(null);
-    setReplacing(true);
+  /** A tag edit refused because the profile changed in another tab is said here: the skills may be gone by then. */
+  async function editTags(edits: TagEdits): Promise<Result<Profile>> {
+    const result = await saveEdits(edits);
+    setNotice(!result.ok && result.message === PROFILE_COPY.changedElsewhere ? result.message : null);
+    return result;
   }
+
+  function setReplacingTo(on: boolean) {
+    if (on) setNotice(null);
+    setReplacing(on);
+  }
+
+  return { state, retry, replacing, notice, saveDraft, deleteResume, editTags, setReplacingTo };
+}
+
+/** The profile page: loading, couldn't load, no resume yet (the editor), a saved profile, or replacing it (the editor
+ *  again, starting from what is saved). */
+export function ProfileScreen() {
+  const { state, retry, replacing, notice, saveDraft, deleteResume, editTags, setReplacingTo } = useProfileActions();
 
   return (
     <div className="flex w-full flex-col gap-6 lg:max-w-3xl">
@@ -50,9 +64,9 @@ export function ProfileScreen() {
         </div>
       )}
       {state.kind === "ready" && (state.profile === null || replacing ? (
-        <ResumeEditor initial={state.profile} onSave={saveDraft} onCancel={state.profile ? () => setReplacing(false) : undefined} />
+        <ResumeEditor initial={state.profile} onSave={saveDraft} onCancel={state.profile ? () => setReplacingTo(false) : undefined} />
       ) : (
-        <SavedProfile profile={state.profile} onEdit={saveEdits} onReplace={startReplacing} onDelete={deleteResume} />
+        <SavedProfile profile={state.profile} onEdit={editTags} onReplace={() => setReplacingTo(true)} onDelete={deleteResume} />
       ))}
     </div>
   );
