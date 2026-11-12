@@ -1,3 +1,5 @@
+import type { Family } from "./roles";
+
 /** Names and limits for a person's profile (their resume and its skill tags). The table's own checks in
  *  `supabase/migrations/*foothold_profiles.sql` repeat the limits; change both together. */
 export const PROFILE_TABLE = "fh_profiles";
@@ -30,6 +32,21 @@ export const MAX_TAG_EDITS = 200;
  *  longest tag is 22 characters and the largest row this page can write is 2,852 bytes (the 60 longest tags, plus
  *  every vocabulary tag once across added and removed); tagEdits.test.ts keeps the cap at twice that or more. */
 export const MAX_TAG_LISTS_BYTES = 8192;
+
+/** A person picks at most this many kinds of work; the database checks the same number. */
+export const MAX_FAMILIES = 3;
+/** The guess made from a resume names at most this many, so the person starts narrow and widens by choice. */
+export const MAX_SUGGESTED_FAMILIES = 2;
+/** A second suggested family needs at least this many skills on the profile, and a share of its group at least this
+ *  fraction of the first family's share: one stray skill is not a direction. */
+export const SUGGESTION_MIN_TAGS = 2;
+export const SUGGESTION_MIN_RATIO = 0.5;
+/** Which kind of work a vocabulary group points at. Left out on purpose: `ai` (on most postings of every kind, it
+ *  separates nothing), `industry`, `language` and `condition` (they say where or under what terms, not what job). */
+export const GROUP_FAMILIES: Record<string, Family> = {
+  engineering: "engineering", data: "data", product: "product", research: "research", design: "design",
+  marketing: "marketing", sales: "sales", operations: "operations", finance: "finance", people: "people", legal: "legal",
+};
 
 /** Tags from an older vocabulary whose row is gone are still shown, under this group. */
 export const OTHER_GROUP = "other";

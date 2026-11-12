@@ -1,8 +1,10 @@
-import { MAX_PDF_BYTES, MAX_PDF_PAGES, MAX_RESUME_CHARS, MIN_RESUME_CHARS } from "./constants";
+import { MAX_FAMILIES, MAX_PDF_BYTES, MAX_PDF_PAGES, MAX_RESUME_CHARS, MIN_RESUME_CHARS } from "./constants";
 import { MAX_TAGS } from "./vocabulary";
 
 const count = (n: number) => n.toLocaleString("en-US");
 const MAX_MB = `${MAX_PDF_BYTES / (1024 * 1024)} MB`;
+/** The limit in words, as it reads in a sentence. */
+const MAX_FAMILIES_WORD = ["none", "one", "two", "three", "four", "five"][MAX_FAMILIES] ?? String(MAX_FAMILIES);
 const PASTE_INSTEAD = "paste your resume as text below instead";
 
 /** What the profile page says. House style: no full stops, errors without "!" and each with what to do next
@@ -26,6 +28,16 @@ export const PROFILE_COPY = {
   cancel: "Cancel",
   storedNote: "Saving keeps this text and these skills in your account, only you can read them and you can delete them any time",
   saved: "Profile saved",
+
+  directionHeading: "What kind of work do you want?",
+  directionHint: `Pick up to ${MAX_FAMILIES_WORD}, your matches show these first`,
+  suggested: "Suggested from your resume, nothing is saved until you confirm or change it",
+  confirmDirection: "Use these",
+  saveDirection: "Save",
+  savingDirection: "Saving…",
+  directionSaved: "Saved, your matches now show these first",
+  directionUnsaved: "Not saved yet",
+  nonePicked: "Nothing picked, your matches show every kind of work",
 
   savedHeading: "Your skills",
   editHint: "Roles are matched on these, tap one to take it off if it isn't you",
@@ -59,6 +71,9 @@ export const PROFILE_COPY = {
   signedOut: "You're signed out, sign in again to see your profile",
   editFailed: "That change didn't save and your skills are as they were, check your connection and try again",
   changedElsewhere: "Your profile changed in another tab, this is how it is now, make that change again if you still want it",
+  tooManyFamilies: `That would be more than ${MAX_FAMILIES_WORD}, take one off to pick another`,
+  familiesFailed: "That didn't save and your picks are as they were, check your connection and try again",
+  levelsFailed: "That filter didn't save and your matches are as they were, check your connection and try again",
   tagsFull: `A profile holds ${MAX_TAGS} skills, take one off to add another`,
 };
 
@@ -68,6 +83,7 @@ export const PROFILE_ERRORS = [
   PROFILE_COPY.locked, PROFILE_COPY.unreadable, PROFILE_COPY.emptyText, PROFILE_COPY.tooShort, PROFILE_COPY.tooLong,
   PROFILE_COPY.loadFailed, PROFILE_COPY.saveFailed, PROFILE_COPY.deleteFailed, PROFILE_COPY.signedOut,
   PROFILE_COPY.editFailed, PROFILE_COPY.changedElsewhere, PROFILE_COPY.tagsFull,
+  PROFILE_COPY.tooManyFamilies, PROFILE_COPY.familiesFailed, PROFILE_COPY.levelsFailed,
 ];
 
 export const removeLabel = (tag: string, mine: boolean) => (mine ? `Remove ${tag}, ${PROFILE_COPY.yours}` : `Remove ${tag}`);
