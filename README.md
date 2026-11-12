@@ -81,6 +81,18 @@ npm run dev
 
 `.env.local` needs the Clerk and Supabase keys (the same names as Assignment 5) and, for the Judge, `GEMINI_API_KEY`. Workers are deployed with the Supabase MCP server scoped to this one project; their logic lives in `supabase/functions/*/lib` so the same code runs in vitest and in the Edge Function.
 
+## Checks
+
+Every push and pull request to `main` runs [.github/workflows/ci.yml](.github/workflows/ci.yml): `npm ci`, then three checks, each of which must pass. None needs a key or calls an outside service.
+
+| Check | Run it locally | What it covers |
+|---|---|---|
+| Type-check | `npm run typecheck` | Generates Next's route types, then `tsc --noEmit` over `src/` and `e2e/` |
+| Lint | `npm run lint` | ESLint with the Next.js rules, whole repo |
+| Unit tests | `npm test` | Every vitest file in `src/` and `supabase/functions/` |
+
+Not yet in CI: type-checking `supabase/functions` (Deno code, excluded in `tsconfig.json`; its `lib/` logic is covered by the unit tests), and the Playwright tests and `next build`, which need Clerk and Supabase keys.
+
 ## Tests
 
 Parsers are tested on saved real responses in `supabase/functions/*/fixtures`. The Judge's eval set and its labeling rule are in [evals/new-grad/review.md](evals/new-grad/review.md).

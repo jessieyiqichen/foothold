@@ -58,3 +58,4 @@ Read the database, read logs, run the tests. Read-only, without going through th
 | Date | Role | Doing | State |
 |---|---|---|---|
 | 2026-11-10 | lead | Jobs worker (fh-jobs): batches over every company | In progress |
+| 2026-11-11 | ci-baseline (one-off session, branch `chore/ci-baseline`) | CI workflow, `typecheck` script, README "Checks"; touches `.github/`, `package.json`, `README.md`, `src/lib/harness/guard.test.ts` | Committed, not pushed |

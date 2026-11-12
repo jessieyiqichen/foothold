@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Read-only token, no secrets, no env values: every check runs on the checkout alone.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 24 is what the lockfile was written with and what the checks pass on locally.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # `next typegen` writes the route types (PageProps, LayoutProps) that a fresh
+      # checkout does not have; without it tsc fails on four pages.
+      - name: Type-check
+        run: npm run typecheck
+
+      # Lint and tests still run when an earlier check fails, so one push shows every failure.
+      - name: Lint
+        if: ${{ !cancelled() }}
+        run: npm run lint
+
+      # Unit tests read saved fixtures only; none of them makes a network request.
+      - name: Unit tests
+        if: ${{ !cancelled() }}
+        run: npm test
+
+# Not yet enforced, and why:
+# - Type-check of supabase/functions: tsconfig.json excludes that folder because the
+#   Edge Functions are Deno code. Their lib/ logic is still covered by the unit tests.
+# - Playwright (npm run test:e2e) and `next build`: both need Clerk and Supabase keys,
+#   and this workflow holds no secrets.
