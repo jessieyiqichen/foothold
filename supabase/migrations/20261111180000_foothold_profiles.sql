@@ -55,5 +55,10 @@ create policy "Delete own profile" on public.fh_profiles for delete to authentic
   using (((select auth.jwt()) ->> 'sub') = user_id);
 
 -- No policy names anon, and anon holds no privilege on the table: a signed-out visitor reaches nothing.
-revoke all on table public.fh_profiles from anon, authenticated, public;
+--
+-- service_role is revoked too (user, 2026-11-11: background workers may not read resumes). It bypasses RLS, and
+-- Supabase grants it every new public table by default, so without this line any Edge Function holding the service
+-- key could read every resume. A feature that needs the text reads it with the person's own token. If a worker ever
+-- needs it, that is a new migration and a new decision in log.md.
+revoke all on table public.fh_profiles from anon, authenticated, public, service_role;
 grant select, insert, update, delete on table public.fh_profiles to authenticated;
