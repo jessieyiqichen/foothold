@@ -11,7 +11,7 @@ const savedRow = {
   tags_version: SKILLS_VERSION, updated_at: "2026-11-11T18:00:00.000Z",
 };
 /** A row as the database held it before tags could be edited: the two columns do not exist. */
-const { tags_added: _added, tags_removed: _removed, ...rowBeforeEdits } = savedRow;
+const rowBeforeEdits = Object.fromEntries(Object.entries(savedRow).filter(([column]) => column !== "tags_added" && column !== "tags_removed"));
 
 type Answer = { data: unknown; error: { message: string } | null };
 type Mode = "ok" | "refused" | "offline";

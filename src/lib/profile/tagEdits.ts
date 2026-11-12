@@ -14,6 +14,10 @@ export interface TagEdits {
 
 export const NO_EDITS: TagEdits = { added: [], removed: [] };
 
+/** The edits a saved profile carries. */
+export const editsOf = (profile: { tagsAdded: string[]; tagsRemoved: string[] } | null): TagEdits =>
+  profile ? { added: profile.tagsAdded, removed: profile.tagsRemoved } : NO_EDITS;
+
 const VOCABULARY: ReadonlySet<string> = new Set(SKILLS.map(([, tag]) => tag));
 
 export const isVocabularyTag = (tag: unknown): tag is string => typeof tag === "string" && VOCABULARY.has(tag);
