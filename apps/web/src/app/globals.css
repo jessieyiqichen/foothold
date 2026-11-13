@@ -9,41 +9,50 @@
 @custom-variant short (@media (width < 640px) and (height <= 620px));
 @custom-variant compact (@media (width < 640px) and (620px < height <= 740px));
 
-/* Cozy Cat, clay edition (user, 2026-10-17: "playful like Duolingo, warm like Headspace"). A warm light page; the
-   few objects you act on (buttons, fish, bowls) are saturated and chunky, everything else stays quiet.
-   Contrast (checked): ink 13.4:1 and muted 5.7:1 on the page; ink on green 6.4:1 (7.3:1 on hover), on honey 7.0:1,
-   on sky 5.6:1; control edges 3.6:1; the deep green on white 4.1:1; the error berry 6.7:1. */
+/* Foothold's minimal look (user, 2026-11-12): a plain, neutral, light tool. White page, dark ink, one accent,
+   Inter, 8px corners, one-pixel edges, no shadows on controls. A stopgap until the redesign. The token names are the
+   earlier app's, so every component keeps working; only the values changed. The Nudge-only colours at the end
+   (rewards, Titi's bowl, the done screen) are left as they were: those pages are not restyled.
+   Contrast, computed 2026-11-12 (WCAG AA wants 4.5:1 for text, 3:1 for the edge of a control):
+     ink 17.7:1 on the page, 17.0:1 on surface, 16.1:1 on wash, 15.9:1 on the accent tint
+     muted 4.8:1 on the page, 4.6:1 on surface; 4.4:1 on wash and 4.3:1 on the tint, so muted text never sits on those
+     accent 6.3:1 on the page (links, the focus ring, a chosen chip's edge), 6.0:1 on surface, 5.6:1 on its tint
+     white on the accent 6.3:1, on its hover 7.9:1, on its pressed 9.9:1
+     danger 6.5:1 on the page, 5.9:1 on its wash; white on danger 6.5:1
+     field edge 3.3:1 on the page
+     line 1.5:1 and hairline 1.2:1: below 3:1 on purpose. `line` edges buttons, which are read by their label;
+     hairline only divides. An empty field has nothing but its edge, so fields use `field`. */
 @theme {
-  --font-sans: var(--font-nunito), system-ui, sans-serif;
-  --font-display: var(--font-fredoka), var(--font-nunito), system-ui, sans-serif;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-display: var(--font-inter), system-ui, sans-serif;
 
-  --color-page: #fff8ea;
-  --color-surface: #ffffff;
-  --color-ink: #2f2a24;
-  --color-muted: #6b6256;
-  --color-wash: #f6efdc;
-  --color-wash-strong: #ede3c9;
-  --color-line: #8f8068;        /* borders of controls (3:1) */
-  --color-hairline: #e3d7bf;    /* decorative edges, the lip under white clay */
-  --color-primary: #3ec66b;     /* the one primary action: grass green, a step brighter than the first mint (user's pick, 2026-10-18,
-                                   after trying rose: it fought the warm cream; green is the yellow's neighbour and still stands out) */
-  --color-primary-hover: #4fd27a;
-  --color-primary-pressed: #35b45f;
-  --color-on-primary: #2f2a24;
-  --color-lip: #2a8f4e;         /* the solid edge under the primary button; also the pace ring and the streak card */
-  --color-primary-soft: #e3f6ec; /* a chosen radio option */
-  --color-reward: #f5a623;      /* fish treats, the streak, the road */
-  --color-reward-deep: #9c5e06; /* honey as text (the streak number, badge numbers): 4.8:1 on the done screen, 5.2:1 on white (was #c97e0c, 2.95:1, user 2026-10-19) */
+  --color-page: #ffffff;
+  --color-surface: #fafafa;
+  --color-ink: #111827;
+  --color-muted: #6b7280;
+  --color-wash: #f3f4f6;         /* hover, the current page in the navigation, quiet chips */
+  --color-wash-strong: #e5e7eb;  /* pressed */
+  --color-line: #d1d5db;         /* the edge of a button */
+  --color-field: #868e9c;        /* the edge of a text field (3.3:1) */
+  --color-hairline: #e5e7eb;     /* dividers */
+  --color-primary: #4f46e5;      /* the one accent: the primary button, links, the focus ring, a chosen toggle */
+  --color-primary-hover: #4338ca;
+  --color-primary-pressed: #3730a3;
+  --color-on-primary: #ffffff;
+  --color-lip: #3730a3;          /* the edge under the earlier app's clay; kept for its pages */
+  --color-primary-soft: #eef2ff; /* the tint behind a chosen toggle */
+  --color-reward: #f5a623;       /* from here to --color-flag: the earlier app's pages only */
+  --color-reward-deep: #9c5e06;
   --color-reward-soft: #fff1cf;
-  --color-sky: #5aa9e6;         /* Titi's bowl */
+  --color-sky: #5aa9e6;
   --color-sky-deep: #3a7fb8;
-  --color-sun: #ffe9a8;         /* the soft circle behind Titi */
-  --color-celebrate: #fff3dc;   /* the done screen */
-  --color-heart: #f0729a;       /* decoration only */
-  --color-flag: #e2574b;        /* the finish flag on Titi's road, decoration only */
-  --color-focus: #2f2a24;
-  --color-danger: #9c2a6b;      /* errors and destructive actions only */
-  --color-danger-wash: #fbeef5;
+  --color-sun: #ffe9a8;
+  --color-celebrate: #fff3dc;
+  --color-heart: #f0729a;
+  --color-flag: #e2574b;
+  --color-focus: #4f46e5;
+  --color-danger: #b91c1c;       /* errors and destructive actions only */
+  --color-danger-wash: #fef2f2;
 }
 
 html,

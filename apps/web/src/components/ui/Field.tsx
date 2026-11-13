@@ -23,7 +23,7 @@ export function Field({ id, label, hint, error, children }: FieldProps) {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="font-semibold text-ink">
+      <label htmlFor={id} className="text-sm font-medium text-ink">
         {label}
       </label>
       {hint && (
@@ -33,7 +33,7 @@ export function Field({ id, label, hint, error, children }: FieldProps) {
       )}
       {children({ id, "aria-describedby": describedBy, "aria-invalid": error ? true : undefined })}
       {error && (
-        <p id={errorId} className="flex items-start gap-1.5 text-sm font-semibold text-danger">
+        <p id={errorId} className="flex items-start gap-1.5 text-sm font-medium text-danger">
           <span aria-hidden="true" className="mt-px inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-danger text-[11px] text-on-primary">
             !
           </span>
@@ -44,17 +44,19 @@ export function Field({ id, label, hint, error, children }: FieldProps) {
   );
 }
 
+/** A field's edge is `field`, darker than a button's `line`: an empty box has nothing but its edge to be seen by, so
+ *  the edge itself must reach 3:1 on the page (WCAG 1.4.11). */
 export const inputClass =
-  "min-h-12 w-full rounded-xl border-2 border-line bg-surface px-3 text-base font-bold text-ink shadow-[inset_0_2px_0_rgba(0,0,0,.04)] " +
-  "placeholder:font-semibold placeholder:text-muted focus-visible:border-ink focus-visible:outline-3 focus-visible:outline-offset-0 focus-visible:outline-focus " +
+  "min-h-10 w-full rounded-lg border border-field bg-page px-3 text-[15px] text-ink " +
+  "placeholder:text-muted focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-focus " +
   "aria-invalid:border-danger";
 
 export function TextInput({ className = "", ...props }: ComponentProps<"input">) {
   return <input className={`${inputClass} ${className}`} {...props} />;
 }
 
-/** For long text (a resume): the same box, in the reading weight rather than the bold of a one-line answer. */
-const textAreaClass = `${inputClass.replace("font-bold", "font-semibold")} py-3 leading-relaxed`;
+/** For long text (a resume): the same box, with room above and below and a reading line height. */
+const textAreaClass = `${inputClass} py-2 leading-relaxed`;
 
 export function TextArea({ className = "", ...props }: ComponentProps<"textarea">) {
   return <textarea className={`${textAreaClass} ${className}`} {...props} />;

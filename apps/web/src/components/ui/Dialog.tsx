@@ -35,11 +35,11 @@ export function Dialog({ open, title, closeLabel, onClose, children }: DialogPro
       aria-labelledby={titleId}
       onClose={onClose}
       onClick={(event) => event.target === ref.current && onClose()}
-      className="m-auto max-h-[85dvh] w-[min(32rem,calc(100%-2rem))] overflow-y-auto rounded-3xl bg-page p-5 text-ink shadow-[0_12px_40px_rgba(61,59,51,.25)] backdrop:bg-[rgba(47,42,36,.45)]"
+      className="m-auto max-h-[85dvh] w-[min(30rem,calc(100%-2rem))] overflow-y-auto rounded-lg border border-hairline bg-page p-5 text-[15px] leading-6 text-ink shadow-[0_8px_30px_rgba(17,24,39,.12)] backdrop:bg-[rgba(17,24,39,.4)]"
     >
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 id={titleId} className="font-display text-xl font-semibold">{title}</h2>
-        <Button variant="ghost" className="-mr-4" onClick={onClose}>{closeLabel}</Button>
+        <h2 id={titleId} className="text-lg font-semibold">{title}</h2>
+        <Button variant="ghost" onClick={onClose}>{closeLabel}</Button>
       </div>
       {open && children}
     </dialog>

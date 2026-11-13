@@ -1,7 +1,6 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
-import { Fredoka, Nunito } from "next/font/google";
-import { preload } from "react-dom";
+import { Inter } from "next/font/google";
 import { DataSync } from "@/components/auth/DataSync";
 import { Notifier } from "@/components/Notifier";
 import { clerkAppearance } from "@/lib/auth/appearance";
@@ -9,9 +8,9 @@ import { clerkLocalization } from "@/lib/auth/copy";
 import { HOME_PATH, SIGN_IN_PATH, SIGN_UP_PATH } from "@/lib/auth/routes";
 import "./globals.css";
 
-// Fredoka for headings and Nunito for text, as in the A2 Trail Quest design system: round and friendly.
-const fredoka = Fredoka({ variable: "--font-fredoka", subsets: ["latin"], weight: ["500", "600", "700"] });
-const nunito = Nunito({ variable: "--font-nunito", subsets: ["latin"], weight: ["400", "600", "700", "800"] });
+// Inter for everything, headings and text alike (Foothold's minimal look, user 2026-11-12). A variable font, so
+// every weight comes in one file.
+const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Foothold",
@@ -22,13 +21,10 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { viewportFit: "cover" };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
-  // Titi's sitting loop is the first picture on every first visit; fetched early so she is not a blank circle for a moment
-  // (first-run check, 2026-10-18)
-  preload("/cat/idle.webp", { as: "image" });
   return (
     <html
       lang="en"
-      className={`${fredoka.variable} ${nunito.variable} h-full antialiased`}
+      className={`${inter.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
         <ClerkProvider
