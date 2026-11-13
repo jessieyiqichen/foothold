@@ -63,17 +63,17 @@ export function DirectionPicker(props: DirectionPickerProps) {
 
   return (
     <section aria-labelledby="profile-direction" className="flex flex-col gap-3">
-      <h2 id="profile-direction" className="font-display text-xl font-semibold text-ink">{PROFILE_COPY.directionHeading}</h2>
+      <h2 id="profile-direction" className="text-lg font-semibold text-ink">{PROFILE_COPY.directionHeading}</h2>
       <p className="-mt-1 text-sm text-muted">{PROFILE_COPY.directionHint}</p>
-      <div role="group" aria-labelledby="profile-direction" className="flex flex-wrap gap-2">
+      <div role="group" aria-labelledby="profile-direction" className="flex flex-wrap gap-1.5">
         {FAMILIES.map(({ id, label }) => (
           <ToggleChip key={id} on={picked.includes(id)} onClick={() => toggle(id)}>{label}</ToggleChip>
         ))}
       </div>
       {/* Always the same height, so a line coming or going never moves what is under it */}
       <div className="flex min-h-12 flex-col justify-center">
-        <p role="status" className="font-semibold text-ink">{statusOf(draft)}</p>
-        {!saving && notice && "error" in notice && <p role="alert" className="font-semibold text-danger">{notice.error}</p>}
+        <p role="status" className="text-sm text-ink">{statusOf(draft)}</p>
+        {!saving && notice && "error" in notice && <p role="alert" className="text-sm font-medium text-danger">{notice.error}</p>}
       </div>
       <Button className="self-start" onClick={save} disabled={saving || !(unsaved || suggesting)}>
         {suggesting ? PROFILE_COPY.confirmDirection : PROFILE_COPY.saveDirection}

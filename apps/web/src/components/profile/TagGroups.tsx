@@ -8,8 +8,8 @@ export function TagGroups({ tags, heading }: { tags: string[]; heading: string }
   return (
     <section aria-labelledby="profile-tags" className="flex flex-col gap-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-        <h2 id="profile-tags" className="font-display text-xl font-semibold text-ink">{heading}</h2>
-        <p className="text-sm font-semibold text-muted" aria-live="polite">{tagCountLine(tags.length)}</p>
+        <h2 id="profile-tags" className="text-lg font-semibold text-ink">{heading}</h2>
+        <p className="text-sm tabular-nums text-muted" aria-live="polite">{tagCountLine(tags.length)}</p>
       </div>
       {groups.length === 0 ? (
         <p className="text-muted">{PROFILE_COPY.noTags}</p>
@@ -17,8 +17,8 @@ export function TagGroups({ tags, heading }: { tags: string[]; heading: string }
         <dl className="flex flex-col gap-3">
           {groups.map(({ group, label, tags: inGroup }) => (
             <div key={group} className="flex flex-col gap-0.5 border-t border-hairline pt-3 sm:flex-row sm:gap-4">
-              <dt className="shrink-0 text-sm font-bold text-muted sm:w-48 sm:pt-0.5">{label}</dt>
-              <dd className="font-semibold text-ink">{inGroup.join(" · ")}</dd>
+              <dt className="shrink-0 text-sm font-medium text-muted sm:w-48">{label}</dt>
+              <dd className="text-ink">{inGroup.join(" · ")}</dd>
             </div>
           ))}
         </dl>

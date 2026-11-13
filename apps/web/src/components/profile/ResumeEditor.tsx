@@ -24,9 +24,9 @@ interface ResumeEditorProps {
 }
 
 const FILE_INPUT =
-  "block w-full cursor-pointer rounded-xl border-2 border-line bg-surface p-2 font-semibold text-ink " +
-  "file:mr-3 file:min-h-10 file:cursor-pointer file:rounded-lg file:border-0 file:bg-wash file:px-4 file:font-display file:font-semibold file:text-ink " +
-  "hover:file:bg-wash-strong focus-visible:border-ink focus-visible:outline-3 focus-visible:outline-focus aria-invalid:border-danger";
+  "block w-full cursor-pointer rounded-lg border border-field bg-page p-1.5 text-sm text-ink " +
+  "file:mr-3 file:min-h-8 file:cursor-pointer file:rounded-md file:border-0 file:bg-wash file:px-3 file:text-sm file:font-medium file:text-ink " +
+  "hover:file:bg-wash-strong focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-focus aria-invalid:border-danger";
 
 /** Reads the chosen file here in the browser. Nothing is sent anywhere: the result is only put in the text box. */
 async function readPdf(file: File): Promise<Result<string>> {
@@ -97,20 +97,20 @@ export function ResumeEditor({ initial, onSave, onCancel }: ResumeEditorProps) {
           <input {...control} type="file" accept={`${PDF_MIME},${PDF_EXTENSION}`} onChange={chooseFile} disabled={busy !== null} className={FILE_INPUT} />
         )}
       </Field>
-      <p role="status" className="-mt-4 min-h-6 text-sm font-semibold text-muted">{busy === "reading" ? PROFILE_COPY.reading : ""}</p>
+      <p role="status" className="-mt-4 min-h-6 text-sm text-muted">{busy === "reading" ? PROFILE_COPY.reading : ""}</p>
 
       <Field id="resume-text" label={PROFILE_COPY.textLabel} hint={PROFILE_COPY.textHint} error={errors.text}>
         {(control) => (
           <TextArea {...control} value={text} onChange={editText} rows={14} spellCheck={false} disabled={busy === "reading"} className="min-h-72 resize-y" />
         )}
       </Field>
-      <p className="-mt-4 text-sm text-muted">{charCountLine(cleaned.length)}</p>
+      <p className="-mt-4 text-sm tabular-nums text-muted">{charCountLine(cleaned.length)}</p>
 
       <TagGroups tags={tags} heading={PROFILE_COPY.tagsHeading} />
       <p className="-mt-3 text-sm text-muted">{PROFILE_COPY.tagsNote}</p>
 
       <div className="flex flex-col gap-3 border-t border-hairline pt-5">
-        {errors.save && <p role="alert" className="font-semibold text-danger">{errors.save}</p>}
+        {errors.save && <p role="alert" className="font-medium text-danger">{errors.save}</p>}
         <div className="flex flex-wrap items-center gap-3">
           <Button type="submit" size="lg" disabled={busy !== null}>{busy === "saving" ? PROFILE_COPY.saving : PROFILE_COPY.save}</Button>
           {onCancel && <Button variant="ghost" onClick={onCancel} disabled={busy === "saving"}>{PROFILE_COPY.cancel}</Button>}

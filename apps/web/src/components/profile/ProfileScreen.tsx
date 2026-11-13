@@ -57,12 +57,12 @@ export function ProfileScreen() {
   return (
     <div className="flex w-full flex-col gap-6 lg:max-w-3xl">
       <PageHeader title={PROFILE_COPY.title} intro={PROFILE_COPY.intro} back={null} />
-      <p role="status" className={notice ? "font-semibold text-ink" : "sr-only"}>{notice ?? ""}</p>
+      <p role="status" className={notice ? "font-medium text-ink" : "sr-only"}>{notice ?? ""}</p>
 
       {state.kind === "loading" && <p className="text-muted">{PROFILE_COPY.loading}</p>}
       {state.kind === "failed" && (
         <div className="flex flex-col items-start gap-3">
-          <p role="alert" className="font-semibold text-danger">{state.message}</p>
+          <p role="alert" className="font-medium text-danger">{state.message}</p>
           <Button variant="secondary" onClick={retry}>{PROFILE_COPY.tryAgain}</Button>
         </div>
       )}

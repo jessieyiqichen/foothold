@@ -44,8 +44,10 @@ export function SavedProfile({ profile, onEdit, onFamilies, onReplace, onDelete 
 
   return (
     <div className="flex flex-col gap-6">
-      <p className="font-semibold text-muted">{savedLine(profile.updatedAt, profile.resumeName)}</p>
-      <DirectionPicker profile={profile} onSave={onFamilies} />
+      <p className="text-sm tabular-nums text-muted">{savedLine(profile.updatedAt, profile.resumeName)}</p>
+      <div className="border-t border-hairline pt-5">
+        <DirectionPicker profile={profile} onSave={onFamilies} />
+      </div>
       <div className="border-t border-hairline pt-5">
         <TagEditor profile={profile} onEdit={onEdit} />
       </div>
@@ -57,7 +59,7 @@ export function SavedProfile({ profile, onEdit, onFamilies, onReplace, onDelete 
       <Dialog open={confirming} title={PROFILE_COPY.confirmTitle} closeLabel={PROFILE_COPY.keep} onClose={close}>
         <div className="flex flex-col gap-4">
           <p>{PROFILE_COPY.confirmBody}</p>
-          {error && <p role="alert" className="font-semibold text-danger">{error}</p>}
+          {error && <p role="alert" className="font-medium text-danger">{error}</p>}
           <Button variant="danger" onClick={confirmDelete} disabled={deleting} className="self-start">
             {deleting ? PROFILE_COPY.deleting : PROFILE_COPY.confirmDelete}
           </Button>
