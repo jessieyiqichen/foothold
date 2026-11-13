@@ -56,8 +56,5 @@ export function postedLine(postedAt: string | null, timeZone?: string): string {
 export const familyLabel = (id: Family): string => FAMILIES.find((family) => family.id === id)?.label ?? id;
 export const levelLabel = (id: Level): string => LEVELS.find((level) => level.id === id)?.label ?? id;
 
-/** The skills a person and a role share, by name: the reason the role is listed. */
-export const whyLine = (shared: readonly string[]): string => (shared.length > 0 ? shared.join(" · ") : MATCHES_COPY.noShared);
-
 /** "Show 50 more", or fewer when fewer are left. */
 export const showMoreLabel = (total: number, asked: number): string => `Show ${count(Math.min(MATCHES_PAGE_SIZE, Math.max(total - asked, 0)))} more`;

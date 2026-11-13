@@ -1,14 +1,14 @@
 // House style (docs/AGENTS-a3-a5.md): no full stops in the interface; errors say what to do next and take no "!".
 import { describe, expect, it } from "vitest";
 import { MAX_PLACES_SHOWN } from "./constants";
-import { countLine, familyLabel, levelLabel, MATCHES_COPY, MATCHES_ERRORS, placesLine, postedLine, showMoreLabel, whyLine } from "./copy";
+import { countLine, familyLabel, levelLabel, MATCHES_COPY, MATCHES_ERRORS, placesLine, postedLine, showMoreLabel } from "./copy";
 
 const FULL_STOP = /\.(\s|$)/;
 
 describe("matches page lines", () => {
   const lines = [
     ...Object.values(MATCHES_COPY), countLine(50, 1234), countLine(1, 1), countLine(0, 0), placesLine(["Chicago", "New York"]),
-    postedLine("2026-11-03T10:00:00Z", "UTC"), showMoreLabel(1234, 50), whyLine(["sql", "node.js"]), familyLabel("data"), levelLabel("unspecified"),
+    postedLine("2026-11-03T10:00:00Z", "UTC"), showMoreLabel(1234, 50), familyLabel("data"), levelLabel("unspecified"),
   ];
 
   it("have no full stop", () => {
@@ -60,16 +60,11 @@ describe("postedLine", () => {
   });
 });
 
-describe("labels and reasons", () => {
+describe("labels and the Show more button", () => {
   it("uses the shared package's names for a family and a level", () => {
     expect(familyLabel("data")).toBe("Data and analytics");
     expect(levelLabel("unspecified")).toBe("Level not in the title");
     expect(levelLabel("entry")).toBe("New grad or junior");
-  });
-
-  it("names the shared skills as the reason a role is listed", () => {
-    expect(whyLine(["product management", "sql"])).toBe("product management · sql");
-    expect(whyLine([])).toBe(MATCHES_COPY.noShared);
   });
 
   it("says how many the button will add, never more than are left", () => {
