@@ -1,15 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MAX_RESUME_CHARS, PROFILE_TABLE } from "./constants";
 import { PROFILE_COPY } from "./copy";
-import { deleteProfile, loadProfile, rowToProfile, saveProfile, saveTagEdits, type Db } from "./store";
+import { deleteProfile, loadProfile, rowToProfile, saveFamilies, saveLevels, saveProfile, saveTagEdits, type Db } from "./store";
 import { SKILLS_VERSION } from "./vocabulary";
 
 const USER = "user_2abc";
 const RESUME = "Econometrics coursework; regression models in Stata and R; SQL and Python dashboards. ".repeat(4);
 const savedRow = {
   resume_text: RESUME.trim(), resume_name: "resume.pdf", tags: ["python", "sql"], tags_added: ["tableau"], tags_removed: ["accounting"],
-  tags_version: SKILLS_VERSION, updated_at: "2026-11-11T18:00:00.000Z",
+  families: ["product", "data"], levels: ["intern", "entry"], tags_version: SKILLS_VERSION, updated_at: "2026-11-11T18:00:00.000Z",
 };
+/** A row as the database held it before a person could pick directions and levels. */
+const rowBeforeDirections = Object.fromEntries(Object.entries(savedRow).filter(([column]) => column !== "families" && column !== "levels"));
 /** A row as the database held it before tags could be edited: the two columns do not exist. */
 const rowBeforeEdits = Object.fromEntries(Object.entries(savedRow).filter(([column]) => column !== "tags_added" && column !== "tags_removed"));
 
@@ -78,7 +80,7 @@ describe("rowToProfile: a row is checked before it is shown", () => {
   it("reads a well-formed row", () => {
     expect(rowToProfile(savedRow)).toEqual({
       resumeText: savedRow.resume_text, resumeName: "resume.pdf", tags: ["python", "sql"], tagsAdded: ["tableau"], tagsRemoved: ["accounting"],
-      tagsVersion: SKILLS_VERSION, updatedAt: "2026-11-11T18:00:00.000Z",
+      families: ["product", "data"], levels: ["intern", "entry"], tagsVersion: SKILLS_VERSION, updatedAt: "2026-11-11T18:00:00.000Z",
     });
     expect(rowToProfile({ ...savedRow, resume_name: null })?.resumeName).toBeNull();
   });
@@ -90,6 +92,14 @@ describe("rowToProfile: a row is checked before it is shown", () => {
   it("keeps only vocabulary tags from the person's adds and removes", () => {
     const profile = rowToProfile({ ...savedRow, tags_added: ["tableau", "cobol", 3], tags_removed: "accounting" });
     expect(profile).toMatchObject({ tagsAdded: ["tableau"], tagsRemoved: [] });
+  });
+
+  it("still reads a row from before directions and levels existed, as none picked", () => {
+    expect(rowToProfile(rowBeforeDirections)).toEqual({ ...rowToProfile(savedRow), families: [], levels: [] });
+  });
+
+  it("keeps only known family and level ids", () => {
+    expect(rowToProfile({ ...savedRow, families: ["product", "wizardry", 3], levels: "senior" })).toMatchObject({ families: ["product"], levels: [] });
   });
 
   it("refuses a row with a missing or mistyped field", () => {
@@ -236,5 +246,46 @@ describe("saveTagEdits: a tag click changes the tag lists and nothing else", () 
   it.each(["refused", "offline"] as const)("gives a message to show and logs the cause when the update is %s", async (mode) => {
     expect(await saveTagEdits(fakeDb(savedRow, mode).db, USER, loaded, edits)).toEqual({ ok: false, message: PROFILE_COPY.editFailed });
     expect(logged).toHaveBeenCalledOnce();
+  });
+});
+
+describe("saveFamilies and saveLevels: a pick changes its own column and nothing else", () => {
+  const loaded = rowToProfile(savedRow)!;
+
+  it("writes only the families, to the row the page loaded, and returns the row as saved", async () => {
+    const { db, calls, written } = fakeDb(savedRow);
+    const result = await saveFamilies(db, USER, loaded, ["research", "wizardry" as never, "design"]);
+    expect(calls).toEqual([`update ${PROFILE_TABLE} where user_id=${USER} and updated_at=${savedRow.updated_at}`]);
+    expect(written[0]).toEqual({ families: ["research", "design"] });
+    expect(result).toMatchObject({ ok: true, value: { families: ["research", "design"], levels: ["intern", "entry"], updatedAt: EDITED_AT } });
+  });
+
+  it("never writes more than three families", async () => {
+    const { db, written } = fakeDb(savedRow);
+    await saveFamilies(db, USER, loaded, ["product", "data", "research", "design"]);
+    expect(written[0]).toEqual({ families: ["product", "data", "research"] });
+  });
+
+  it("writes only the levels; an empty list means every level", async () => {
+    const { db, written } = fakeDb(savedRow);
+    expect(await saveLevels(db, USER, loaded, ["senior", "intern"])).toMatchObject({ ok: true, value: { levels: ["intern", "senior"], families: ["product", "data"] } });
+    await saveLevels(db, USER, loaded, []);
+    expect(written).toEqual([{ levels: ["intern", "senior"] }, { levels: [] }]);
+  });
+
+  it("deleted or replaced in another tab: writes nothing, never re-creates the row, and says so", async () => {
+    const newer = { ...savedRow, updated_at: "2026-11-11T19:00:00.000Z" };
+    for (const current of [null, newer]) {
+      const { db, calls } = fakeDb(current);
+      expect(await saveFamilies(db, USER, loaded, ["design"])).toEqual({ ok: false, message: PROFILE_COPY.changedElsewhere });
+      expect(await saveLevels(db, USER, loaded, ["senior"])).toEqual({ ok: false, message: PROFILE_COPY.changedElsewhere });
+      expect(calls.every((call) => call.startsWith("update "))).toBe(true);
+    }
+  });
+
+  it.each(["refused", "offline"] as const)("gives a message to show and logs the cause when the update is %s", async (mode) => {
+    expect(await saveFamilies(fakeDb(savedRow, mode).db, USER, loaded, ["design"])).toEqual({ ok: false, message: PROFILE_COPY.familiesFailed });
+    expect(await saveLevels(fakeDb(savedRow, mode).db, USER, loaded, ["senior"])).toEqual({ ok: false, message: PROFILE_COPY.levelsFailed });
+    expect(logged).toHaveBeenCalledTimes(2);
   });
 });

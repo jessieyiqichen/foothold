@@ -4,20 +4,23 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { PROFILE_COPY, savedLine } from "@/lib/profile/copy";
+import type { Family } from "@/lib/profile/roles";
 import type { Profile, Result } from "@/lib/profile/types";
 import type { TagEdits } from "@/lib/profile/tagEdits";
+import { DirectionPicker } from "./DirectionPicker";
 import { TagEditor } from "./TagEditor";
 
 interface SavedProfileProps {
   profile: Profile;
   onEdit: (edits: TagEdits) => Promise<Result<Profile>>;
+  onFamilies: (families: Family[]) => Promise<Result<Profile>>;
   onReplace: () => void;
   onDelete: () => Promise<Result<null>>;
 }
 
 /** A saved profile: when it was saved, its skills, and the two things to do with it. Deleting removes everything at
  *  once, so it asks first (design rules: Confirm for deleting everything, Undo only for one item). */
-export function SavedProfile({ profile, onEdit, onReplace, onDelete }: SavedProfileProps) {
+export function SavedProfile({ profile, onEdit, onFamilies, onReplace, onDelete }: SavedProfileProps) {
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +45,10 @@ export function SavedProfile({ profile, onEdit, onReplace, onDelete }: SavedProf
   return (
     <div className="flex flex-col gap-6">
       <p className="font-semibold text-muted">{savedLine(profile.updatedAt, profile.resumeName)}</p>
-      <TagEditor profile={profile} onEdit={onEdit} />
+      <DirectionPicker profile={profile} onSave={onFamilies} />
+      <div className="border-t border-hairline pt-5">
+        <TagEditor profile={profile} onEdit={onEdit} />
+      </div>
       <div className="flex flex-wrap items-center gap-3 border-t border-hairline pt-5">
         <Button variant="secondary" onClick={onReplace}>{PROFILE_COPY.replace}</Button>
         <Button variant="danger" onClick={() => setConfirming(true)}>{PROFILE_COPY.delete}</Button>
