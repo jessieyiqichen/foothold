@@ -4,7 +4,7 @@
 -- share with the person, a rare tag counting for more; the same role posted in several cities is one row; the level
 -- is a label and a filter the person sets, never something hidden from them.
 --
--- NOT applied. It adds two columns to fh_profiles (a per-person table) and a function that reads the caller's own
+-- Reviewed, then applied by the lead on 2026-11-12. It adds two columns to fh_profiles (a per-person table) and a function that reads the caller's own
 -- profile, so it goes to `reviewer` before the lead applies it. No policy and no grant on fh_profiles changes.
 --
 -- The family and level ids below repeat FAMILIES and LEVELS in packages/core/src/roles.ts, four times. Change them
