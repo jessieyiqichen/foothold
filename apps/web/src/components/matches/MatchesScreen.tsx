@@ -46,7 +46,7 @@ function Matches({ profile, filterLevels, withDb }: { profile: Profile } & Pick<
         levels={profile.levels}
         onChange={filterLevels}
         aside={
-          <p id="matches-count" aria-live="polite" className="min-h-6 text-base font-extrabold tracking-[-0.01em] tabular-nums text-ink">
+          <p id="matches-count" aria-live="polite" className="min-h-6 text-base font-extrabold tracking-[-0.01em] text-ink">
             {/* Lights up when a level filter changes the count; not on the first load */}
             {ready ? <FlashNumber value={ready.page.total} className="px-1">{countLine(ready.page.matches.length, ready.page.total)}</FlashNumber> : ""}
           </p>
