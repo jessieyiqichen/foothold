@@ -1,49 +1,60 @@
 {
- "note": "Real HN Who is hiring posts (thread 50338728, November 2026), cut to the header and contact lines; every email address's name and domain replaced.",
+ "note": "Eleven HN 'Who is hiring' posts in the shapes seen in the November 2026 thread (headers, introductions, written-out addresses), cut to the header and contact lines. Every id, person, company and domain is made up; the domains use the reserved .test top-level domain.",
  "posts": [
   {
-   "id": "50338775",
-   "text": "Open Education Applications / Neon | Senior Frontend Engineer | Utrecht, The Netherlands | HYBRID | DUTCH REQUIRED\nE-mail jobs[at]example-edu.org met (HN) + de functienaam in het onderwerp, samen met een korte introductie en een link naar je LinkedIn-profiel en/of GitHub. Als er van beide kanten een goede match lijkt te zijn, plan ik graag een "
+   "id": "p1",
+   "domain": "brightleaf.test",
+   "text": "Brightleaf Learning | Senior Frontend Engineer | Utrecht, The Netherlands | HYBRID | DUTCH REQUIRED\nE-mail jobs[at]brightleaf.test met (HN) + de functienaam in het onderwerp, samen met een korte introductie en een link naar je GitHub."
   },
   {
-   "id": "50339383",
-   "text": "Tandem Health | Engineers, Designers, PMs | On-site in Stockholm, Sweden | Full time\nFeel free to reach out to me at john.doe[at]example-health.ai if you have any questions, but please don't send applications my way"
+   "id": "p2",
+   "domain": "tandemcare.test",
+   "text": "Tandemcare | Engineers, Designers, PMs | On-site in Stockholm, Sweden | Full time\nFeel free to reach out to me at olle.berg[at]tandemcare.test if you have any questions, but please don't send applications my way"
   },
   {
-   "id": "50348145",
-   "text": "VALIS (Valis Insights) | Software Engineer, new product line | REMOTE (US, East Coast hours) | Full-time | $125k-$155k + equity\nI'm Caleb, co-founder/CTO. VALIS builds data products for scrap metal recyclers. Our product images, weighs, and classifies scrap metal, and our platform turns that into actionable quality analytics to improve physical ops at plants across \nQuestions: caleb[dot]roe[at]example-valis[dot]com"
+   "id": "p3",
+   "domain": "scrapwise.test",
+   "text": "Scrapwise (Scrapwise Insights) | Software Engineer, new product line | REMOTE (US, East Coast hours) | Full-time | $125k-$155k + equity\nI'm Ravi, co-founder/CTO. Scrapwise builds data products for metal recyclers.\nQuestions: ravi[dot]patel[at]scrapwise[dot]test"
   },
   {
-   "id": "50353098",
-   "text": "Clad (YC W23) | Software Engineer | NYC | example-clad.com\nOr email me at jason [at] example-clad [dot] com"
+   "id": "p4",
+   "domain": null,
+   "text": "Fernhill (YC W23) | Software Engineer | NYC | fernhill.test\nOr email me at dmitri [at] fernhill [dot] test"
   },
   {
-   "id": "50479794",
-   "text": "Location: REMOTE (anywhere) | 50% rev share\nhit me up if you're a video editor, or see a way to partner with me. email: bkroe at example dot me"
+   "id": "p5",
+   "domain": null,
+   "text": "Location: REMOTE (anywhere) | 50% rev share\nhit me up if you're a video editor, or see a way to partner with me. email: kofi at quillmail dot test"
   },
   {
-   "id": "50340101",
-   "text": "River | Staff Engineers (Elixir) | NYC or REMOTE (US, Europe, South America) | Full-Time | $200K-$250K + equity | https://jobs.ashbyhq.com/river?utm_source=Zp9nJyqvd4\nI'm Alex, founder and CEO of River. I also wrote the first line of code and still ship PRs."
+   "id": "p6",
+   "domain": "riverbend.test",
+   "text": "Riverbend | Staff Engineers (Elixir) | NYC or REMOTE (US, Europe) | Full-Time | $200K-$250K + equity | https://jobs.ashbyhq.com/riverbend\nI'm Alex, founder and CEO of Riverbend. I also wrote the first line of code and still ship PRs."
   },
   {
-   "id": "50340419",
-   "text": "Paramark | Software Engineer (L4) | San Francisco HYBRID (3 days/wk) or REMOTE (US) | Full-time | $199K–$249K + equity\nI'm the CTO and I read every application myself. Happy to answer questions in this thread."
+   "id": "p7",
+   "domain": "lumenfold.test",
+   "text": "Lumenfold | Software Engineer (L4) | San Francisco HYBRID (3 days/wk) or REMOTE (US) | Full-time\nI'm the CTO and I read every application myself. Happy to answer questions in this thread."
   },
   {
-   "id": "50340892",
-   "text": "Ledgebrook | Engineering, Product & Data | REMOTE (US, Canada, Poland; eligibility varies by role) | https://www.example-ledge.com/careers\nHi HN, I'm Nathan, CTO at Ledgebrook. We're a Series D tech-enabled insurance company building technology for our internal user base. Our engineers work directly with other departments, so they see the impact of each product release firstha\nQuestions: hiring@example-ledge.com"
+   "id": "p8",
+   "domain": null,
+   "text": "Harborline | Engineering, Product & Data | REMOTE (US, Canada, Poland) | https://www.harborline.test/careers\nHi HN, I'm Nathan, CTO at Harborline. We're a Series D insurance company building technology for our own teams.\nQuestions: hiring@harborline.test"
   },
   {
-   "id": "50342576",
-   "text": "Blackbird | Dev Shop | Remote (US only) | Contract\nIf interested, reach out directly to me at vance [at] example-bird.us with your resume, link to your LinkedIn, and a small blurb on why you think you'd be a good fit. Must be based in the USA and have 5+ years of engineering experience."
+   "id": "p9",
+   "domain": "kestrelworks.test",
+   "text": "Kestrel Works | Dev Shop | Remote (US only) | Contract\nIf interested, reach out directly to me at lena [at] kestrelworks.test with your resume and a small blurb on why you think you'd be a good fit."
   },
   {
-   "id": "50339750",
-   "text": "Stream | Multiple Positions | Amsterdam (NL), Skopje (North Macedonia) | Boulder, CO (US) | Toronto (Canada)) | Remote possible | Full Time | Visa Sponsorship | https://example-stream.io\nI'm pavlov on HN, been here for nearly two decades, and working in realtime media for a good while longer. Now I run the Video team at Stream and I'm looking for a Staff Engineer.\nYou can email me directly at pauli.roe@example-stream.io, happy to connect and tell you more."
+   "id": "p10",
+   "domain": null,
+   "text": "Streamline | Multiple Positions | Amsterdam (NL) | Boulder, CO (US) | Remote possible | Full Time | https://streamline.test\nI'm marta on HN, been here for nearly two decades. Now I run the Video team at Streamline and I'm looking for a Staff Engineer.\nYou can email me directly at marta.k@streamline.test, happy to connect and tell you more."
   },
   {
-   "id": "50341345",
-   "text": "SadServers | Software Engineer | REMOTE (Canada) | Part-time or Contract | $55 - $75/hr | https://example-sad.com\nI'm the founder of SadServers, a SaaS that provides hands-on challenges for Linux & DevOps/SRE engineers and assessments for hiring teams. It was launched (and quickly broken) here on HN four years ago and we've been growing steadily since \nBesides training and interviewing, companies use our platform to evaluate and/or train their SRE AI agents. I'm looking for a software engineer who can develop this offering, collaborating with customers and working on projects like our own\nPlease email jobs@example-sad.com with subject \"SRE AI Developer\". The hiring process for selected applicants is two steps: one video call and one paid mini-project."
+   "id": "p11",
+   "domain": "grokbox.test",
+   "text": "Grokbox | Software Engineer | REMOTE (Canada) | Part-time or Contract | $55 - $75/hr | https://grokbox.test\nI'm the founder of Grokbox, a SaaS that provides hands-on challenges for Linux engineers.\nPlease email jobs@grokbox.test with subject \"SRE AI Developer\"."
   }
  ]
 }
