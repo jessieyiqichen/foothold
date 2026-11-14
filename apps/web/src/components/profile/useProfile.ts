@@ -50,10 +50,11 @@ export function useProfile() {
   const { state, setState, reload, retry } = useLoadedProfile(isLoaded, userId, withDb);
 
   const saved = state.kind === "ready" ? state.profile : null;
-  /** A first resume, or a replacement: the new text is tagged afresh and the person's tag edits are kept. */
-  const save = useCallback(async (draft: { text: string; name: string | null }): Promise<Result<Profile>> => {
+  /** A first resume, or a replacement: the new text is tagged afresh and the person's tag edits are kept, or replaced
+   *  by `edits` when the first visit gives its own. */
+  const save = useCallback(async (draft: { text: string; name: string | null }, edits?: TagEdits): Promise<Result<Profile>> => {
     if (!userId) return fail(PROFILE_COPY.signedOut);
-    const result = await withDb(PROFILE_COPY.saveFailed, (db) => saveProfile(db, userId, draft, editsOf(saved)));
+    const result = await withDb(PROFILE_COPY.saveFailed, (db) => saveProfile(db, userId, draft, edits ?? editsOf(saved)));
     if (result.ok) setState({ kind: "ready", profile: result.value });
     return result;
   }, [userId, withDb, saved, setState]);
@@ -81,5 +82,5 @@ export function useProfile() {
 
   // The proxy sends a signed-out visitor to sign in before this page; this covers a session that ended while it was open
   const shown: ProfileState = isLoaded && !userId ? { kind: "failed", message: PROFILE_COPY.signedOut } : state;
-  return { state: shown, retry, save, saveEdits, pickFamilies, filterLevels, remove, withDb };
+  return { state: shown, userId, retry, save, saveEdits, pickFamilies, filterLevels, remove, withDb };
 }
