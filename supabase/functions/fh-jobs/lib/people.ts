@@ -103,3 +103,15 @@ export function peopleFromHnPost(raw: unknown, companyDomain: string | null): Hn
   }
   return out;
 }
+
+/**
+ * False when the post's first line names domains and none is the linked company's: HN posts are linked to companies
+ * by name alone (fh_link_postings), so "Stream" at getstream.io can land on another company called Stream. The
+ * people task skips such posts rather than file the poster under the wrong company.
+ */
+export function linkAgrees(text: string, companyDomain: string | null): boolean {
+  if (!companyDomain) return true;
+  const own = companyDomain.toLowerCase().replace(/^www\./, "");
+  const named = headerDomains(text.slice(0, SCAN_MAX));
+  return named.length === 0 || named.some((d) => d === own || d.endsWith(`.${own}`) || own.endsWith(`.${d}`));
+}

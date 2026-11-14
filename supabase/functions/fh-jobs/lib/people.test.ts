@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { deobfuscate, headerDomains, peopleFromHnPost } from "./people";
+import { deobfuscate, headerDomains, linkAgrees, peopleFromHnPost } from "./people";
 
 // HN posts in real shapes, every id, person, company and domain made up (.test is a reserved top-level domain).
 const posts = (JSON.parse(readFileSync(new URL("../fixtures/hn-posts.json", import.meta.url), "utf8")) as {
@@ -42,6 +42,18 @@ describe("headerDomains", () => {
     expect(headerDomains("Fernhill (YC W23) | Engineer | NYC | fernhill.test\nmore")).toEqual(["fernhill.test"]);
     expect(headerDomains("Harborline | Data | https://www.harborline.test/careers")).toEqual(["harborline.test"]);
     expect(headerDomains("Riverbend | Staff | https://jobs.ashbyhq.com/riverbend")).toEqual([]);
+  });
+});
+
+describe("linkAgrees", () => {
+  it("doubts a post linked by name to a company whose domain the post's header contradicts", () => {
+    expect(linkAgrees("Streamline | Video | https://streamline.test\nmore", "streamline.claims")).toBe(false);
+    expect(linkAgrees("Streamline | Video | https://streamline.test", "streamline.test")).toBe(true);
+    expect(linkAgrees("Streamline | Video | https://jobs.streamline.test", "streamline.test")).toBe(true);
+  });
+  it("trusts the link when either side has no domain to compare", () => {
+    expect(linkAgrees("Streamline | Video | Remote", "streamline.claims")).toBe(true);
+    expect(linkAgrees("Streamline | Video | https://streamline.test", null)).toBe(true);
   });
 });
 
