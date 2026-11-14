@@ -1,17 +1,17 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useState } from "react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { EmptySheet } from "@/components/ui/EmptySheet";
 import { FlashNumber } from "@/components/ui/FlashNumber";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { useFirstVisitGate } from "@/components/start/useFirstVisitGate";
 import { START_PATH } from "@/lib/start/constants";
-import { loadMark } from "@/lib/start/mark";
-import { resumeStep } from "@/lib/start/steps";
 import { useProfile } from "@/components/profile/useProfile";
 import { countLine, MATCHES_COPY, showMoreLabel } from "@/lib/matches/copy";
 import { hasMore } from "@/lib/matches/remote";
+import { FRESH_DAYS } from "@/lib/matches/constants";
+import { ToggleChip } from "@/components/ui/ToggleChip";
 import { PROFILE_PATH } from "@/lib/profile/constants";
 import type { Profile } from "@/lib/profile/types";
 import { LevelFilter } from "./LevelFilter";
@@ -27,20 +27,30 @@ function Failed({ message, onRetry }: { message: string; onRetry: () => void }) 
   );
 }
 
+/** The invitation to pick the kind of work, while none is picked. */
+function PickFamilies() {
+  return (
+    <div className="flex flex-col items-start gap-2">
+      <p className="text-ink">{MATCHES_COPY.noFamilies}</p>
+      <ButtonLink variant="secondary" href={PROFILE_PATH}>{MATCHES_COPY.pickFamilies}</ButtonLink>
+    </div>
+  );
+}
+
 /** The list for a person with a resume: the invitation to pick a direction if none is picked, the level filter, the
  *  count, the rows, and Show more. While new rows are on their way the old ones stay, dimmed. */
 function Matches({ profile, filterLevels, withDb }: { profile: Profile } & Pick<ReturnType<typeof useProfile>, "filterLevels" | "withDb">) {
-  const { state, more, refreshing, retry, showMore } = useMatches(profile.updatedAt, withDb);
+  // Off by default: only roles first posted in the last 60 days (docs/architecture.md, freshness)
+  const [includeOld, setIncludeOld] = useState(false);
+  const { state, more, refreshing, retry, showMore } = useMatches(`${profile.updatedAt}|${includeOld}`, withDb, includeOld ? null : FRESH_DAYS);
   const ready = state.kind === "ready" ? state : null;
 
   return (
     <>
-      {profile.families.length === 0 && (
-        <div className="flex flex-col items-start gap-2">
-          <p className="text-ink">{MATCHES_COPY.noFamilies}</p>
-          <ButtonLink variant="secondary" href={PROFILE_PATH}>{MATCHES_COPY.pickFamilies}</ButtonLink>
-        </div>
-      )}
+      {profile.families.length === 0 && <PickFamilies />}
+      <div className="self-start">
+        <ToggleChip on={includeOld} onClick={() => setIncludeOld(!includeOld)}>{MATCHES_COPY.olderLabel}</ToggleChip>
+      </div>
       {/* The count sits beside the levels where there is room. It keeps its place and height while rows load */}
       <LevelFilter
         levels={profile.levels}
@@ -80,22 +90,11 @@ function Matches({ profile, filterLevels, withDb }: { profile: Profile } & Pick<
   );
 }
 
-/** True once the profile has loaded and the first visit still has a question for this person (lib/start/steps.ts).
- *  Read while rendering: the profile is only ever loaded in the browser, where the first visit's mark lives. */
-function useFirstVisitPending(state: ReturnType<typeof useProfile>["state"], userId: string | null): boolean {
-  const router = useRouter();
-  const pending = state.kind === "ready" && userId !== null && resumeStep(state.profile, loadMark(userId)) !== "done";
-  useEffect(() => {
-    if (pending) router.replace(START_PATH);
-  }, [pending, router]);
-  return pending;
-}
-
-/** The matches page, Foothold's front door: loading, couldn't load, or the person's matches. Someone the first visit
- *  still has a question for is sent there (`/start`) instead, and sees the loading line meanwhile. */
+/** All roles (`/matches`): every role that fits, reached from today's done screen and the foot of Saved. Loading,
+ *  couldn't load, or the list. Someone the first visit still has a question for is sent there (`/start`) instead. */
 export function MatchesScreen() {
   const { state, userId, retry, filterLevels, withDb } = useProfile();
-  const firstVisit = useFirstVisitPending(state, userId);
+  const firstVisit = useFirstVisitGate(state, userId);
 
   return (
     <div className="flex w-full flex-col gap-5 lg:max-w-4xl">

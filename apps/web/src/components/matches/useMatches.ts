@@ -13,9 +13,10 @@ export type MatchesState =
   /** `asked` is how many rows have been asked for; `version` is the profile these rows were found for. */
   | { kind: "ready"; page: MatchesPage; asked: number; version: string };
 
-/** The signed-in person's matches. `version` names the profile they are for (its `updated_at`): when it changes, the
- *  first page is read again while the old rows stay on screen, so a filter change never empties or moves the page. */
-export function useMatches(version: string | null, withDb: WithDb) {
+/** The signed-in person's matches, of roles first posted in the last `days` days (null: any age). `version` names
+ *  what they are for (the profile's `updated_at` and the age switch): when it changes, the first page is read again
+ *  while the old rows stay on screen, so a filter change never empties or moves the page. */
+export function useMatches(version: string | null, withDb: WithDb, days: number | null) {
   const [state, setState] = useState<MatchesState>({ kind: "loading" });
   const [more, setMore] = useState<"loading" | "failed" | null>(null);
   // Bumped by "Try again" to read once more
@@ -24,7 +25,7 @@ export function useMatches(version: string | null, withDb: WithDb) {
   useEffect(() => {
     if (version === null) return;
     let live = true;
-    withDb(MATCHES_COPY.loadFailed, (db) => loadMatches(db, 0)).then((result) => {
+    withDb(MATCHES_COPY.loadFailed, (db) => loadMatches(db, 0, days)).then((result) => {
       if (!live) return;
       setMore(null);
       setState(result.ok ? { kind: "ready", page: result.value, asked: MATCHES_PAGE_SIZE, version } : { kind: "failed", message: result.message });
@@ -32,7 +33,7 @@ export function useMatches(version: string | null, withDb: WithDb) {
     return () => {
       live = false;
     };
-  }, [version, attempt, withDb]);
+  }, [version, attempt, withDb, days]);
 
   const retry = useCallback(() => {
     setState({ kind: "loading" });
@@ -44,14 +45,14 @@ export function useMatches(version: string | null, withDb: WithDb) {
     if (state.kind !== "ready" || more === "loading") return;
     const { asked, version: shownFor } = state;
     setMore("loading");
-    const result = await withDb(MATCHES_COPY.moreFailed, (db) => loadMatches(db, asked));
+    const result = await withDb(MATCHES_COPY.moreFailed, (db) => loadMatches(db, asked, days));
     setMore(result.ok ? null : "failed");
     if (!result.ok) return;
     // Dropped if the profile changed meanwhile: those rows belong to a list that is being replaced
     setState((now) => (now.kind === "ready" && now.version === shownFor && now.asked === asked
       ? { ...now, page: addPage(now.page, result.value), asked: asked + MATCHES_PAGE_SIZE }
       : now));
-  }, [state, more, withDb]);
+  }, [state, more, withDb, days]);
 
   /** True while the rows on screen are for an older profile and the new ones are on their way. */
   const refreshing = state.kind === "ready" && version !== null && state.version !== version;
