@@ -1,6 +1,6 @@
 // House style: no full stops; errors take no "!" and say what to do next.
 import { describe, expect, it } from "vitest";
-import { CARDS_COPY, CARDS_ERRORS, cardLine, decidedLine, doingLines, investorsLine, sourceLine } from "./copy";
+import { CARDS_COPY, CARDS_ERRORS, cardLine, decidedLine, doingLines, investorsLine, personName, roleTitle, sourceLine } from "./copy";
 
 const FULL_STOP = /\.(\s|$)/;
 const NOW = new Date("2026-11-14T15:00:00Z");
@@ -49,6 +49,18 @@ describe("doingLines: how the company is doing", () => {
 
   it("cuts a long list of investors", () => {
     expect(investorsLine(["A", "B", "C", "D", "E"])).toBe("Backed by A, B, C +2 more");
+  });
+});
+
+describe("roleTitle and personName: what a card says when the source gave no title or name", () => {
+  it("names a role with no title by where it came from", () => {
+    expect(roleTitle({ title: null })).toBe("Role from a Hacker News hiring post");
+    expect(roleTitle({ title: "Product Analyst" })).toBe("Product Analyst");
+  });
+
+  it("names a person with no name by what they did", () => {
+    expect(personName({ name: null })).toBe("The person who posted this role");
+    expect(personName({ name: "Dana Lee" })).toBe("Dana Lee");
   });
 });
 

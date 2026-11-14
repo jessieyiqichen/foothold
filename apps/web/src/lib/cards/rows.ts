@@ -34,12 +34,16 @@ function rowToRole(row: unknown): CardRole | null {
   if (!isRecord(row)) return null;
   const { id, title, posted_at: postedAt, family, level, shared } = row;
   const url = httpsUrl(row.url);
-  if (!(typeof id === "string" || typeof id === "number") || typeof title !== "string" || title.trim() === "" || !url) return null;
+  if (!(typeof id === "string" || typeof id === "number") || !url) return null;
   const posted = dateOrNull(postedAt);
-  if (posted === undefined || typeof family !== "string" || typeof level !== "string" || !isStrings(shared)) return null;
+  const named = textOrNull(title);
+  // A Hacker News role can come with no title or date, and one written by the daily refresh before labelling with no
+  // family: each is kept and shown without what it lacks, never dropped with its company (reviewer, 2026-11-14)
+  if (posted === undefined || named === undefined || !(family === null || family === undefined || typeof family === "string")) return null;
+  if (typeof level !== "string" || !isStrings(shared)) return null;
   return {
-    id: String(id), title: title.trim(), url, postedAt: posted, shared: [...shared],
-    family: FAMILIES.find((f) => f.id === family)?.id ?? ("other" satisfies Family),
+    id: String(id), title: named?.trim() || null, url, postedAt: posted, shared: [...shared],
+    family: typeof family === "string" ? FAMILIES.find((f) => f.id === family)?.id ?? ("other" satisfies Family) : null,
     level: LEVELS.find((l) => l.id === level)?.id ?? ("unspecified" satisfies Level),
   };
 }
@@ -48,13 +52,14 @@ function rowToRole(row: unknown): CardRole | null {
 function rowToPerson(row: unknown): CardPerson | null {
   if (!isRecord(row)) return null;
   const { name, role, contact_kind: kind, contact, source, seen_at: seenAt } = row;
-  if (typeof name !== "string" || name.trim() === "" || typeof contact !== "string") return null;
+  // Most Hacker News posters give no name: the person is kept, and the card names them by what they did
+  if (!(name === null || name === undefined || typeof name === "string") || typeof contact !== "string") return null;
   if (typeof source !== "string" || !PERSON_SOURCES.includes(source as PersonSource)) return null;
   if (typeof seenAt !== "string" || Number.isNaN(Date.parse(seenAt))) return null;
   const href = kind === "email" ? (EMAIL.test(contact) ? `mailto:${contact}` : null) : kind === "url" ? httpsUrl(contact) : null;
   if (!href) return null;
   return {
-    name: name.trim(), role: typeof role === "string" && role.trim() ? role.trim() : null, contactKind: kind as CardPerson["contactKind"], contact, href,
+    name: typeof name === "string" && name.trim() ? name.trim() : null, role: typeof role === "string" && role.trim() ? role.trim() : null, contactKind: kind as CardPerson["contactKind"], contact, href,
     source: source as PersonSource, sourceUrl: httpsUrl(row.source_url), seenAt,
   };
 }
@@ -64,7 +69,9 @@ export function rowToCard(row: unknown): CompanyCard | null {
   if (!isRecord(row)) return null;
   const companyId = companyIdOf(row.company_id);
   const { name, shared, score, roles } = row;
-  if (companyId === null || typeof name !== "string" || name.trim() === "" || !isStrings(shared) || typeof score !== "number" || !Array.isArray(roles)) return null;
+  // A saved company whose roles all closed can come with a null score: read as 0, so it is never lost from Saved
+  const rank = score === null || score === undefined ? 0 : score;
+  if (companyId === null || typeof name !== "string" || name.trim() === "" || !isStrings(shared) || typeof rank !== "number" || !Array.isArray(roles)) return null;
   const facts = {
     oneLiner: textOrNull(row.one_liner), teamSize: numberOrNull(row.team_size), batch: textOrNull(row.batch), stage: textOrNull(row.stage),
     lastPostedAt: dateOrNull(row.last_posted_at), recentRoles: numberOrNull(row.recent_roles),
@@ -74,7 +81,7 @@ export function rowToCard(row: unknown): CompanyCard | null {
   if (!isStrings(investors)) return null;
   return {
     companyId, name: name.trim(), ...(facts as { [K in keyof typeof facts]: Exclude<(typeof facts)[K], undefined> }),
-    website: httpsUrl(row.website), investors: [...investors], shared: [...shared], score,
+    website: httpsUrl(row.website), investors: [...investors], shared: [...shared], score: rank,
     roles: roles.map(rowToRole).filter((r): r is CardRole => r !== null).slice(0, MAX_ROLES_ON_CARD),
     person: rowToPerson(row.person),
   };

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { ageLine } from "@/lib/cards/age";
-import { CARDS_COPY, doingLines, sourceLine } from "@/lib/cards/copy";
+import { CARDS_COPY, doingLines, personName, roleTitle, sourceLine } from "@/lib/cards/copy";
 import type { CardPerson, CardRole, CompanyCard } from "@/lib/cards/types";
 import { levelLabel } from "@/lib/matches/copy";
 import { LEVEL_TILE_CLASS } from "@/lib/matches/tiles";
@@ -56,7 +56,7 @@ function RoleLine({ role }: { role: CardRole }) {
   const age = ageLine(role.postedAt);
   return (
     <li className="flex flex-col gap-1">
-      <OutLink href={role.url} className="text-base font-bold">{role.title}</OutLink>
+      <OutLink href={role.url} className="text-base font-bold">{roleTitle(role)}</OutLink>
       <p className="flex flex-wrap items-center gap-2 font-mono text-xs text-muted">
         <span className={LEVEL_TILE_CLASS}>{levelLabel(role.level)}</span>
         {age && <span>Posted {age}</span>}
@@ -79,7 +79,7 @@ function PersonLines({ person }: { person: CardPerson }) {
   const source = sourceLine(person.source, person.seenAt);
   return (
     <div className="flex flex-col gap-1">
-      <p className="text-base font-bold text-ink">{person.name}{person.role && <span className="font-normal text-muted"> · {person.role}</span>}</p>
+      <p className="text-base font-bold text-ink">{personName(person)}{person.role && <span className="font-normal text-muted"> · {person.role}</span>}</p>
       <OutLink href={person.href} className="self-start text-sm">{person.contact}</OutLink>
       <p className="font-mono text-xs text-muted">{person.sourceUrl ? <OutLink href={person.sourceUrl}>{source}</OutLink> : source}</p>
     </div>

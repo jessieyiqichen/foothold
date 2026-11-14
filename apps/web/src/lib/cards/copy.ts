@@ -20,6 +20,8 @@ export const CARDS_COPY = {
   noContact: "No contact found yet",
   website: "Their website",
   draft: "A draft message will appear here",
+  untitledRole: "Role from a Hacker News hiring post",
+  unnamedPerson: "The person who posted this role",
   newTab: "(opens in a new tab)",
 
   save: "Save",
@@ -57,6 +59,11 @@ export const CARDS_COPY = {
 export const CARDS_ERRORS = [CARDS_COPY.loadFailed, CARDS_COPY.decideFailed, CARDS_COPY.undoFailed, CARDS_COPY.savedFailed, CARDS_COPY.changeFailed];
 
 export const DECISION_LABEL: Record<Decision, string> = { saved: "Saved", reached_out: "Reached out", skipped: "Skipped" };
+
+/** A role's title, or where it came from when the source gave none. */
+export const roleTitle = ({ title }: { title: string | null }): string => title ?? CARDS_COPY.untitledRole;
+/** A person's name, or what they did when the source gave none. */
+export const personName = ({ name }: { name: string | null }): string => name ?? CARDS_COPY.unnamedPerson;
 
 export const cardLine = ({ n, of }: { n: number; of: number }): string => `Card ${n} of ${of}`;
 

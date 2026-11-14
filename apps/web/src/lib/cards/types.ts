@@ -4,18 +4,21 @@ import type { Decision, PersonSource } from "./constants";
 /** A role on a card: the evidence that the company fits. */
 export interface CardRole {
   id: string;
-  title: string;
+  /** Null for a Hacker News post that gave none; shown as where the role came from (roleTitle). */
+  title: string | null;
   /** Always https. */
   url: string;
   postedAt: string | null;
-  family: Family;
+  /** Null for a role not labelled yet. */
+  family: Family | null;
   level: Level;
   shared: string[];
 }
 
 /** The one person to reach at a company, only through a route they published themself. */
 export interface CardPerson {
-  name: string;
+  /** Null when the source gave no name (most Hacker News posters); shown as personName says. */
+  name: string | null;
   role: string | null;
   contactKind: "email" | "url";
   /** The address or the page, as shown. */

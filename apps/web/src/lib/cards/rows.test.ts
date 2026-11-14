@@ -28,6 +28,20 @@ describe("rowToCard: a row from fh_today is checked before it is shown", () => {
     expect(rowToCard({ ...row, company_id: "812" })?.companyId).toBe(812);
   });
 
+  it("keeps a company whose score is null, as a saved company whose roles closed can have, and reads it as 0", () => {
+    expect(rowToCard({ ...row, score: null })?.score).toBe(0);
+  });
+
+  it("keeps a role with no family, as one the daily refresh wrote before labelling it", () => {
+    expect(rowToCard({ ...row, roles: [{ ...row.roles[0], family: null }] })?.roles[0]).toMatchObject({ id: "41", family: null });
+  });
+
+  it("keeps a role with no title and no date, as a Hacker News post can be, and the company with it", () => {
+    const card = rowToCard({ ...row, roles: [{ ...row.roles[0], title: null, posted_at: null }] });
+    expect(card?.roles[0]).toMatchObject({ id: "41", title: null, postedAt: null });
+    expect(rowToCard({ ...row, roles: [{ ...row.roles[0], title: "   " }] })?.roles[0].title).toBeNull();
+  });
+
   it("drops a row with no usable id or name, or mistyped lists", () => {
     for (const bad of [null, "x", { ...row, company_id: null }, { ...row, company_id: "abc" }, { ...row, company_id: 1.5 }, { ...row, name: "" },
       { ...row, shared: "sql" }, { ...row, roles: null }, { ...row, score: "8" }, { ...row, team_size: "38" }, { ...row, investors: ["Accel", 3] }]) {
@@ -61,7 +75,12 @@ describe("rowToCard: a row from fh_today is checked before it is shown", () => {
   it("leaves out a person whose source or date is missing: the source and date are always shown", () => {
     expect(rowToCard({ ...row, person: { ...row.person, source: "linkedin" } })?.person).toBeNull();
     expect(rowToCard({ ...row, person: { ...row.person, seen_at: null } })?.person).toBeNull();
-    expect(rowToCard({ ...row, person: { ...row.person, name: "" } })?.person).toBeNull();
+  });
+
+  it("keeps a person with no name, as most Hacker News posters give none: the source and date still say where they came from", () => {
+    for (const name of [null, "", "  ", undefined]) {
+      expect(rowToCard({ ...row, person: { ...row.person, name } })?.person, String(name)).toMatchObject({ name: null, href: "mailto:dana@acme.ai", source: "hn" });
+    }
   });
 
   it("keeps at most two roles, in the order given", () => {
