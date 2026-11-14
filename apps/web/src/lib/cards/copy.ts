@@ -34,7 +34,8 @@ export const CARDS_COPY = {
   emptyLine: "No more companies fit you today, see every role while new ones come in",
   allRoles: "All roles",
 
-  doneLabel: "companies today",
+  doneOutreach: "companies saved or reached out to",
+  doneLooked: "companies looked at",
   seeSaved: "See my saved",
   fiveMore: "Show five more",
 
