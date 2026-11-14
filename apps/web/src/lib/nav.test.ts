@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { HOME_PATH } from "./auth/routes";
+import { SAVED_PATH, TODAY_PATH } from "./cards/constants";
 import { MATCHES_PATH } from "./matches/constants";
 import { isCurrentLink, NAV_LINKS, WORDMARK } from "./nav";
 import { PROFILE_PATH } from "./profile/constants";
@@ -10,25 +11,27 @@ describe("the signed-in shell", () => {
     expect(JSON.stringify(NAV_LINKS)).not.toMatch(/nudge/i);
   });
 
-  it("links only to Matches and Profile, Matches first because it is the front door", () => {
-    expect(NAV_LINKS).toEqual([{ href: MATCHES_PATH, label: "Matches" }, { href: PROFILE_PATH, label: "Profile" }]);
+  it("links to Today, Saved and Profile, Today first because it is the front door; all roles is not in it", () => {
+    expect(NAV_LINKS).toEqual([{ href: TODAY_PATH, label: "Today" }, { href: SAVED_PATH, label: "Saved" }, { href: PROFILE_PATH, label: "Profile" }]);
+    expect(NAV_LINKS.map((link) => link.href)).not.toContain(MATCHES_PATH);
     expect(NAV_LINKS[0].href).toBe(HOME_PATH);
   });
 });
 
 describe("isCurrentLink: which link is marked as the page you are on", () => {
-  const [matches, profile] = NAV_LINKS;
+  const [today, saved, profile] = NAV_LINKS;
 
   it("marks the link of the page and of anything under it", () => {
-    expect(isCurrentLink(matches, "/matches")).toBe(true);
+    expect(isCurrentLink(today, "/today")).toBe(true);
+    expect(isCurrentLink(saved, "/saved")).toBe(true);
     expect(isCurrentLink(profile, "/profile")).toBe(true);
     expect(isCurrentLink(profile, "/profile/anything")).toBe(true);
   });
 
   it("marks nothing on another page, on one that only starts with the same letters, or before the path is known", () => {
-    expect(isCurrentLink(matches, "/profile")).toBe(false);
-    expect(isCurrentLink(matches, "/goals")).toBe(false);
-    expect(isCurrentLink(matches, "/matchesque")).toBe(false);
-    expect(isCurrentLink(matches, null)).toBe(false);
+    expect(isCurrentLink(today, "/profile")).toBe(false);
+    expect(isCurrentLink(today, "/matches")).toBe(false);
+    expect(isCurrentLink(saved, "/savedsearch")).toBe(false);
+    expect(isCurrentLink(today, null)).toBe(false);
   });
 });

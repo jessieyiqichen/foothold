@@ -10,7 +10,7 @@ export function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
-/** Where a person lands after signing in, and where "/" goes: their matches, Foothold's front door (user,
- *  2026-11-12). Someone with no resume yet is shown the way to the profile from there. The redirect itself is in
- *  `next.config.ts`, which cannot import this file; routes.test.ts checks the two agree. */
-export const HOME_PATH = "/matches";
+/** Where a person lands after signing in, and where "/" goes: today's five company cards, Foothold's front door
+ *  (2026-11-14). Anyone the first visit still has a question for is sent on to `/start` from there. The redirect itself
+ *  is in `next.config.ts`, which cannot import this file; routes.test.ts checks the two agree. */
+export const HOME_PATH = "/today";

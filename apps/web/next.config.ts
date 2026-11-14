@@ -22,10 +22,10 @@ const SECURITY_HEADERS = [
 const nextConfig: NextConfig = {
   // @foothold/core ships TypeScript source, not built files
   transpilePackages: ["@foothold/core"],
-  // The front door is the matches page (user, 2026-11-12); the same path as HOME_PATH in src/lib/auth/routes.ts,
-  // which routes.test.ts checks
+  // The front door is today's five (2026-11-14); the same path as HOME_PATH in src/lib/auth/routes.ts, which
+  // routes.test.ts checks
   async redirects() {
-    return [{ source: "/", destination: "/matches", permanent: false }];
+    return [{ source: "/", destination: "/today", permanent: false }];
   },
   async headers() {
     return [{ source: "/:path*", headers: SECURITY_HEADERS }];

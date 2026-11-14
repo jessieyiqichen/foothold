@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { HOME_PATH, isPublicPath } from "./routes";
-import { MATCHES_PATH } from "../matches/constants";
+import { TODAY_PATH } from "../cards/constants";
 import { PROFILE_PATH } from "../profile/constants";
 
 describe("isPublicPath: which pages a signed-out visitor may open", () => {
@@ -29,8 +29,8 @@ describe("isPublicPath: which pages a signed-out visitor may open", () => {
 });
 
 describe("HOME_PATH: the front door", () => {
-  it("is the matches page, which a signed-out visitor cannot open", () => {
-    expect(HOME_PATH).toBe(MATCHES_PATH);
+  it("is today's five, which a signed-out visitor cannot open", () => {
+    expect(HOME_PATH).toBe(TODAY_PATH);
     expect(isPublicPath(HOME_PATH)).toBe(false);
   });
 
