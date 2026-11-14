@@ -21,6 +21,8 @@ Always go through the `add-source` skill in `.claude/skills/`. A new site, a new
 | Path | What it is | Read it when |
 |---|---|---|
 | `apps/web/`, `packages/core/`, `supabase/` | The web app; the code both sides share (skill vocabulary, tagger); migrations and workers. One `npm install` and `npm test` at the root cover all three | Finding where something lives |
+| `docs/architecture.md` | What Foothold is built around since 2026-11-14: the company card, the layers, the rules, the order of work | Before designing or building anything |
+| `docs/competitors.md` | What the closest products do, and which sources for people and funding may be used | Designing a card, a source or a match explanation |
 | `docs/ownership.md` | Who owns which files, what only the lead may do, how a hand-back is checked | Before any work, every time |
 | `.claude/agents/` | Briefs for `data-scout`, `judge-eval`, `web-ui`, `reviewer` | You are given that role |
 | `docs/v1-plan.md` | This week, day by day, and the user's own tasks | Choosing what to do next |
