@@ -4,12 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { isCurrentLink, NAV_LINKS } from "@/lib/nav";
 
-/** The links themselves; `pathname` is null while it isn't known yet (prerender fallback). The page you are on is
- *  marked with a backing and `aria-current`, never by colour alone. */
+/** The links themselves, as keys (Tape & Tile); `pathname` is null while it isn't known yet (prerender fallback). The
+ *  page you are on is the key pressed in, in mustard, and `aria-current`: never colour alone. */
 export function NavLinks({ pathname }: { pathname: string | null }) {
   return (
     <nav aria-label="Main">
-      <ul className="flex gap-1">
+      <ul className="flex gap-1.5 sm:gap-2">
         {NAV_LINKS.map((link) => {
           const current = isCurrentLink(link, pathname);
           return (
@@ -18,8 +18,8 @@ export function NavLinks({ pathname }: { pathname: string | null }) {
                 href={link.href}
                 aria-current={current ? "page" : undefined}
                 className={
-                  "inline-flex min-h-9 items-center rounded-lg px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus " +
-                  (current ? "bg-wash text-ink" : "text-muted hover:bg-wash hover:text-ink")
+                  "keycap inline-flex min-h-10 items-center border-2 border-line px-2 text-sm font-bold sm:px-3 text-ink focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus " +
+                  (current ? "bg-primary" : "bg-surface hover:bg-wash")
                 }
               >
                 {link.label}
