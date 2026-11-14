@@ -23,7 +23,7 @@ export function AppShell({ children, width = "narrow" }: { children: ReactNode; 
       </a>
       <header className="flex min-h-16 items-center gap-3 border-b-2 border-ink py-2 sm:gap-6">
         <Link href={HOME_PATH} className="relative inline-flex min-h-10 shrink-0 -rotate-[1.2deg] items-center gap-2 border-2 border-ink bg-surface px-2 py-1 sm:pl-1 text-lg font-black tracking-[-0.03em] text-ink focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus">
-          <Tape className="-top-2.5 left-1/2 h-4 w-12 -translate-x-1/2 rotate-[4deg]" />
+          <Tape small className="-top-1.5 left-1/2 -translate-x-1/2 rotate-[4deg]" />
           {/* Left out on a phone, so the wordmark, both keys and the account button fit on one line at 375px */}
           <Shape shape="quarter" color="red" tile="mustard" size={26} className="hidden sm:block" />
           {WORDMARK}
