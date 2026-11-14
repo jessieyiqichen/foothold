@@ -34,8 +34,8 @@ export function LevelFilter({ levels, onChange, aside }: LevelFilterProps) {
     <section aria-labelledby="matches-levels" className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 id="matches-levels" className="text-sm font-medium text-ink">{MATCHES_COPY.levelsLegend}</h2>
-          <div role="group" aria-labelledby="matches-levels" className="flex flex-wrap gap-1.5">
+          <h2 id="matches-levels" className="font-mono text-xs text-ink">{MATCHES_COPY.levelsLegend}</h2>
+          <div role="group" aria-labelledby="matches-levels" className="flex flex-wrap gap-x-1.5 gap-y-2.5">
             {LEVELS.map(({ id, label }) => (
               <ToggleChip key={id} on={levels.includes(id)} onClick={() => toggle(id)}>{label}</ToggleChip>
             ))}
@@ -43,11 +43,11 @@ export function LevelFilter({ levels, onChange, aside }: LevelFilterProps) {
         </div>
         {aside}
       </div>
-      <p className="text-[13px] leading-5 text-muted">{MATCHES_COPY.levelsNote}</p>
+      <p className="font-mono text-[11px] leading-5 text-muted">{MATCHES_COPY.levelsNote}</p>
       {/* Always the same height, so a line coming or going never moves the list under it */}
       <div className="min-h-5">
-        <p role="status" className="text-sm font-medium text-ink">{saving ? MATCHES_COPY.savingLevels : ""}</p>
-        {!saving && error && <p role="alert" className="text-sm font-medium text-danger">{error}</p>}
+        <p role="status" className="font-mono text-xs text-ink">{saving ? MATCHES_COPY.savingLevels : ""}</p>
+        {!saving && error && <p role="alert" className="text-sm font-bold text-danger">{error}</p>}
       </div>
     </section>
   );
