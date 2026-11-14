@@ -1,3 +1,4 @@
+import { SectionHeading } from "@/components/ui/SectionHeading";
 import { PROFILE_COPY } from "@/lib/profile/copy";
 import { groupTags, tagCountLine } from "@/lib/profile/tags";
 
@@ -8,8 +9,8 @@ export function TagGroups({ tags, heading }: { tags: string[]; heading: string }
   return (
     <section aria-labelledby="profile-tags" className="flex flex-col gap-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-        <h2 id="profile-tags" className="text-lg font-semibold text-ink">{heading}</h2>
-        <p className="text-sm tabular-nums text-muted" aria-live="polite">{tagCountLine(tags.length)}</p>
+        <SectionHeading id="profile-tags">{heading}</SectionHeading>
+        <p className="font-mono text-xs tabular-nums text-muted" aria-live="polite">{tagCountLine(tags.length)}</p>
       </div>
       {groups.length === 0 ? (
         <p className="text-muted">{PROFILE_COPY.noTags}</p>
@@ -17,7 +18,7 @@ export function TagGroups({ tags, heading }: { tags: string[]; heading: string }
         <dl className="flex flex-col gap-3">
           {groups.map(({ group, label, tags: inGroup }) => (
             <div key={group} className="flex flex-col gap-0.5 border-t border-hairline pt-3 sm:flex-row sm:gap-4">
-              <dt className="shrink-0 text-sm font-medium text-muted sm:w-48">{label}</dt>
+              <dt className="shrink-0 font-mono text-xs text-muted sm:w-48">{label}</dt>
               <dd className="text-ink">{inGroup.join(" · ")}</dd>
             </div>
           ))}

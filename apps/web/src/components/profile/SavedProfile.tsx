@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { Dialog } from "@/components/ui/Dialog";
+import { PaperDialog } from "@/components/ui/PaperDialog";
 import { PROFILE_COPY, savedLine } from "@/lib/profile/copy";
 import type { Family } from "@/lib/profile/roles";
 import type { Profile, Result } from "@/lib/profile/types";
@@ -44,27 +44,27 @@ export function SavedProfile({ profile, onEdit, onFamilies, onReplace, onDelete 
 
   return (
     <div className="flex flex-col gap-6">
-      <p className="text-sm tabular-nums text-muted">{savedLine(profile.updatedAt, profile.resumeName)}</p>
-      <div className="border-t border-hairline pt-5">
+      <p className="font-mono text-xs tabular-nums text-muted">{savedLine(profile.updatedAt, profile.resumeName)}</p>
+      <div className="border-t-2 border-ink pt-5">
         <DirectionPicker profile={profile} onSave={onFamilies} />
       </div>
-      <div className="border-t border-hairline pt-5">
+      <div className="border-t-2 border-ink pt-5">
         <TagEditor profile={profile} onEdit={onEdit} />
       </div>
-      <div className="flex flex-wrap items-center gap-3 border-t border-hairline pt-5">
+      <div className="flex flex-wrap items-center gap-3 border-t-2 border-ink pt-5">
         <Button variant="secondary" onClick={onReplace}>{PROFILE_COPY.replace}</Button>
         <Button variant="danger" onClick={() => setConfirming(true)}>{PROFILE_COPY.delete}</Button>
       </div>
 
-      <Dialog open={confirming} title={PROFILE_COPY.confirmTitle} closeLabel={PROFILE_COPY.keep} onClose={close}>
+      <PaperDialog open={confirming} title={PROFILE_COPY.confirmTitle} closeLabel={PROFILE_COPY.keep} onClose={close}>
         <div className="flex flex-col gap-4">
           <p>{PROFILE_COPY.confirmBody}</p>
-          {error && <p role="alert" className="font-medium text-danger">{error}</p>}
+          {error && <p role="alert" className="font-bold text-danger">{error}</p>}
           <Button variant="danger" onClick={confirmDelete} disabled={deleting} className="self-start">
             {deleting ? PROFILE_COPY.deleting : PROFILE_COPY.confirmDelete}
           </Button>
         </div>
-      </Dialog>
+      </PaperDialog>
     </div>
   );
 }

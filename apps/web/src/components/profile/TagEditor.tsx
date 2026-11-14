@@ -1,5 +1,6 @@
 "use client";
 
+import { SectionHeading } from "@/components/ui/SectionHeading";
 import { useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ToggleChip } from "@/components/ui/ToggleChip";
@@ -51,14 +52,14 @@ export function TagEditor({ profile, onEdit }: TagEditorProps) {
   return (
     <section aria-labelledby="profile-tags" className="flex flex-col gap-4">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-        <h2 id="profile-tags" className="text-lg font-semibold text-ink">{PROFILE_COPY.savedHeading}</h2>
-        <p className="text-sm tabular-nums text-muted">{tagCountLine(profile.tags.length)}</p>
+        <SectionHeading id="profile-tags">{PROFILE_COPY.savedHeading}</SectionHeading>
+        <p className="font-mono text-xs tabular-nums text-muted">{tagCountLine(profile.tags.length)}</p>
       </div>
-      <p className="-mt-2 text-sm text-muted">{PROFILE_COPY.editHint}</p>
+      <p className="-mt-2 font-mono text-xs leading-5 text-muted">{PROFILE_COPY.editHint}</p>
 
       <div ref={noticeRef} tabIndex={-1} className="sticky top-0 z-10 flex min-h-11 flex-wrap items-center gap-x-3 bg-page/95 backdrop-blur-sm focus:outline-none">
         <p role="status" className="text-sm font-medium text-ink">{pending ? PROFILE_COPY.savingEdit : notice && "line" in notice ? notice.line : ""}</p>
-        {!pending && notice && "error" in notice && <p role="alert" className="text-sm font-medium text-danger">{notice.error}</p>}
+        {!pending && notice && "error" in notice && <p role="alert" className="text-sm font-bold text-danger">{notice.error}</p>}
         {!pending && notice && "undo" in notice && notice.undo && (
           <Button variant="ghost" onClick={() => change(notice.undo!, false)}>{PROFILE_COPY.undo}</Button>
         )}
@@ -67,8 +68,8 @@ export function TagEditor({ profile, onEdit }: TagEditorProps) {
       <dl className="flex flex-col gap-3">
         {groupTags(profile.tags).map(({ group, label, tags }) => (
           <div key={group} className="flex flex-col gap-2 border-t border-hairline pt-3 sm:flex-row sm:gap-4">
-            <dt className="shrink-0 text-sm font-medium text-muted sm:w-48 sm:pt-2">{label}</dt>
-            <dd className="flex flex-wrap gap-1.5">
+            <dt className="shrink-0 font-mono text-xs text-muted sm:w-48 sm:pt-2">{label}</dt>
+            <dd className="flex flex-wrap gap-x-1.5 gap-y-2.5">
               {tags.map((tag) => (
                 <ToggleChip key={tag} on aria-label={removeLabel(tag, mine.has(tag))} onClick={() => change({ kind: "remove", tag })}>
                   {tag}
@@ -91,14 +92,14 @@ function OfferedTags({ onProfile, onAdd }: { onProfile: string[]; onAdd: (tag: s
   const groups = useMemo(() => offProfileGroups(onProfile), [onProfile]);
   return (
     <section aria-labelledby="profile-add" className="flex flex-col gap-2 border-t border-hairline pt-5">
-      <h2 id="profile-add" className="text-lg font-semibold text-ink">{PROFILE_COPY.addHeading}</h2>
-      <p className="text-sm text-muted">{PROFILE_COPY.addHint}</p>
+      <SectionHeading id="profile-add">{PROFILE_COPY.addHeading}</SectionHeading>
+      <p className="font-mono text-xs leading-5 text-muted">{PROFILE_COPY.addHint}</p>
       {groups.map(({ group, label, tags, open }) => (
         <details key={group} open={open} className="border-t border-hairline py-1">
-          <summary className="flex min-h-9 cursor-pointer items-center rounded-lg text-sm font-medium text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+          <summary className="flex min-h-10 cursor-pointer items-center font-mono text-xs text-ink focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus">
             {offeredCount(label, tags.length)}
           </summary>
-          <div className="flex flex-wrap gap-1.5 pb-3 pt-1">
+          <div className="flex flex-wrap gap-x-1.5 gap-y-2.5 pb-3 pt-1">
             {tags.map((tag) => (
               <ToggleChip key={tag} on={false} aria-label={addLabel(tag)} onClick={() => onAdd(tag)}>{tag}</ToggleChip>
             ))}
