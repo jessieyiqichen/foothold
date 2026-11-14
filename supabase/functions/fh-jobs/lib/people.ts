@@ -115,3 +115,9 @@ export function linkAgrees(text: string, companyDomain: string | null): boolean 
   const named = headerDomains(text.slice(0, SCAN_MAX));
   return named.length === 0 || named.some((d) => d === own || d.endsWith(`.${own}`) || own.endsWith(`.${d}`));
 }
+
+/** Whether the people task has anything to read: a linked HN posting changed after the last good run started. */
+export function peopleDue(lastRunAt: string | null, lastChangeAt: string | null): boolean {
+  if (lastChangeAt === null) return false;
+  return lastRunAt === null || Date.parse(lastChangeAt) > Date.parse(lastRunAt);
+}

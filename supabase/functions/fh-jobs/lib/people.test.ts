@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { deobfuscate, headerDomains, linkAgrees, peopleFromHnPost } from "./people";
+import { deobfuscate, headerDomains, linkAgrees, peopleDue, peopleFromHnPost } from "./people";
 
 // HN posts in real shapes, every id, person, company and domain made up (.test is a reserved top-level domain).
 const posts = (JSON.parse(readFileSync(new URL("../fixtures/hn-posts.json", import.meta.url), "utf8")) as {
@@ -148,5 +148,17 @@ describe("work stays bounded on crafted input", () => {
       peopleFromHnPost(text, "acme.test");
       expect(performance.now() - t0).toBeLessThan(100);
     }
+  });
+});
+
+describe("peopleDue", () => {
+  it("runs when there has been no run yet, or a linked HN posting changed after the last one started", () => {
+    expect(peopleDue(null, "2026-11-14T06:00:00Z")).toBe(true);
+    expect(peopleDue("2026-11-13T06:30:00Z", "2026-11-14T06:00:00Z")).toBe(true);
+  });
+  it("does nothing when nothing changed since, or there is no linked HN posting at all", () => {
+    expect(peopleDue("2026-11-14T06:30:00+00:00", "2026-11-14T06:00:00.000Z")).toBe(false);
+    expect(peopleDue("2026-11-14T06:30:00Z", null)).toBe(false);
+    expect(peopleDue(null, null)).toBe(false);
   });
 });
