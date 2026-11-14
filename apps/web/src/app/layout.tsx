@@ -5,6 +5,7 @@ import { Notifier } from "@/components/Notifier";
 import { clerkAppearance } from "@/lib/auth/appearance";
 import { clerkLocalization } from "@/lib/auth/copy";
 import { HOME_PATH, SIGN_IN_PATH, SIGN_UP_PATH } from "@/lib/auth/routes";
+import { START_PATH } from "@/lib/start/constants";
 import { fontClass } from "./fonts";
 import "./globals.css";
 
@@ -30,7 +31,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           signInUrl={SIGN_IN_PATH}
           signUpUrl={SIGN_UP_PATH}
           signInFallbackRedirectUrl={HOME_PATH}
-          signUpFallbackRedirectUrl={HOME_PATH}
+          signUpFallbackRedirectUrl={START_PATH}
         >
           <DataSync />
           {children}

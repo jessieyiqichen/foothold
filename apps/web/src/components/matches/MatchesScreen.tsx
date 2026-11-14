@@ -1,9 +1,14 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { EmptySheet } from "@/components/ui/EmptySheet";
 import { FlashNumber } from "@/components/ui/FlashNumber";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { START_PATH } from "@/lib/start/constants";
+import { loadMark } from "@/lib/start/mark";
+import { resumeStep } from "@/lib/start/steps";
 import { useProfile } from "@/components/profile/useProfile";
 import { countLine, MATCHES_COPY, showMoreLabel } from "@/lib/matches/copy";
 import { hasMore } from "@/lib/matches/remote";
@@ -75,23 +80,36 @@ function Matches({ profile, filterLevels, withDb }: { profile: Profile } & Pick<
   );
 }
 
-/** The matches page, Foothold's front door: loading, couldn't load, no resume yet (one line and the way to the
- *  profile), or the person's matches. */
+/** True once the profile has loaded and the first visit still has a question for this person (lib/start/steps.ts).
+ *  Read while rendering: the profile is only ever loaded in the browser, where the first visit's mark lives. */
+function useFirstVisitPending(state: ReturnType<typeof useProfile>["state"], userId: string | null): boolean {
+  const router = useRouter();
+  const pending = state.kind === "ready" && userId !== null && resumeStep(state.profile, loadMark(userId)) !== "done";
+  useEffect(() => {
+    if (pending) router.replace(START_PATH);
+  }, [pending, router]);
+  return pending;
+}
+
+/** The matches page, Foothold's front door: loading, couldn't load, or the person's matches. Someone the first visit
+ *  still has a question for is sent there (`/start`) instead, and sees the loading line meanwhile. */
 export function MatchesScreen() {
-  const { state, retry, filterLevels, withDb } = useProfile();
+  const { state, userId, retry, filterLevels, withDb } = useProfile();
+  const firstVisit = useFirstVisitPending(state, userId);
 
   return (
     <div className="flex w-full flex-col gap-5 lg:max-w-4xl">
       <PageHeader title={MATCHES_COPY.title} intro={MATCHES_COPY.intro} back={null} />
-      {state.kind === "loading" && <p className="font-mono text-xs text-muted">{MATCHES_COPY.loading}</p>}
+      {(state.kind === "loading" || firstVisit) && <p className="font-mono text-xs text-muted">{MATCHES_COPY.loading}</p>}
       {state.kind === "failed" && <Failed message={state.message} onRetry={retry} />}
-      {state.kind === "ready" && state.profile === null && (
+      {/* Not reached while the first visit sends anyone without a resume to /start; kept should that ever fail */}
+      {state.kind === "ready" && !firstVisit && state.profile === null && (
         <EmptySheet shape="arch" color="mustard" tile="navy">
           <p className="text-ink">{MATCHES_COPY.noResume}</p>
-          <ButtonLink href={PROFILE_PATH}>{MATCHES_COPY.toProfile}</ButtonLink>
+          <ButtonLink href={START_PATH}>{MATCHES_COPY.toProfile}</ButtonLink>
         </EmptySheet>
       )}
-      {state.kind === "ready" && state.profile && <Matches profile={state.profile} filterLevels={filterLevels} withDb={withDb} />}
+      {state.kind === "ready" && !firstVisit && state.profile && <Matches profile={state.profile} filterLevels={filterLevels} withDb={withDb} />}
     </div>
   );
 }
