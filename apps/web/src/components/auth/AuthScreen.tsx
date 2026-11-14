@@ -9,7 +9,7 @@ import { WORDMARK } from "@/lib/nav";
  *  making an account), a row of shapes, and Clerk's form. There is no navigation until you are in. */
 export function AuthScreen({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-full w-full flex-1 flex-col items-center bg-tile-cobalt px-4 py-10 sm:justify-center sm:py-14">
+    <div className="flex min-h-full w-full flex-1 flex-col items-center overflow-x-clip bg-tile-cobalt px-4 py-10 sm:justify-center sm:py-14">
       <main id="main" className="relative w-full max-w-md -rotate-[0.6deg] bg-surface p-6 text-ink shadow-[-18px_30px_34px_-14px_rgb(10_10_40/0.6)] sm:p-8">
         <Tape className="-top-3 -left-5 -rotate-[38deg]" />
         <Tape className="-top-3 -right-5 rotate-[38deg]" />
