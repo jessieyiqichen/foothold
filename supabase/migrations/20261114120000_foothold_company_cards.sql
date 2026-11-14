@@ -163,10 +163,11 @@ create table public.fh_people (
   unique (company_id, source, contact)
 );
 
+-- Not readable as a whole table by anyone signed in (reviewer, 2026-11-14): a list of every contact is what Foothold
+-- must never hand out. A card gets its one person through fh_company_person below, one company at a time. RLS is on
+-- with no policy, and only the workers (service_role) hold any privilege on the table.
 alter table public.fh_people enable row level security;
-create policy "signed-in read people" on public.fh_people for select to authenticated using (true);
 revoke all on table public.fh_people from public, anon, authenticated;
-grant select on table public.fh_people to authenticated;
 grant select, insert, update, delete on table public.fh_people to service_role;
 
 -- 4. The daily re-check of boards: which companies are due --------------------------------------------------------
@@ -174,6 +175,11 @@ grant select, insert, update, delete on table public.fh_people to service_role;
 -- Hands the refresh task the companies with a board, checked longest ago first, and stamps them so the next call
 -- gets others. A company checked in the last 20 hours is not due, so a schedule that calls more often than needed
 -- gets nothing back instead of checking the same boards twice in a day.
+-- Rate (reviewer, 2026-11-14): at most 25 companies stamped in any 2 minutes, whoever calls: the companies stamped
+-- in the last 2 minutes (by this task or the ats task) are taken off what a call may claim. At most 5 Workable
+-- companies a claim, since Workable refuses after about six requests a minute.
+-- The 100 rows locked first are a pool to choose from; a row locked and not chosen is released at the end of the
+-- statement.
 create index fh_companies_refresh on public.fh_companies (ats_checked_at) where ats is not null;
 
 create or replace function public.fh_claim_refresh(n integer)
@@ -182,17 +188,42 @@ language sql security definer set search_path = '' as $$
   update public.fh_companies c
   set ats_checked_at = now()
   where c.id in (
-    select x.id from public.fh_companies x
-    where x.ats is not null and x.ats_slug is not null
-      and (x.ats_checked_at is null or x.ats_checked_at < now() - interval '20 hours')
-    order by x.ats_checked_at nulls first, x.id
-    limit least(greatest(n, 1), 50)
-    for update skip locked
+    select e.id
+    from (
+      select d.id, d.ats, d.ats_checked_at,
+             row_number() over (partition by d.ats = 'workable' order by d.ats_checked_at nulls first, d.id) as k
+      from (
+        select x.id, x.ats, x.ats_checked_at from public.fh_companies x
+        where x.ats is not null and x.ats_slug is not null
+          and (x.ats_checked_at is null or x.ats_checked_at < now() - interval '20 hours')
+        order by x.ats_checked_at nulls first, x.id
+        limit 100
+        for update skip locked
+      ) d
+    ) e
+    where e.ats <> 'workable' or e.k <= 5
+    order by e.ats_checked_at nulls first, e.id
+    limit greatest(0, least(greatest(n, 1), 25) - (
+      select count(*) from public.fh_companies r where r.ats_checked_at > now() - interval '2 minutes'
+    ))
   )
   returning c.id, c.name, c.ats, c.ats_slug;
 $$;
 revoke all on function public.fh_claim_refresh(integer) from public, anon, authenticated;
 grant execute on function public.fh_claim_refresh(integer) to service_role;
+
+-- What is stored for one company's job-board roles, for the refresh task to compare with a fresh answer and write
+-- only what is new or changed. The text is compared by its SHA-256 (hex, of the UTF-8 bytes), so the worker never
+-- downloads the texts it already has. Only the worker calls it.
+create or replace function public.fh_stored_roles(p_company bigint)
+returns table (id bigint, source_id text, closed_at timestamptz, title text, posted_at timestamptz, text_sha256 text)
+language sql stable security definer set search_path = '' as $$
+  select p.id, p.source_id, p.closed_at, p.title, p.posted_at, encode(sha256(convert_to(p.text, 'UTF8')), 'hex')
+  from public.fh_postings p
+  where p.company_id = p_company and p.source = 'ats';
+$$;
+revoke all on function public.fh_stored_roles(bigint) from public, anon, authenticated;
+grant execute on function public.fh_stored_roles(bigint) to service_role;
 
 -- 5. Ranking companies for the caller ------------------------------------------------------------------------------
 
@@ -208,11 +239,13 @@ grant execute on function public.fh_claim_refresh(integer) to service_role;
 --               + 0.5 for each further matching role, at most 4 of them (+2.0)
 --               + up to 1.0 for recency: 1.0 for a role posted today, falling in a straight line to 0 at 60 days
 --                 (a date in the future counts as today; a role with no date adds nothing).
--- Why: the tag score is what says the company fits, so it leads. A tag on 1,000 of 36,551 postings weighs
--- ln(36.6) = 3.6, and one on 100 weighs 5.9, so the most the two bonuses can add (3.0) is less than one shared
--- uncommon tag: they reorder companies whose fit is close, toward the ones with more ways in and a role posted
--- lately, and never lift a weak fit over a strong one. The best role is used rather than the sum, so a company
--- posting forty near-identical roles does not win on volume.
+-- Why: the tag score is what says the company fits, so it leads, and the best role counts rather than the sum, so
+-- a company posting forty near-identical roles does not win on volume. The bonuses CAN lift a weaker fit over a
+-- stronger one: a company whose best role scores 4.0, with one more matching role and a role posted today, scores
+-- 4.0 + 0.5 + 1.0 = 5.5 and ranks above a company whose single role scores 4.5 but was posted 59 days ago
+-- (4.5 + 0.02). That is meant: more ways in and a live opening are worth up to 3.0, less than one shared uncommon
+-- tag (a tag on 1,000 of 36,551 postings weighs ln(36.6) = 3.6, one on 100 weighs 5.9), so a much stronger fit
+-- still wins. The weights 0.5 and 1.0 are a first guess, not tuned on anyone's judgment yet.
 --
 -- shared: the person's tags across the company's matching roles, rarest first. roles: the top two roles, best score
 -- first, then newest. last_posted_at: the newest matching role. recent_roles: how many matching roles.
@@ -306,9 +339,11 @@ grant execute on function public.fh_company_fit(integer, bigint[]) to authentica
 
 -- The one person a card names for a company: HN first (the poster asked to be contacted there), then one who gave a
 -- name or role over a team inbox, then the most recently seen. null when there is nobody.
+-- security definer, because fh_people is not readable by signed-in people (section 3): this function is the only
+-- way in, and it answers one company at a time with at most one row.
 create function public.fh_company_person(p_company bigint)
 returns jsonb
-language sql stable security invoker set search_path = '' as $$
+language sql stable security definer set search_path = '' as $$
   select jsonb_build_object(
            'name', pe.name, 'role', pe.role, 'contact_kind', pe.contact_kind, 'contact', pe.contact,
            'source', pe.source, 'source_url', pe.source_url, 'seen_at', pe.seen_at)
@@ -349,8 +384,8 @@ revoke all on function public.fh_today(integer) from public, anon, authenticated
 grant execute on function public.fh_today(integer) to authenticated;
 
 -- The caller's saved and reached-out companies, newest decision first, with the same columns as fh_today. A saved
--- company stays on the list after its roles close or age: then recent_roles is 0, roles is [], shared is {} and
--- score and last_posted_at are null.
+-- company stays on the list after its roles close or age: then recent_roles is 0, roles is [], shared is {},
+-- score is 0 and last_posted_at is null.
 create function public.fh_saved()
 returns table (
   company_id bigint, name text, one_liner text, website text, team_size integer, batch text, stage text,
@@ -364,7 +399,7 @@ language sql stable security invoker set search_path = '' as $$
     where d.user_id = ((select auth.jwt()) ->> 'sub') and d.decision in ('saved', 'reached_out')
   )
   select c.id, c.name, c.one_liner, c.website, c.team_size, c.batch, c.stage, c.lists,
-         f.last_posted_at, coalesce(f.recent_roles, 0), coalesce(f.shared, '{}'), f.score, coalesce(f.roles, '[]'::jsonb),
+         f.last_posted_at, coalesce(f.recent_roles, 0), coalesce(f.shared, '{}'), coalesce(f.score, 0), coalesce(f.roles, '[]'::jsonb),
          public.fh_company_person(c.id), m.decision, m.decided_at
   from mine m
   join public.fh_companies c on c.id = m.company_id
