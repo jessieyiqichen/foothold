@@ -15,8 +15,9 @@ import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import {
   type Ats, type AtsJob, boardUrl, DETAILS, parseGetroCompanies, PARSERS, pickSystems, slugCandidates, type VcCompany, withDetail,
 } from "./lib/parse.ts";
-import { peopleFromHnPost } from "./lib/people.ts";
-import { listedCount, planRefresh, type StoredRole } from "./lib/refresh.ts";
+import { linkAgrees, peopleDue, peopleFromHnPost } from "./lib/people.ts";
+import { settleLimited } from "./lib/pool.ts";
+import { labelled, listedCount, planRefresh, type StoredRole } from "./lib/refresh.ts";
 import { SKILLS_VERSION } from "../../../packages/core/src/skills.ts";
 import { tagsOf } from "../../../packages/core/src/tags.ts";
 
@@ -33,9 +34,12 @@ const DEFAULT_LIMIT = 20;
 const TAG_LIMIT_DEFAULT = 200;
 const TAG_LIMIT_MAX = 400;
 const REFRESH_LIMIT_DEFAULT = 25;
-const REFRESH_LIMIT_MAX = 50;
-/** More HN postings than one thread ever has (226 in November 2026); the people task reads them all in one call. */
-const HN_POSTINGS_MAX = 2000;
+/** fh_claim_refresh hands out at most 25 in any 2 minutes whatever is asked; this only bounds the request. */
+const REFRESH_LIMIT_MAX = 25;
+/** Boards re-read at once in one refresh call. */
+const REFRESH_AT_ONCE = 5;
+/** The people task reads linked HN postings in pages of this many. */
+const PEOPLE_PAGE = 1000;
 const GETRO_PAGES_MAX = 120;
 const CHUNK = 200;
 /** Getro collection ids of the VC boards, read from each board's own page on 2026-11-10. */
@@ -150,19 +154,28 @@ async function checkCompany(db: SupabaseClient, c: Claimed, systems: Ats[]): Pro
   return written;
 }
 
-/** Upserts a board's roles for one company. A role found on its board is open, so closed_at is written null. */
+/** Upserts a board's roles for one company. A role found on its board is open, so closed_at is written null. Each
+ *  role is labelled (family, level) as it is written, so fh-roles has nothing to catch up on. Tag counts
+ *  (fh_tag_counts) are not recounted here: they follow when fh-roles next recounts, at most a day behind, which ranks
+ *  the same. */
 async function writeRoles(db: SupabaseClient, c: { id: number; name: string }, ats: Ats, slug: string, jobs: AtsJob[]): Promise<number> {
   const now = new Date().toISOString();
   const rows = jobs.map((j) => ({
     source: "ats", source_id: `${ats}:${slug}:${j.id}`, company_id: c.id, company_name: c.name,
     title: j.title, location: j.location, text: j.text, url: j.url, posted_at: j.postedAt, updated_at: now, closed_at: null,
-    tags: tagsOf(j.title, j.text), tags_version: SKILLS_VERSION,
+    tags: tagsOf(j.title, j.text), tags_version: SKILLS_VERSION, ...labelled(j.title),
   }));
   for (let i = 0; i < rows.length; i += CHUNK) {
     const { error } = await db.from("fh_postings").upsert(rows.slice(i, i + CHUNK), { onConflict: "source,source_id" });
     if (error) throw new Error(`fh_postings (${c.name}): ${error.message}`);
   }
   return rows.length;
+}
+
+/** SHA-256 of a text's UTF-8 bytes, in hex: the same value fh_stored_roles computes in the database. */
+async function sha256Hex(text: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 /** Sets closed_at on these postings: now() to close them, null to re-open them. */
@@ -176,16 +189,22 @@ async function setClosed(db: SupabaseClient, ids: number[], closedAt: string | n
 interface Due { id: number; name: string; ats: Ats; ats_slug: string }
 type Refreshed = { written: number; reopened: number; closed: number; skipped: string | null };
 
-/** Re-reads one company's board. A board that does not answer (timeout, 404, 5xx, 429) or answers oddly closes nothing. */
+/** Re-reads one company's board. A board that does not answer (timeout, 404, 5xx, 429) or answers oddly closes nothing;
+ *  so a board that 404s every day never closes its roles (a known gap, see lib/refresh.ts). Only new or changed roles
+ *  are written. */
 async function refreshCompany(db: SupabaseClient, c: Due): Promise<Refreshed> {
   const board = await getBoard(c.ats, c.ats_slug);
   if (board.raw === null) return { written: 0, reopened: 0, closed: 0, skipped: board.limited ? "429" : "no answer" };
-  const { data, error } = await db.from("fh_postings").select("id, source_id, closed_at").eq("company_id", c.id).eq("source", "ats");
-  if (error) throw new Error(`fh_postings (${c.name}): ${error.message}`);
-  const stored: StoredRole[] = ((data ?? []) as { id: number; source_id: string; closed_at: string | null }[])
-    .map((r) => ({ id: r.id, sourceId: r.source_id, closedAt: r.closed_at }));
+  const { data, error } = await db.rpc("fh_stored_roles", { p_company: c.id });
+  if (error) throw new Error(`fh_stored_roles (${c.name}): ${error.message}`);
+  type Row = { id: number; source_id: string; closed_at: string | null; title: string | null; posted_at: string | null; text_sha256: string | null };
+  const stored: StoredRole[] = ((data ?? []) as Row[]).map((r) => ({
+    id: r.id, sourceId: r.source_id, closedAt: r.closed_at, title: r.title, postedAt: r.posted_at, textSha256: r.text_sha256,
+  }));
   const jobs = PARSERS[c.ats](board.raw, c.ats_slug);
-  const plan = planRefresh({ ats: c.ats, slug: c.ats_slug, stored, jobs, listed: listedCount(c.ats, board.raw), needsDetail: DETAILS[c.ats] !== undefined });
+  const needsDetail = DETAILS[c.ats] !== undefined;
+  const hashes = new Map(needsDetail ? [] : await Promise.all(jobs.map(async (j) => [j.id, await sha256Hex(j.text)] as const)));
+  const plan = planRefresh({ ats: c.ats, slug: c.ats_slug, stored, jobs, listed: listedCount(c.ats, board.raw), needsDetail, hashes });
   if (!plan.ok) return { written: 0, reopened: 0, closed: 0, skipped: plan.reason };
   const written = await writeRoles(db, c, c.ats, c.ats_slug, await withText(c.ats, c.ats_slug, plan.upsert));
   await setClosed(db, plan.reopen, null, c.name);
@@ -199,24 +218,50 @@ async function runRefresh(db: SupabaseClient, limit: number) {
   const { data, error } = await db.rpc("fh_claim_refresh", { n: limit });
   if (error) throw new Error(`fh_claim_refresh: ${error.message}`);
   const due = (data ?? []) as Due[];
-  const results = await Promise.allSettled(due.map((c) => refreshCompany(db, c)));
+  const results = await settleLimited(due, REFRESH_AT_ONCE, (c) => refreshCompany(db, c));
   const done = results.filter((r): r is PromiseFulfilledResult<Refreshed> => r.status === "fulfilled").map((r) => r.value);
   const sum = (k: "written" | "reopened" | "closed") => done.reduce((a, r) => a + r[k], 0);
   const errors = results.filter((r): r is PromiseRejectedResult => r.status === "rejected").map((r) => String(r.reason).slice(0, 200));
   return { claimed: due.length, written: sum("written"), reopened: sum("reopened"), closed: sum("closed"), skipped: done.filter((r) => r.skipped).length, errors };
 }
 
-/** Every HN posting linked to a company: the addresses its poster wrote, upserted into fh_people. */
+type HnPost = { company_id: number; text: string; url: string; posted_at: string | null; fh_companies: { domain: string | null } | null };
+
+/** Every HN posting linked to a company, read in pages. */
+async function linkedHnPosts(db: SupabaseClient): Promise<HnPost[]> {
+  const all: HnPost[] = [];
+  for (let from = 0; ; from += PEOPLE_PAGE) {
+    const { data, error } = await db.from("fh_postings").select("company_id, text, url, posted_at, fh_companies(domain)")
+      .eq("source", "hn").not("company_id", "is", null).order("id").range(from, from + PEOPLE_PAGE - 1);
+    if (error) throw new Error(`fh_postings: ${error.message}`);
+    const page = (data ?? []) as unknown as HnPost[];
+    all.push(...page);
+    if (page.length < PEOPLE_PAGE) return all;
+  }
+}
+
+/** The newest of `column` over the rows the filter keeps, or null. */
+async function newest(db: SupabaseClient, table: string, column: string, filter: (q: any) => any): Promise<string | null> {
+  const { data, error } = await filter(db.from(table).select(column)).order(column, { ascending: false }).limit(1);
+  if (error) throw new Error(`${table}: ${error.message}`);
+  return ((data ?? [])[0] as Record<string, string> | undefined)?.[column] ?? null;
+}
+
+/** The addresses HN posters wrote, upserted into fh_people. Does nothing (and writes no run row) when no linked HN
+ *  posting changed since the last good run: the HN import rewrites every posting's updated_at each day. */
 async function runPeople(db: SupabaseClient) {
-  const { data, error } = await db.from("fh_postings").select("company_id, text, url, posted_at")
-    .eq("source", "hn").not("company_id", "is", null).order("id").limit(HN_POSTINGS_MAX);
-  if (error) throw new Error(`fh_postings: ${error.message}`);
-  const posts = (data ?? []) as { company_id: number; text: string; url: string; posted_at: string | null }[];
+  const lastRun = await newest(db, "fh_runs", "started_at", (q) => q.eq("source", "people").eq("ok", true));
+  const lastChange = await newest(db, "fh_postings", "updated_at", (q) => q.eq("source", "hn").not("company_id", "is", null));
+  if (!peopleDue(lastRun, lastChange)) return { skipped: true, posts: 0, doubted: 0, people: 0 };
+  const posts = await linkedHnPosts(db);
   // One row a (company, address): the newest post wins, so seen_at is the last time the person published it.
   const byKey = new Map<string, Record<string, unknown>>();
+  let doubted = 0;
   for (const p of posts) {
+    const domain = p.fh_companies?.domain ?? null;
+    if (!linkAgrees(p.text, domain)) { doubted++; continue; }
     const seen = p.posted_at ?? new Date().toISOString();
-    for (const person of peopleFromHnPost(p.text)) {
+    for (const person of peopleFromHnPost(p.text, domain)) {
       const key = `${p.company_id}:${person.email}`;
       const old = byKey.get(key);
       if (old && String(old.seen_at) >= seen) continue;
@@ -231,7 +276,7 @@ async function runPeople(db: SupabaseClient) {
     const { error: putError } = await db.from("fh_people").upsert(rows.slice(i, i + CHUNK), { onConflict: "company_id,source,contact" });
     if (putError) throw new Error(`fh_people: ${putError.message}`);
   }
-  return { posts: posts.length, people: rows.length };
+  return { skipped: false, posts: posts.length, doubted, people: rows.length };
 }
 
 async function runAts(db: SupabaseClient, limit: number, systems: Ats[]) {
@@ -270,6 +315,7 @@ Deno.serve(async (req) => {
   let out: Record<string, unknown> = {};
   let written = 0;
   let failure: string | null = null;
+  let idle = false; // a refresh that claimed nothing, or a people run with nothing new: no run row is written
   try {
     if (task === "vc") {
       written = await importVcBoard(db, String(body.board ?? ""));
@@ -284,11 +330,13 @@ Deno.serve(async (req) => {
       const r = await runRefresh(db, limit);
       written = r.written;
       out = r;
+      idle = r.claimed === 0;
       if (r.errors.length > 0) failure = r.errors.join(" | ").slice(0, 500);
     } else if (task === "people") {
       const r = await runPeople(db);
       written = r.people;
       out = r;
+      idle = r.skipped;
     } else {
       const limit = Number.isInteger(body.limit) ? Math.min(Math.max(body.limit as number, 1), 50) : DEFAULT_LIMIT;
       const r = await runAts(db, limit, pickSystems(body.systems));
@@ -301,7 +349,7 @@ Deno.serve(async (req) => {
   }
   const finished = new Date();
   const ok = failure === null;
-  const { error: runError } = await db.from("fh_runs").insert({
+  const { error: runError } = ok && idle ? { error: null } : await db.from("fh_runs").insert({
     source: task, started_at: started.toISOString(), finished_at: finished.toISOString(), ok, rows_written: written, error: failure,
   });
   const log = { task, ok, written, ...out, ms: finished.getTime() - started.getTime(), error: failure, bookkeeping: runError?.message ?? null };
