@@ -2,7 +2,7 @@
 // and only the text the person then checks and saves is sent anywhere.
 import { MAX_PDF_PAGES } from "./constants";
 import { PROFILE_COPY } from "./copy";
-import { checkResumeText, cleanResumeText, looksLikePdf } from "./resumeText";
+import { checkPdfFile, checkResumeText, cleanResumeText, looksLikePdf } from "./resumeText";
 import { fail, ok, type Result } from "./types";
 
 /** One run of text on a page, as pdf.js reports it; `hasEOL` marks the end of a line. */
@@ -49,6 +49,19 @@ export async function extractPdfText(data: ArrayBuffer, open: OpenPdf = openWith
   } catch (cause) {
     if (cause instanceof Error && cause.name === PASSWORD_ERROR) return fail(PROFILE_COPY.locked);
     console.error("Foothold: pdf.js could not read the chosen PDF", cause);
+    return fail(PROFILE_COPY.unreadable);
+  }
+}
+
+/** A file the person chose: checked by its type and size first, then read here in the browser. Nothing is sent
+ *  anywhere; the text comes back for the person to check. */
+export async function readPdfFile(file: File, open: OpenPdf = openWithPdfJs): Promise<Result<string>> {
+  const problem = checkPdfFile(file);
+  if (problem) return fail(problem);
+  try {
+    return await extractPdfText(await file.arrayBuffer(), open);
+  } catch (cause) {
+    console.error("Foothold: the chosen file could not be opened", cause);
     return fail(PROFILE_COPY.unreadable);
   }
 }

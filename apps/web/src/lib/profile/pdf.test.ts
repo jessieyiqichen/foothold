@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MAX_PDF_PAGES } from "./constants";
 import { PROFILE_COPY } from "./copy";
-import { extractPdfText, lineText, type OpenPdf, type TextItem } from "./pdf";
+import { extractPdfText, lineText, readPdfFile, type OpenPdf, type TextItem } from "./pdf";
 
 const PDF_BYTES = new TextEncoder().encode("%PDF-1.7 pretend").buffer as ArrayBuffer;
 const LONG_LINE = "Regression models in Stata and R, dashboards in SQL and Python, econometrics coursework at Chicago";
@@ -74,5 +74,22 @@ describe("extractPdfText", () => {
   it("says the file could not be read when pdf.js fails, and logs why", async () => {
     expect(await extractPdfText(PDF_BYTES, failing("InvalidPDFException"))).toEqual({ ok: false, message: PROFILE_COPY.unreadable });
     expect(logged).toHaveBeenCalledOnce();
+  });
+});
+
+describe("readPdfFile: a chosen file, checked and read", () => {
+  const LINE = "Regression models in Stata and R, dashboards in SQL and Python, econometrics coursework at Chicago";
+  const pdfFile = (name: string, type: string, body: string) => new File([body], name, { type });
+
+  it("refuses a file that is not a PDF before reading it", async () => {
+    const open = vi.fn();
+    expect(await readPdfFile(pdfFile("resume.docx", "application/msword", "PK"), open)).toEqual({ ok: false, message: PROFILE_COPY.notPdf });
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  it("reads a PDF's text", async () => {
+    // Three lines: two alone fall just under the shortest text a resume can be
+    const open: OpenPdf = async () => ({ numPages: 1, pageItems: async () => [1, 2, 3].map((n) => ({ str: LINE, hasEOL: n < 3 })) });
+    expect(await readPdfFile(pdfFile("resume.pdf", "application/pdf", "%PDF-1.7 pretend"), open)).toEqual({ ok: true, value: `${LINE}\n${LINE}\n${LINE}` });
   });
 });

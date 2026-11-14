@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/Button";
 import { Field, TextArea } from "@/components/ui/Field";
 import { PDF_EXTENSION, PDF_MIME } from "@/lib/profile/constants";
 import { charCountLine, PROFILE_COPY } from "@/lib/profile/copy";
-import { extractPdfText } from "@/lib/profile/pdf";
-import { checkPdfFile, checkResumeText, cleanResumeText } from "@/lib/profile/resumeText";
+import { readPdfFile } from "@/lib/profile/pdf";
+import { checkResumeText, cleanResumeText } from "@/lib/profile/resumeText";
 import { editsOf, effectiveTags } from "@/lib/profile/tagEdits";
 import { resumeTags } from "@/lib/profile/tags";
-import { fail, type Profile, type Result } from "@/lib/profile/types";
+import type { Profile, Result } from "@/lib/profile/types";
 import { TagGroups } from "./TagGroups";
 
 type Draft = { text: string; name: string | null };
@@ -28,18 +28,6 @@ const FILE_INPUT =
   "file:mr-3 file:min-h-8 file:cursor-pointer file:border-2 file:border-ink file:bg-surface file:px-3 file:text-sm file:font-bold file:text-ink " +
   "hover:file:bg-wash-strong focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus aria-invalid:border-danger";
 
-/** Reads the chosen file here in the browser. Nothing is sent anywhere: the result is only put in the text box. */
-async function readPdf(file: File): Promise<Result<string>> {
-  const problem = checkPdfFile(file);
-  if (problem) return fail(problem);
-  try {
-    return await extractPdfText(await file.arrayBuffer());
-  } catch (cause) {
-    console.error("Foothold: the chosen file could not be opened", cause);
-    return fail(PROFILE_COPY.unreadable);
-  }
-}
-
 /** The draft being edited: its text, the file it came from, what is in progress, and one error per place it shows. */
 function useResumeDraft(initial: Profile | null, onSave: Save) {
   const [draft, setDraft] = useState<Draft>({ text: initial?.resumeText ?? "", name: initial?.resumeName ?? null });
@@ -51,7 +39,7 @@ function useResumeDraft(initial: Profile | null, onSave: Save) {
     if (!file) return;
     setBusy("reading");
     setErrors({});
-    const result = await readPdf(file);
+    const result = await readPdfFile(file);
     setBusy(null);
     if (result.ok) setDraft({ text: result.value, name: file.name });
     else setErrors({ file: result.message });
