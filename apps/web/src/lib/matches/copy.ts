@@ -1,4 +1,5 @@
 import { FAMILIES, LEVELS, type Family, type Level } from "../profile/roles";
+import { ageLine } from "../cards/age";
 import { MATCHES_PAGE_SIZE, MAX_PLACES_SHOWN } from "./constants";
 
 const count = (n: number) => n.toLocaleString("en-US");
@@ -6,7 +7,7 @@ const count = (n: number) => n.toLocaleString("en-US");
 /** What the matches page says. House style: no full stops, errors without "!" and each with what to do next
  *  (copy.test.ts). */
 export const MATCHES_COPY = {
-  title: "Your matches",
+  title: "All roles",
   intro: "Roles at startups that fit your resume, each with the reason it is here",
   loading: "Finding your matches…",
   tryAgain: "Try again",
@@ -25,6 +26,7 @@ export const MATCHES_COPY = {
   savingLevels: "Updating…",
   why: "Why this is here",
   noShared: "It is the kind of work you picked",
+  olderLabel: "Include roles older than 60 days",
   newTab: "(opens in a new tab)",
   showingMore: "Loading more…",
   moreFailed: "More matches didn't load, check your connection and try again",
@@ -47,10 +49,11 @@ export function placesLine(locations: readonly string[]): string {
   return more > 0 ? `${shown} +${more} more` : shown;
 }
 
-/** "Posted Nov 3, 2026", in the reader's own time zone unless one is given; nothing when the date is unknown. */
-export function postedLine(postedAt: string | null, timeZone?: string): string {
-  if (!postedAt) return "";
-  return `Posted ${new Date(postedAt).toLocaleDateString("en-US", { dateStyle: "medium", timeZone })}`;
+/** "Posted 3 weeks ago", from the reader's clock; nothing when the date is unknown. The age, not the date, so an old
+ *  role reads as old (docs/architecture.md, freshness). */
+export function postedLine(postedAt: string | null, now: Date = new Date()): string {
+  const age = ageLine(postedAt, now);
+  return age ? `Posted ${age}` : "";
 }
 
 export const familyLabel = (id: Family): string => FAMILIES.find((family) => family.id === id)?.label ?? id;

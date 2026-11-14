@@ -2,7 +2,7 @@
 // and answers only for the caller's own profile.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fail, ok, type Result } from "../profile/types";
-import { MATCHES_PAGE_SIZE, MATCHES_RPC } from "./constants";
+import { FRESH_DAYS, MATCHES_PAGE_SIZE, MATCHES_RPC } from "./constants";
 import { MATCHES_COPY } from "./copy";
 import { readMatches } from "./rows";
 import type { MatchesPage } from "./types";
@@ -14,12 +14,12 @@ function report(detail: string): void {
   console.error(`Foothold: could not load matches from ${MATCHES_RPC}: ${detail}`);
 }
 
-/** One page of matches, starting `offset` rows in. The database refusing, the request never arriving and an answer
- *  that is not a list all end as the same line to show. */
-export async function loadMatches(db: MatchesDb, offset: number): Promise<Result<MatchesPage>> {
+/** One page of matches, starting `offset` rows in, of roles first posted in the last `days` days (null: any age).
+ *  The database refusing, the request never arriving and an answer that is not a list all end as the same line. */
+export async function loadMatches(db: MatchesDb, offset: number, days: number | null = FRESH_DAYS): Promise<Result<MatchesPage>> {
   if (!Number.isInteger(offset) || offset < 0) return fail(MATCHES_COPY.loadFailed);
   try {
-    const { data, error } = await db.rpc(MATCHES_RPC, { p_limit: MATCHES_PAGE_SIZE, p_offset: offset });
+    const { data, error } = await db.rpc(MATCHES_RPC, { p_limit: MATCHES_PAGE_SIZE, p_offset: offset, p_days: days });
     if (error) {
       report(error.message);
       return fail(MATCHES_COPY.loadFailed);
