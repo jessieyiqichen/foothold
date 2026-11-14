@@ -16,11 +16,11 @@ export function PageHeader({ title, intro, back = "/", backLabel = "← Back to 
   const Heading = level;
   return (
     <div className="flex flex-col gap-1">
-      {back && <Link href={back} className="inline-flex min-h-9 items-center self-start text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+      {back && <Link href={back} className="inline-flex min-h-9 items-center self-start font-mono text-xs text-link underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
         {backLabel}
       </Link>}
-      <Heading className="text-2xl font-semibold tracking-tight text-ink">{title}</Heading>
-      {intro && <p className={`text-muted ${introOnDesktop ? "" : "lg:hidden"}`}>{intro}</p>}
+      <Heading className="text-3xl font-black tracking-[-0.03em] text-ink">{title}</Heading>
+      {intro && <p className={`font-mono text-xs leading-5 text-muted ${introOnDesktop ? "" : "lg:hidden"}`}>{intro}</p>}
     </div>
   );
 }

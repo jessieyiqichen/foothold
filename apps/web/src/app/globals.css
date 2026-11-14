@@ -9,38 +9,60 @@
 @custom-variant short (@media (width < 640px) and (height <= 620px));
 @custom-variant compact (@media (width < 640px) and (620px < height <= 740px));
 
-/* Foothold's minimal look (user, 2026-11-12): a plain, neutral, light tool. White page, dark ink, one accent,
-   Inter, 8px corners, one-pixel edges, no shadows on controls. A stopgap until the redesign. The token names are the
-   earlier app's, so every component keeps working; only the values changed. The Nudge-only colours at the end
-   (rewards, Titi's bowl, the done screen) are left as they were: those pages are not restyled.
-   Contrast, computed 2026-11-12 (WCAG AA wants 4.5:1 for text, 3:1 for the edge of a control):
-     ink 17.7:1 on the page, 17.0:1 on surface, 16.1:1 on wash, 15.9:1 on the accent tint
-     muted 4.8:1 on the page, 4.6:1 on surface; 4.4:1 on wash and 4.3:1 on the tint, so muted text never sits on those
-     accent 6.3:1 on the page (links, the focus ring, a chosen chip's edge), 6.0:1 on surface, 5.6:1 on its tint
-     white on the accent 6.3:1, on its hover 7.9:1, on its pressed 9.9:1
-     danger 6.5:1 on the page, 5.9:1 on its wash; white on danger 6.5:1
-     field edge 3.3:1 on the page
-     line 1.5:1 and hairline 1.2:1: below 3:1 on purpose. `line` edges buttons, which are read by their label;
-     hairline only divides. An empty field has nothing but its edge, so fields use `field`. */
+/* Tape & Tile, Builder's Board's design system, taken on for Foothold on 2026-11-13 (user, option A): poster paper
+   with a faint grain, navy ink, four muted tile colours, square corners, keys that sit on their own edge. Spec:
+   https://claude.ai/artifact/AsfZpEUeZZtRjXrS8biY8J. Tape, tilt and shapes only on front-facing parts (sign-in, the
+   header's wordmark, empty states, the first visit); lists and form fields stay straight.
+   The token names are the earlier app's, so every component keeps working; the Nudge-only colours at the end are
+   left as they were.
+   Contrast, computed 2026-11-13 (WCAG AA: 4.5:1 for text, 3:1 for large text and the edge of a control):
+     ink (navy) 13.5:1 on page, 15.1:1 on surface, 11.8:1 on wash, 10.5:1 on wash-strong
+     muted 5.4:1 on page, 6.1:1 on surface, 4.8:1 on wash; never on mustard (3.5:1)
+     ink on the primary (mustard) 8.6:1, on its hover 7.6:1, on its pressed step 6.8:1
+     link (cobalt) 5.9:1 on page, 6.6:1 on surface
+     danger 5.5:1 on page, 6.2:1 on surface, 5.5:1 on its wash
+     tile text: surface on cobalt 6.6:1, on green 10.4:1, on navy 15.1:1; ink on mustard 8.6:1. Red carries large
+     text only (surface 3.6:1, ink 4.2:1), so it is a shape colour here, never under small text
+     control edges and the focus ring are ink: 13.5:1 on page; hairline 1.7:1 only divides */
 @theme {
-  --font-sans: var(--font-inter), system-ui, sans-serif;
-  --font-display: var(--font-inter), system-ui, sans-serif;
+  --font-sans: var(--font-schibsted), system-ui, sans-serif;
+  --font-display: var(--font-schibsted), system-ui, sans-serif;
+  --font-mono: var(--font-martian), ui-monospace, Menlo, monospace;
+  --font-condensed: var(--font-barlow), "Arial Narrow", sans-serif;
 
-  --color-page: #ffffff;
-  --color-surface: #fafafa;
-  --color-ink: #111827;
-  --color-muted: #6b7280;
-  --color-wash: #f3f4f6;         /* hover, the current page in the navigation, quiet chips */
-  --color-wash-strong: #e5e7eb;  /* pressed */
-  --color-line: #d1d5db;         /* the edge of a button */
-  --color-field: #868e9c;        /* the edge of a text field (3.3:1) */
-  --color-hairline: #e5e7eb;     /* dividers */
-  --color-primary: #4f46e5;      /* the one accent: the primary button, links, the focus ring, a chosen toggle */
-  --color-primary-hover: #4338ca;
-  --color-primary-pressed: #3730a3;
-  --color-on-primary: #ffffff;
-  --color-lip: #3730a3;          /* the edge under the earlier app's clay; kept for its pages */
-  --color-primary-soft: #eef2ff; /* the tint behind a chosen toggle */
+  /* Square corners everywhere in the five places (the system's radius-0); the larger radii stay for Nudge's pages */
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+
+  --color-page: #e9e4d8;         /* poster paper, under the grain */
+  --color-surface: #f4f1ea;      /* the sheet: cards, panels, fields, light tiles */
+  --color-ink: #1b1a2c;          /* navy: all text, borders, the focus ring */
+  --color-muted: #5d5a52;        /* secondary text, on page, surface and wash only */
+  --color-wash: #ddd6c6;         /* hover, the current page in the navigation, skill chips */
+  --color-wash-strong: #d2cab8;  /* pressed */
+  --color-line: #1b1a2c;         /* the edge of a key */
+  --color-field: #1b1a2c;        /* the edge of a field */
+  --color-hairline: #b9b09c;     /* rules between rows and sections */
+  --color-link: #2547c7;         /* cobalt: links */
+  --color-primary: #e2b04a;      /* mustard: the one primary key, a chosen key, a number that just changed */
+  --color-primary-hover: #d9a43a;
+  --color-primary-pressed: #cf9a30;
+  --color-on-primary: #1b1a2c;
+  --color-lip: #1b1a2c;
+  --color-primary-soft: #e2b04a;
+  --color-focus: #1b1a2c;
+  --color-danger: #a3301f;       /* a darker red, so an error line passes as small text */
+  --color-danger-wash: #f6dfd8;
+
+  /* The tile colours, for tiles, shapes and tape */
+  --color-tile-red: #d8503a;
+  --color-tile-cobalt: #2547c7;
+  --color-tile-mustard: #e2b04a;
+  --color-tile-green: #1f3d39;
+  --color-tile-navy: #1b1a2c;
+  --color-tile-off: #f4f1ea;
+
   --color-reward: #f5a623;       /* from here to --color-flag: the earlier app's pages only */
   --color-reward-deep: #9c5e06;
   --color-reward-soft: #fff1cf;
@@ -50,9 +72,6 @@
   --color-celebrate: #fff3dc;
   --color-heart: #f0729a;
   --color-flag: #e2574b;
-  --color-focus: #4f46e5;
-  --color-danger: #b91c1c;       /* errors and destructive actions only */
-  --color-danger-wash: #fef2f2;
 }
 
 html,
@@ -60,11 +79,53 @@ body {
   height: 100%;
 }
 
+/* Poster paper: a faint grain over the paper colour, so the page reads as print, not a flat screen */
 body {
-  background: var(--color-page);
+  background-color: var(--color-page);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+/* A key: sits on its own edge, and sinks onto it when pressed or switched on. Keys only: never on text, a row or a
+   field. */
+.keycap {
+  box-shadow: 0 4px 0 var(--color-ink);
+  transition: transform 120ms ease-out, box-shadow 120ms ease-out;
+}
+.keycap:active,
+.keycap[aria-pressed="true"],
+.keycap[aria-current="page"] {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--color-ink);
+}
+.keycap:disabled {
+  transform: none;
+  box-shadow: 0 4px 0 var(--color-ink);
+}
+
+/* A number that just changed lights up in mustard for a moment. Only where something happened */
+.flash {
+  animation: flash 1.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+@keyframes flash {
+  from { background-color: var(--color-tile-mustard); }
+  to { background-color: transparent; }
+}
+
+/* A sheet that arrives on the wall: it drops in a little and settles at its tilt (the first visit's result) */
+.reveal {
+  animation: reveal 600ms cubic-bezier(0.34, 1.3, 0.64, 1) both;
+}
+@keyframes reveal {
+  from { transform: translateY(-12px) rotate(calc(var(--tilt, 0deg) - 3deg)) scale(0.96); opacity: 0; }
+  to { transform: rotate(var(--tilt, 0deg)); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flash, .reveal { animation: none; }
+  .keycap { transition: none; }
 }
 
 /* Clay: a highlight along the top, a solid lip underneath (--lip, set per surface), a soft tinted shadow. */

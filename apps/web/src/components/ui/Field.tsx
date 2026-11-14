@@ -23,7 +23,7 @@ export function Field({ id, label, hint, error, children }: FieldProps) {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-sm font-medium text-ink">
+      <label htmlFor={id} className="font-mono text-xs text-ink">
         {label}
       </label>
       {hint && (
@@ -44,11 +44,11 @@ export function Field({ id, label, hint, error, children }: FieldProps) {
   );
 }
 
-/** A field's edge is `field`, darker than a button's `line`: an empty box has nothing but its edge to be seen by, so
- *  the edge itself must reach 3:1 on the page (WCAG 1.4.11). */
+/** A field (Tape & Tile): the sheet's colour inside a 2px ink edge, square, straight and flat: never a key's shadow,
+ *  never tilted. */
 export const inputClass =
-  "min-h-10 w-full rounded-lg border border-field bg-page px-3 text-[15px] text-ink " +
-  "placeholder:text-muted focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-focus " +
+  "min-h-11 w-full border-2 border-field bg-surface px-3 text-[15px] text-ink " +
+  "placeholder:text-muted focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus " +
   "aria-invalid:border-danger";
 
 export function TextInput({ className = "", ...props }: ComponentProps<"input">) {

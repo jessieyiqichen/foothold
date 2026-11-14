@@ -1,16 +1,13 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import { DataSync } from "@/components/auth/DataSync";
 import { Notifier } from "@/components/Notifier";
 import { clerkAppearance } from "@/lib/auth/appearance";
 import { clerkLocalization } from "@/lib/auth/copy";
 import { HOME_PATH, SIGN_IN_PATH, SIGN_UP_PATH } from "@/lib/auth/routes";
+import { fontClass } from "./fonts";
 import "./globals.css";
 
-// Inter for everything, headings and text alike (Foothold's minimal look, user 2026-11-12). A variable font, so
-// every weight comes in one file.
-const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Foothold",
@@ -24,7 +21,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${inter.variable} h-full antialiased`}
+      className={`${fontClass} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
         <ClerkProvider
