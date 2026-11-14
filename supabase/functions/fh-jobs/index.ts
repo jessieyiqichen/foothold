@@ -1,10 +1,13 @@
-// Foothold jobs worker, three tasks:
+// Foothold jobs worker, five tasks:
 //   {"task":"vc","board":"accel"}  reads one VC job board's company list (Getro) into fh_companies
 //   {"task":"ats","limit":20}      takes the next companies, looks for each one's public job board on Ashby,
 //                                  Greenhouse, Lever, Gem, Rippling or BambooHR, and writes its open roles into
 //                                  fh_postings. "systems":["gem","rippling"] tries only those; Workable is tried
 //                                  only when named there, a few companies a call (it allows few requests a minute)
 //   {"task":"tag","limit":200}     tags postings not yet tagged with this version of the skill vocabulary
+//   {"task":"refresh","limit":25}  re-reads the boards of the companies checked longest ago (none within 20 hours),
+//                                  writes the roles found and marks closed the open roles the board no longer lists
+//   {"task":"people"}              reads the contact each HN poster wrote in their own post into fh_people
 // Only company lists come from the VC boards; the roles always come from the company's own board.
 // It writes with the project's secret key, which Supabase gives the function on its own servers.
 
@@ -12,6 +15,8 @@ import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import {
   type Ats, type AtsJob, boardUrl, DETAILS, parseGetroCompanies, PARSERS, pickSystems, slugCandidates, type VcCompany, withDetail,
 } from "./lib/parse.ts";
+import { peopleFromHnPost } from "./lib/people.ts";
+import { listedCount, planRefresh, type StoredRole } from "./lib/refresh.ts";
 import { SKILLS_VERSION } from "../../../packages/core/src/skills.ts";
 import { tagsOf } from "../../../packages/core/src/tags.ts";
 
@@ -27,6 +32,10 @@ const DETAILS_AT_ONCE = 5;
 const DEFAULT_LIMIT = 20;
 const TAG_LIMIT_DEFAULT = 200;
 const TAG_LIMIT_MAX = 400;
+const REFRESH_LIMIT_DEFAULT = 25;
+const REFRESH_LIMIT_MAX = 50;
+/** More HN postings than one thread ever has (226 in November 2026); the people task reads them all in one call. */
+const HN_POSTINGS_MAX = 2000;
 const GETRO_PAGES_MAX = 120;
 const CHUNK = 200;
 /** Getro collection ids of the VC boards, read from each board's own page on 2026-11-10. */
@@ -134,20 +143,95 @@ async function checkCompany(db: SupabaseClient, c: Claimed, systems: Ats[]): Pro
     throw new Error(`${limited.join(", ")} refused us for now (429); ${c.name} ${error ? `could not be handed back: ${error.message}` : "was handed back"}`);
   }
   if (!found) return 0;
+  const written = await writeRoles(db, c, found.ats, found.slug, found.jobs);
+  const { error } = await db.from("fh_companies")
+    .update({ ats: found.ats, ats_slug: found.slug, ats_jobs: written, is_hiring: true }).eq("id", c.id);
+  if (error) throw new Error(`fh_companies (${c.name}): ${error.message}`);
+  return written;
+}
+
+/** Upserts a board's roles for one company. A role found on its board is open, so closed_at is written null. */
+async function writeRoles(db: SupabaseClient, c: { id: number; name: string }, ats: Ats, slug: string, jobs: AtsJob[]): Promise<number> {
   const now = new Date().toISOString();
-  const rows = found.jobs.map((j) => ({
-    source: "ats", source_id: `${found.ats}:${found.slug}:${j.id}`, company_id: c.id, company_name: c.name,
-    title: j.title, location: j.location, text: j.text, url: j.url, posted_at: j.postedAt, updated_at: now,
+  const rows = jobs.map((j) => ({
+    source: "ats", source_id: `${ats}:${slug}:${j.id}`, company_id: c.id, company_name: c.name,
+    title: j.title, location: j.location, text: j.text, url: j.url, posted_at: j.postedAt, updated_at: now, closed_at: null,
     tags: tagsOf(j.title, j.text), tags_version: SKILLS_VERSION,
   }));
   for (let i = 0; i < rows.length; i += CHUNK) {
     const { error } = await db.from("fh_postings").upsert(rows.slice(i, i + CHUNK), { onConflict: "source,source_id" });
     if (error) throw new Error(`fh_postings (${c.name}): ${error.message}`);
   }
-  const { error } = await db.from("fh_companies")
-    .update({ ats: found.ats, ats_slug: found.slug, ats_jobs: rows.length, is_hiring: true }).eq("id", c.id);
-  if (error) throw new Error(`fh_companies (${c.name}): ${error.message}`);
   return rows.length;
+}
+
+/** Sets closed_at on these postings: now() to close them, null to re-open them. */
+async function setClosed(db: SupabaseClient, ids: number[], closedAt: string | null, name: string): Promise<void> {
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const { error } = await db.from("fh_postings").update({ closed_at: closedAt }).in("id", ids.slice(i, i + CHUNK));
+    if (error) throw new Error(`fh_postings (${name}, closed_at): ${error.message}`);
+  }
+}
+
+interface Due { id: number; name: string; ats: Ats; ats_slug: string }
+type Refreshed = { written: number; reopened: number; closed: number; skipped: string | null };
+
+/** Re-reads one company's board. A board that does not answer (timeout, 404, 5xx, 429) or answers oddly closes nothing. */
+async function refreshCompany(db: SupabaseClient, c: Due): Promise<Refreshed> {
+  const board = await getBoard(c.ats, c.ats_slug);
+  if (board.raw === null) return { written: 0, reopened: 0, closed: 0, skipped: board.limited ? "429" : "no answer" };
+  const { data, error } = await db.from("fh_postings").select("id, source_id, closed_at").eq("company_id", c.id).eq("source", "ats");
+  if (error) throw new Error(`fh_postings (${c.name}): ${error.message}`);
+  const stored: StoredRole[] = ((data ?? []) as { id: number; source_id: string; closed_at: string | null }[])
+    .map((r) => ({ id: r.id, sourceId: r.source_id, closedAt: r.closed_at }));
+  const jobs = PARSERS[c.ats](board.raw, c.ats_slug);
+  const plan = planRefresh({ ats: c.ats, slug: c.ats_slug, stored, jobs, listed: listedCount(c.ats, board.raw), needsDetail: DETAILS[c.ats] !== undefined });
+  if (!plan.ok) return { written: 0, reopened: 0, closed: 0, skipped: plan.reason };
+  const written = await writeRoles(db, c, c.ats, c.ats_slug, await withText(c.ats, c.ats_slug, plan.upsert));
+  await setClosed(db, plan.reopen, null, c.name);
+  await setClosed(db, plan.close, new Date().toISOString(), c.name);
+  const { error: companyError } = await db.from("fh_companies").update({ ats_jobs: jobs.length, is_hiring: jobs.length > 0 }).eq("id", c.id);
+  if (companyError) throw new Error(`fh_companies (${c.name}): ${companyError.message}`);
+  return { written, reopened: plan.reopen.length, closed: plan.close.length, skipped: null };
+}
+
+async function runRefresh(db: SupabaseClient, limit: number) {
+  const { data, error } = await db.rpc("fh_claim_refresh", { n: limit });
+  if (error) throw new Error(`fh_claim_refresh: ${error.message}`);
+  const due = (data ?? []) as Due[];
+  const results = await Promise.allSettled(due.map((c) => refreshCompany(db, c)));
+  const done = results.filter((r): r is PromiseFulfilledResult<Refreshed> => r.status === "fulfilled").map((r) => r.value);
+  const sum = (k: "written" | "reopened" | "closed") => done.reduce((a, r) => a + r[k], 0);
+  const errors = results.filter((r): r is PromiseRejectedResult => r.status === "rejected").map((r) => String(r.reason).slice(0, 200));
+  return { claimed: due.length, written: sum("written"), reopened: sum("reopened"), closed: sum("closed"), skipped: done.filter((r) => r.skipped).length, errors };
+}
+
+/** Every HN posting linked to a company: the addresses its poster wrote, upserted into fh_people. */
+async function runPeople(db: SupabaseClient) {
+  const { data, error } = await db.from("fh_postings").select("company_id, text, url, posted_at")
+    .eq("source", "hn").not("company_id", "is", null).order("id").limit(HN_POSTINGS_MAX);
+  if (error) throw new Error(`fh_postings: ${error.message}`);
+  const posts = (data ?? []) as { company_id: number; text: string; url: string; posted_at: string | null }[];
+  // One row a (company, address): the newest post wins, so seen_at is the last time the person published it.
+  const byKey = new Map<string, Record<string, unknown>>();
+  for (const p of posts) {
+    const seen = p.posted_at ?? new Date().toISOString();
+    for (const person of peopleFromHnPost(p.text)) {
+      const key = `${p.company_id}:${person.email}`;
+      const old = byKey.get(key);
+      if (old && String(old.seen_at) >= seen) continue;
+      byKey.set(key, {
+        company_id: p.company_id, name: person.name, role: person.role, contact_kind: "email", contact: person.email,
+        source: "hn", source_url: p.url, seen_at: seen,
+      });
+    }
+  }
+  const rows = [...byKey.values()];
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const { error: putError } = await db.from("fh_people").upsert(rows.slice(i, i + CHUNK), { onConflict: "company_id,source,contact" });
+    if (putError) throw new Error(`fh_people: ${putError.message}`);
+  }
+  return { posts: posts.length, people: rows.length };
 }
 
 async function runAts(db: SupabaseClient, limit: number, systems: Ats[]) {
@@ -178,8 +262,8 @@ Deno.serve(async (req) => {
   if (!SUPABASE_URL || !SECRET_KEY) return json({ ok: false, error: "missing Supabase settings" }, 500);
   let body: { task?: unknown; board?: unknown; limit?: unknown; systems?: unknown };
   try { body = await req.json(); } catch { return json({ ok: false, error: "body must be JSON" }, 400); }
-  const task = body.task === "vc" || body.task === "ats" || body.task === "tag" ? body.task : null;
-  if (!task) return json({ ok: false, error: 'task must be "vc", "ats" or "tag"' }, 400);
+  const task = ["vc", "ats", "tag", "refresh", "people"].includes(String(body.task)) ? String(body.task) : null;
+  if (!task) return json({ ok: false, error: 'task must be "vc", "ats", "tag", "refresh" or "people"' }, 400);
 
   const db = createClient(SUPABASE_URL, SECRET_KEY, { auth: { persistSession: false } });
   const started = new Date();
@@ -194,6 +278,16 @@ Deno.serve(async (req) => {
       const limit = Number.isInteger(body.limit) ? Math.min(Math.max(body.limit as number, 1), TAG_LIMIT_MAX) : TAG_LIMIT_DEFAULT;
       const r = await runTag(db, limit);
       written = r.tagged;
+      out = r;
+    } else if (task === "refresh") {
+      const limit = Number.isInteger(body.limit) ? Math.min(Math.max(body.limit as number, 1), REFRESH_LIMIT_MAX) : REFRESH_LIMIT_DEFAULT;
+      const r = await runRefresh(db, limit);
+      written = r.written;
+      out = r;
+      if (r.errors.length > 0) failure = r.errors.join(" | ").slice(0, 500);
+    } else if (task === "people") {
+      const r = await runPeople(db);
+      written = r.people;
       out = r;
     } else {
       const limit = Number.isInteger(body.limit) ? Math.min(Math.max(body.limit as number, 1), 50) : DEFAULT_LIMIT;
