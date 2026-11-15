@@ -8,7 +8,7 @@ const FULL_STOP = /\.(\s|$)/;
 describe("matches page lines", () => {
   const lines = [
     ...Object.values(MATCHES_COPY), countLine(50, 1234), countLine(1, 1), countLine(0, 0), placesLine(["Chicago", "New York"]),
-    postedLine("2026-11-03T10:00:00Z", "UTC"), showMoreLabel(1234, 50), familyLabel("data"), levelLabel("unspecified"),
+    postedLine("2026-11-03T10:00:00Z", new Date("2026-11-14T10:00:00Z")), showMoreLabel(1234, 50), familyLabel("data"), levelLabel("unspecified"),
   ];
 
   it("have no full stop", () => {
@@ -51,8 +51,9 @@ describe("placesLine: one role in several cities is one row", () => {
 });
 
 describe("postedLine", () => {
-  it("gives the day the role was posted, with the year", () => {
-    expect(postedLine("2026-11-03T10:00:00Z", "UTC")).toBe("Posted Nov 3, 2026");
+  it("gives the role's age, so an old role reads as old", () => {
+    expect(postedLine("2026-11-03T10:00:00Z", new Date("2026-11-14T10:00:00Z"))).toBe("Posted 1 week ago");
+    expect(postedLine("2026-04-03T10:00:00Z", new Date("2026-11-14T10:00:00Z"))).toBe("Posted 7 months ago");
   });
 
   it("says nothing when the date is unknown", () => {

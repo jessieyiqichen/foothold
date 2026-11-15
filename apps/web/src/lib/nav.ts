@@ -1,4 +1,4 @@
-import { MATCHES_PATH } from "./matches/constants";
+import { SAVED_PATH, TODAY_PATH } from "./cards/constants";
 import { PROFILE_PATH } from "./profile/constants";
 
 /** The name in the header and on the sign-in card. */
@@ -9,10 +9,11 @@ export interface NavLink {
   label: string;
 }
 
-/** Foothold's two pages, the front door first. Today and Goals left the navigation on 2026-11-12 (the lead's call,
- *  logged as reversible); their pages and code stay. */
+/** Today's five first (the front door), then what was saved, then the profile (2026-11-14). All roles (`/matches`) is
+ *  reached from the done screen and the foot of Saved, not from here. */
 export const NAV_LINKS: NavLink[] = [
-  { href: MATCHES_PATH, label: "Matches" },
+  { href: TODAY_PATH, label: "Today" },
+  { href: SAVED_PATH, label: "Saved" },
   { href: PROFILE_PATH, label: "Profile" },
 ];
 

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { MATCHES_PAGE_SIZE, MATCHES_RPC } from "./constants";
+import { FRESH_DAYS, MATCHES_PAGE_SIZE, MATCHES_RPC } from "./constants";
 import { MATCHES_COPY } from "./copy";
 import { addPage, hasMore, loadMatches, type MatchesDb } from "./remote";
 
@@ -35,10 +35,17 @@ describe("loadMatches", () => {
   it("asks fh_matches for one page of 50 from the offset given", async () => {
     const { db, calls } = fakeDb([row(1), row(2)]);
     const result = await loadMatches(db, 50);
-    expect(calls).toEqual([{ name: MATCHES_RPC, args: { p_limit: MATCHES_PAGE_SIZE, p_offset: 50 } }]);
+    expect(calls).toEqual([{ name: MATCHES_RPC, args: { p_limit: MATCHES_PAGE_SIZE, p_offset: 50, p_days: FRESH_DAYS } }]);
     expect(MATCHES_PAGE_SIZE).toBe(50);
     expect(result).toMatchObject({ ok: true, value: { total: 120, dropped: 0 } });
     expect(result.ok && result.value.matches.map((m) => m.id)).toEqual(["1", "2"]);
+  });
+
+  it("asks for roles of every age when older ones are switched on", async () => {
+    const { db, calls } = fakeDb([]);
+    await loadMatches(db, 0, null);
+    expect(FRESH_DAYS).toBe(60);
+    expect(calls).toEqual([{ name: MATCHES_RPC, args: { p_limit: MATCHES_PAGE_SIZE, p_offset: 0, p_days: null } }]);
   });
 
   it("refuses an offset that is not a whole number from zero up, without asking", async () => {

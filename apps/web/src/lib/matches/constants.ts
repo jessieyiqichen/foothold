@@ -1,6 +1,9 @@
 /** Names and limits for the matches page. The database side is the `fh_matches` function (supabase/, not ours). */
 export const MATCHES_PATH = "/matches";
 export const MATCHES_RPC = "fh_matches";
+/** The freshness rule (docs/architecture.md): by default only roles first posted in the last 60 days; null asks for
+ *  every age, behind the switch on the all-roles page. */
+export const FRESH_DAYS = 60;
 /** One page of matches, and what "Show more" adds. */
 export const MATCHES_PAGE_SIZE = 50;
 /** A role open in many cities is one row; past this many places the row says how many more. */
