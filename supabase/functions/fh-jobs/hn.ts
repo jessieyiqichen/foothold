@@ -69,6 +69,21 @@ async function allPages<T>(read: (from: number, to: number) => PromiseLike<{ dat
   }
 }
 
+/** people, run at the end of another task. A standalone people call gets its run row from the request handler; this
+ *  one writes its own, the same way, so the next call's peopleDue sees it and a repeat with nothing new stays idle.
+ *  A skipped run writes nothing, as a standalone one does. */
+async function runPeopleRecorded(db: SupabaseClient) {
+  const started = new Date().toISOString();
+  const r = await runPeople(db);
+  if (!r.skipped) {
+    const { error } = await db.from("fh_runs").insert({
+      source: "people", started_at: started, finished_at: new Date().toISOString(), ok: true, rows_written: r.people, error: null,
+    });
+    if (error) throw new Error(`fh_runs (people): ${error.message}`);
+  }
+  return r;
+}
+
 /** HN posts with no company: link each to the company that has its domain, or create a company row for a post whose
  *  header names a domain of its own (see lib/hn-companies.ts); every other post stays unlinked. A created row is
  *  stamped ats_checked_at = now() and board discovery leaves source 'hn' alone, so these rows never claim a job board.
@@ -80,7 +95,7 @@ export async function runHnCompanies(db: SupabaseClient) {
   const rows = await allPages<Row>((a, b) => db.from("fh_postings").select("id, company_name, text, url")
     .eq("source", "hn").is("company_id", null).order("id").range(a, b), "fh_postings");
   const posts: UnlinkedPost[] = rows.map((r) => ({ id: r.id, companyName: r.company_name, text: r.text, url: r.url }));
-  if (!anyCandidate(posts)) return { posts: posts.length, linked: 0, created: 0, people: await runPeople(db) };
+  if (!anyCandidate(posts)) return { posts: posts.length, linked: 0, created: 0, people: await runPeopleRecorded(db) };
   const existing = await allPages<ExistingCompany>((a, b) => db.from("fh_companies").select("id, name, domain, source")
     .order("id").range(a, b), "fh_companies");
   const plan = planHnCompanies(posts, existing);
@@ -116,5 +131,5 @@ export async function runHnCompanies(db: SupabaseClient) {
     if (error) throw new Error(`fh_postings (link to ${company}): ${error.message}`);
     linked += (data ?? []).length;
   }
-  return { posts: posts.length, linked, created, people: await runPeople(db) };
+  return { posts: posts.length, linked, created, people: await runPeopleRecorded(db) };
 }
