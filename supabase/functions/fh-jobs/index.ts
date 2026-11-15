@@ -9,7 +9,8 @@
 //                                  writes the roles found and marks closed the open roles the board no longer lists
 //   {"task":"people"}              reads the contact each HN poster wrote in their own post into fh_people
 //   {"task":"hn-companies"}        links HN posts with no company to the company with their domain, or creates one
-//                                  (source 'hn'), then runs people; repeating it does nothing new
+//                                  (source 'hn') only for a domain that is the company's own name; then runs people.
+//                                  A repeat with nothing to link writes nothing, not even a run row
 // Only company lists come from the VC boards; the roles always come from the company's own board.
 // It writes with the project's secret key, which Supabase gives the function on its own servers.
 
@@ -283,7 +284,7 @@ Deno.serve(async (req) => {
       const r = await runHnCompanies(db);
       written = r.linked + r.people.people;
       out = r;
-      idle = r.posts === 0 && r.people.skipped;
+      idle = r.linked === 0 && r.created === 0 && r.people.skipped;
     } else if (task === "people") {
       const r = await runPeople(db);
       written = r.people;

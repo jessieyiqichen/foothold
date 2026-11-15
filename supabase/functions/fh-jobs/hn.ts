@@ -1,9 +1,10 @@
 // The jobs worker's two HN tasks: people (the contact each HN poster wrote in their own post, into fh_people) and
-// hn-companies (a company row for every HN post that has none, then people). The logic is in lib/people.ts and
-// lib/hn-companies.ts; this file reads and writes.
+// hn-companies (links an HN post with no company to the company with its domain, or creates one when the header
+// names a domain of the company's own; then people). The logic is in lib/people.ts and lib/hn-companies.ts; this
+// file reads and writes.
 
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
-import { type ExistingCompany, type HnPost as UnlinkedPost, planHnCompanies } from "./lib/hn-companies.ts";
+import { anyCandidate, type ExistingCompany, type HnPost as UnlinkedPost, planHnCompanies } from "./lib/hn-companies.ts";
 import { linkAgrees, peopleDue, peopleFromHnPost } from "./lib/people.ts";
 
 const CHUNK = 200;
@@ -68,40 +69,52 @@ async function allPages<T>(read: (from: number, to: number) => PromiseLike<{ dat
   }
 }
 
-/** HN posts with no company: link each to the company that has its domain, or create a company row for it. The link
- *  stamps updated_at, so the people task (run at the end) reads the newly linked posts. Posts already linked are not
- *  read, so a second run finds nothing to do. */
+/** HN posts with no company: link each to the company that has its domain, or create a company row for a post whose
+ *  header names a domain of its own (see lib/hn-companies.ts); every other post stays unlinked. A created row is
+ *  stamped ats_checked_at = now() and board discovery leaves source 'hn' alone, so these rows never claim a job board.
+ *  An existing row is never overwritten (ignoreDuplicates). Linking stamps updated_at, so the people task, run at the
+ *  end, reads the newly linked posts. Posts already linked are not read, so a second run does nothing and the
+ *  company list is read only when some post could lead to a link or a row. */
 export async function runHnCompanies(db: SupabaseClient) {
   type Row = { id: number; company_name: string; text: string; url: string };
   const rows = await allPages<Row>((a, b) => db.from("fh_postings").select("id, company_name, text, url")
     .eq("source", "hn").is("company_id", null).order("id").range(a, b), "fh_postings");
-  if (rows.length === 0) return { posts: 0, linked: 0, created: 0, people: await runPeople(db) };
-  const existing = await allPages<ExistingCompany>((a, b) => db.from("fh_companies").select("id, domain, source")
-    .not("domain", "is", null).order("id").range(a, b), "fh_companies");
   const posts: UnlinkedPost[] = rows.map((r) => ({ id: r.id, companyName: r.company_name, text: r.text, url: r.url }));
+  if (!anyCandidate(posts)) return { posts: posts.length, linked: 0, created: 0, people: await runPeople(db) };
+  const existing = await allPages<ExistingCompany>((a, b) => db.from("fh_companies").select("id, name, domain, source")
+    .order("id").range(a, b), "fh_companies");
   const plan = planHnCompanies(posts, existing);
+  const now = new Date().toISOString();
   const ids = new Map<string, number>();
+  let created = 0;
   for (let i = 0; i < plan.create.length; i += CHUNK) {
-    const batch = plan.create.slice(i, i + CHUNK).map((c) => ({
-      source: "hn", source_id: c.sourceId, name: c.name, domain: c.domain, website: c.website, source_url: c.sourceUrl, is_hiring: true,
+    const part = plan.create.slice(i, i + CHUNK);
+    const batch = part.map((c) => ({
+      source: "hn", source_id: c.sourceId, name: c.name, domain: c.domain, website: c.website, source_url: c.sourceUrl,
+      is_hiring: true, ats_checked_at: now,
     }));
-    const { data, error } = await db.from("fh_companies").upsert(batch, { onConflict: "source,source_id" }).select("id, source_id");
+    const { data: inserted, error } = await db.from("fh_companies")
+      .upsert(batch, { onConflict: "source,source_id", ignoreDuplicates: true }).select("id");
     if (error) throw new Error(`fh_companies (hn): ${error.message}`);
-    for (const r of (data ?? []) as { id: number; source_id: string }[]) ids.set(r.source_id, r.id);
+    created += (inserted ?? []).length;
+    const { data: keyed, error: readError } = await db.from("fh_companies").select("id, source_id")
+      .eq("source", "hn").in("source_id", part.map((c) => c.sourceId));
+    if (readError) throw new Error(`fh_companies (hn ids): ${readError.message}`);
+    for (const r of (keyed ?? []) as { id: number; source_id: string }[]) ids.set(r.source_id, r.id);
   }
-  // One update a company: every post of that company gets its id.
+  // One update a company: every post of that company gets its id; linked counts the rows the database changed.
   const byCompany = new Map<number, number[]>();
   const put = (company: number | undefined, posting: number) => {
     if (company !== undefined) byCompany.set(company, [...(byCompany.get(company) ?? []), posting]);
   };
   for (const l of plan.link) put(l.companyId, l.postingId);
   for (const l of plan.linkToNew) put(ids.get(l.sourceId), l.postingId);
-  const now = new Date().toISOString();
   let linked = 0;
   for (const [company, postings] of byCompany) {
-    const { error } = await db.from("fh_postings").update({ company_id: company, updated_at: now }).in("id", postings).is("company_id", null);
+    const { data, error } = await db.from("fh_postings").update({ company_id: company, updated_at: now })
+      .in("id", postings).is("company_id", null).select("id");
     if (error) throw new Error(`fh_postings (link to ${company}): ${error.message}`);
-    linked += postings.length;
+    linked += (data ?? []).length;
   }
-  return { posts: rows.length, linked, linkedToExisting: plan.link.length, created: plan.create.length, people: await runPeople(db) };
+  return { posts: posts.length, linked, created, people: await runPeople(db) };
 }
