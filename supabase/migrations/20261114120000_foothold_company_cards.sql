@@ -14,7 +14,7 @@ alter table public.fh_postings add column closed_at timestamptz;
 
 alter table public.fh_runs drop constraint fh_runs_source_check;
 alter table public.fh_runs add constraint fh_runs_source_check
-  check (source in ('yc', 'hn', 'vc', 'ats', 'tag', 'roles', 'refresh', 'people'));
+  check (source in ('yc', 'hn', 'vc', 'ats', 'tag', 'roles', 'refresh', 'people', 'hn-companies'));
 
 -- fh_matches as in 20261112100000_foothold_matching.sql (its comment explains the rules and the cost), with two
 -- changes: only open roles (closed_at is null), and p_days. p_days keeps roles first posted in that many days;
@@ -355,22 +355,38 @@ $$;
 revoke all on function public.fh_company_person(bigint) from public, anon, authenticated, service_role;
 grant execute on function public.fh_company_person(bigint) to authenticated;
 
+-- Where a card links for a company's founders (user, 2026-11-14): a YC company's page on ycombinator.com, which
+-- names its founders. Foothold never fetches that page; the card only links to it. source_url is used when it already
+-- is that page (all 4,413 YC rows on 2026-11-14, each ending in the row's slug), else it is built from the slug. Any
+-- other company: null. The patterns keep anything but a plain page address out of the link.
+create function public.fh_founders_url(p_source text, p_source_url text, p_slug text)
+returns text
+language sql immutable set search_path = '' as $$
+  select case
+    when p_source <> 'yc' then null
+    when p_source_url ~ '^https://www\.ycombinator\.com/companies/[a-z0-9_-]{1,100}$' then p_source_url
+    when p_slug ~ '^[a-z0-9_-]{1,100}$' then 'https://www.ycombinator.com/companies/' || p_slug
+  end;
+$$;
+revoke all on function public.fh_founders_url(text, text, text) from public, anon, authenticated, service_role;
+grant execute on function public.fh_founders_url(text, text, text) to authenticated;
+
 -- 6. Today's companies, and the saved ones --------------------------------------------------------------------------
 
 -- The caller's best companies today: one row a company, best first, leaving out every company the caller has
 -- decided on (saved, reached out or skipped), and only companies with a matching open role posted in the last 60
 -- days. p_limit is kept inside 1..50. investors is fh_companies.lists (the VC boards that list the company).
--- No profile, or a profile with no tags: no rows.
+-- founders_url: see fh_founders_url. No profile, or a profile with no tags: no rows.
 create function public.fh_today(p_limit integer default 5)
 returns table (
   company_id bigint, name text, one_liner text, website text, team_size integer, batch text, stage text,
   investors text[], last_posted_at timestamptz, recent_roles integer, shared text[], score numeric, roles jsonb,
-  person jsonb
+  person jsonb, founders_url text
 )
 language sql stable security invoker set search_path = '' as $$
   select c.id, c.name, c.one_liner, c.website, c.team_size, c.batch, c.stage, c.lists,
          f.last_posted_at, f.recent_roles, f.shared, f.score, f.roles,
-         public.fh_company_person(c.id)
+         public.fh_company_person(c.id), public.fh_founders_url(c.source, c.source_url, c.slug)
   from public.fh_company_fit(60, null) f
   join public.fh_companies c on c.id = f.company_id
   where not exists (
@@ -390,7 +406,7 @@ create function public.fh_saved()
 returns table (
   company_id bigint, name text, one_liner text, website text, team_size integer, batch text, stage text,
   investors text[], last_posted_at timestamptz, recent_roles integer, shared text[], score numeric, roles jsonb,
-  person jsonb, decision text, decided_at timestamptz
+  person jsonb, decision text, decided_at timestamptz, founders_url text
 )
 language sql stable security invoker set search_path = '' as $$
   with mine as (
@@ -400,7 +416,7 @@ language sql stable security invoker set search_path = '' as $$
   )
   select c.id, c.name, c.one_liner, c.website, c.team_size, c.batch, c.stage, c.lists,
          f.last_posted_at, coalesce(f.recent_roles, 0), coalesce(f.shared, '{}'), coalesce(f.score, 0), coalesce(f.roles, '[]'::jsonb),
-         public.fh_company_person(c.id), m.decision, m.decided_at
+         public.fh_company_person(c.id), m.decision, m.decided_at, public.fh_founders_url(c.source, c.source_url, c.slug)
   from mine m
   join public.fh_companies c on c.id = m.company_id
   left join public.fh_company_fit(60, array(select mi.company_id from mine mi)) f on f.company_id = c.id
