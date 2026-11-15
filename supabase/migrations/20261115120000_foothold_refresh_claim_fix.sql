@@ -7,7 +7,7 @@
 -- One gap stays: a company the ats task finds a board for in the last 2 minutes now has ats set and counts, though
 -- the refresh did not claim it. That only makes a refresh call wait at most 2 minutes more.
 --
--- NOT APPLIED. The lead applies it.
+-- Applied by the lead on 2026-11-15.
 create or replace function public.fh_claim_refresh(n integer)
 returns table (id bigint, name text, ats text, ats_slug text)
 language sql security definer set search_path = '' as $$

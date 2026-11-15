@@ -3,7 +3,7 @@
 -- the last 60 days, a person's save / reached out / skip, the people a card may name, and the two functions the
 -- pages read (today's companies, and the saved ones). The pages are built against these columns at the same time.
 --
--- NOT APPLIED. It creates a per-person table (fh_decisions) and functions that read the caller's own profile, so it
+-- Reviewed, then applied by the lead on 2026-11-15. It creates a per-person table (fh_decisions) and functions that read the caller's own profile, so it
 -- goes to `reviewer` before the lead applies it. No policy or grant on fh_profiles changes.
 
 -- 1. Closed roles, and matching on open, recent roles ---------------------------------------------------------------

@@ -7,7 +7,7 @@
 -- every board is done claim nothing either. The URL is the project's public address, not a secret: a call only
 -- re-reads public job boards (the same reasoning as fh-scout's schedule).
 --
--- NOT APPLIED. Apply after 20261114120000_foothold_company_cards.sql and after fh-jobs is deployed with the task.
+-- Applied by the lead on 2026-11-15, after the company-cards migration and fh-jobs version 5.
 select cron.schedule(
   'fh-jobs-refresh-daily',
   '* 8-10 * * *',
