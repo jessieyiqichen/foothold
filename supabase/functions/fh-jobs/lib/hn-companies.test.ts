@@ -1,14 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { companyOfPost, planHnCompanies, registrable } from "./hn-companies";
+import { anyCandidate, companyOfPost, planHnCompanies, registrable, SOURCE_ID_MAX } from "./hn-companies";
 
-// Posts in the shape fh_postings stores them; every company and domain is made up (.test is reserved).
+// Posts in the shape fh_postings stores them; companies and domains are made up (.test is reserved), except where a
+// case is about a real company's domain being taken for someone else's (the reviewer's probes).
 const post = (id: number, companyName: string, header: string) =>
   ({ id, companyName, text: `${header}\nWe build things.`, url: `https://news.ycombinator.com/item?id=${id}` });
 const existing = [
-  { id: 10, domain: "acme.test", source: "vc" },
-  { id: 11, domain: "acme.test", source: "yc" },
-  { id: 12, domain: "beta.test", source: "yc" },
-  { id: 13, domain: null, source: "vc" },
+  { id: 10, name: "Acme", domain: "acme.test", source: "vc" },
+  { id: 11, name: "Acme", domain: "acme.test", source: "yc" },
+  { id: 12, name: "Beta", domain: "beta.test", source: "yc" },
+  { id: 13, name: "Stripe", domain: "stripe.com", source: "yc" },
+  { id: 14, name: "Nameless", domain: null, source: "vc" },
 ];
 
 describe("registrable", () => {
@@ -20,32 +22,38 @@ describe("registrable", () => {
   });
 });
 
-describe("companyOfPost", () => {
-  it("reads the name from the header and the domain the header names", () => {
-    expect(companyOfPost(post(1, "Acme", "Acme | Engineer | NYC | https://www.acme.test/careers")))
-      .toEqual({ name: "Acme", domain: "acme.test", sourceId: "acme.test" });
-  });
-  it("takes a subdomain back to the company's domain", () => {
-    expect(companyOfPost(post(1, "Acme Robotics", "Acme Robotics | Engineer | jobs.acmerobotics.test")))
-      .toMatchObject({ domain: "acmerobotics.test" });
-  });
-  it("uses the lower-cased name when the header names no domain", () => {
-    expect(companyOfPost(post(1, "Quill Labs", "Quill Labs | Engineer | Remote")))
-      .toEqual({ name: "Quill Labs", domain: null, sourceId: "quill labs" });
-  });
-  it("does not take a domain that belongs to someone else named in the header", () => {
-    expect(companyOfPost(post(1, "Quill Labs", "Quill Labs | Engineer | backed by bigfund.test")))
-      .toEqual({ name: "Quill Labs", domain: null, sourceId: "quill labs" });
-    expect(companyOfPost(post(1, "Quill Labs", "Quill Labs | Engineer | https://jobs.ashbyhq.com/quill"))).toMatchObject({ domain: null });
-  });
-  it("accepts a domain built from the name with a common prefix or suffix", () => {
+describe("companyOfPost: the domain must be the cleaned name itself", () => {
+  it("accepts the name, or the name with a fixed prefix or suffix", () => {
+    expect(companyOfPost(post(1, "Acme", "Acme | Engineer | NYC | https://www.acme.test/careers"))).toEqual({ name: "Acme", domain: "acme.test" });
     expect(companyOfPost(post(1, "Stream", "Stream | Video | https://getstream.test"))).toMatchObject({ domain: "getstream.test" });
-    expect(companyOfPost(post(1, "Clad (YC W23)", "Clad (YC W23) | Engineer | withclad.test"))).toMatchObject({ name: "Clad", domain: "withclad.test" });
+    expect(companyOfPost(post(1, "Clad (YC W23)", "Clad (YC W23) | Engineer | withclad.test"))).toEqual({ name: "Clad", domain: "withclad.test" });
     expect(companyOfPost(post(1, "Tandem Health", "Tandem Health | PM | tandemhealth.test"))).toMatchObject({ domain: "tandemhealth.test" });
+    expect(companyOfPost(post(1, "Kaida", "Kaida | Engineer | kaidahq.test"))).toMatchObject({ domain: "kaidahq.test" });
+    expect(companyOfPost(post(1, "Acme Robotics", "Acme Robotics | Engineer | jobs.acmerobotics.test"))).toMatchObject({ domain: "acmerobotics.test" });
   });
-  it("drops a post with no usable name", () => {
+  it("rejects a real company's domain that only contains a word of the name, or the other way round", () => {
+    for (const [name, header] of [
+      ["Open Climate", "Open Climate | ML Engineer | openai.com"],
+      ["Box Robotics", "Box Robotics | Engineer | dropbox.com"],
+      ["Quill (acquired by Stripe)", "Quill (acquired by Stripe) | Engineer | stripe.com"],
+      ["Data Corp", "Data Corp | Analyst | databricks.com"],
+      ["Superhuman Health", "Superhuman Health | Engineer | human.com"],
+    ]) {
+      expect(companyOfPost(post(1, name, header))).toMatchObject({ domain: null });
+    }
+  });
+  it("gives no domain for a hosted page or a domain someone else owns", () => {
+    for (const host of ["acme.github.io", "acme.vercel.app", "acme.notion.site", "acme.substack.com", "jobs.ashbyhq.com/acme", "workatastartup.com/acme"]) {
+      expect(companyOfPost(post(1, "Acme", `Acme | Engineer | https://${host}`))).toMatchObject({ domain: null });
+    }
+    expect(companyOfPost(post(1, "Quill Labs", "Quill Labs | Engineer | backed by bigfund.test"))).toMatchObject({ domain: null });
+  });
+  it("drops a post with no usable name, or a generic one", () => {
     expect(companyOfPost({ id: 1, companyName: "  ", text: "x", url: "https://news.ycombinator.com/item?id=1" })).toBeNull();
     expect(companyOfPost({ id: 1, companyName: "Acme", text: "Acme | x", url: "http://bad" })).toBeNull();
+    for (const name of ["Stealth", "Stealth Startup", "stealth startup (YC S24)", "Unnamed", "Confidential"]) {
+      expect(companyOfPost(post(1, name, `${name} | Engineer | stealth.test`))).toBeNull();
+    }
   });
 });
 
@@ -54,30 +62,49 @@ describe("planHnCompanies", () => {
     const plan = planHnCompanies([post(1, "Acme", "Acme | Engineer | acme.test")], existing);
     expect(plan).toEqual({ link: [{ postingId: 1, companyId: 11 }], create: [], linkToNew: [] });
   });
-  it("links through www. and subdomains on either side", () => {
-    const plan = planHnCompanies([post(1, "Beta", "Beta | Engineer | https://www.careers.beta.test/jobs")], existing);
-    expect(plan.link).toEqual([{ postingId: 1, companyId: 12 }]);
+  it("links through www. and subdomains", () => {
+    expect(planHnCompanies([post(1, "Beta", "Beta | Engineer | https://www.careers.beta.test/jobs")], existing).link)
+      .toEqual([{ postingId: 1, companyId: 12 }]);
   });
-  it("creates one row for two posts from the same new company, and links both to it", () => {
+  it("creates one row for two posts from the same new company, keyed by its domain, and links both", () => {
     const plan = planHnCompanies([post(1, "Gamma", "Gamma | Backend | gamma.test"), post(2, "Gamma", "Gamma | Frontend | https://gamma.test")], existing);
     expect(plan.create).toEqual([{
-      sourceId: "gamma.test", name: "Gamma", domain: "gamma.test", website: "https://gamma.test",
+      sourceId: "domain:gamma.test", name: "Gamma", domain: "gamma.test", website: "https://gamma.test",
       sourceUrl: "https://news.ycombinator.com/item?id=1",
     }]);
-    expect(plan.linkToNew).toEqual([{ postingId: 1, sourceId: "gamma.test" }, { postingId: 2, sourceId: "gamma.test" }]);
+    expect(plan.linkToNew).toEqual([{ postingId: 1, sourceId: "domain:gamma.test" }, { postingId: 2, sourceId: "domain:gamma.test" }]);
   });
-  it("creates a row by name, with no domain or website, when the header names none", () => {
-    const plan = planHnCompanies([post(3, "Quill Labs", "Quill Labs | Engineer | Remote")], existing);
-    expect(plan.create).toEqual([{ sourceId: "quill labs", name: "Quill Labs", domain: null, website: null, sourceUrl: "https://news.ycombinator.com/item?id=3" }]);
+  it("creates nothing for a post whose header gives no domain of its own: it stays unlinked", () => {
+    for (const header of ["Quill Labs | Engineer | Remote", "Quill Labs | Engineer | backed by acme.test"]) {
+      expect(planHnCompanies([post(3, "Quill Labs", header)], existing)).toEqual({ link: [], create: [], linkToNew: [] });
+    }
   });
-  it("never links by a domain the header gives for another company", () => {
-    const plan = planHnCompanies([post(4, "Quill Labs", "Quill Labs | Engineer | backed by acme.test")], existing);
-    expect(plan.link).toEqual([]);
-    expect(plan.create.map((c) => c.sourceId)).toEqual(["quill labs"]);
+  it("never creates a row named like a company Foothold already has", () => {
+    expect(planHnCompanies([post(5, "STRIPE", "STRIPE | Engineer | stripe-careers.test")], existing))
+      .toEqual({ link: [], create: [], linkToNew: [] });
+    expect(planHnCompanies([post(5, "Stripe", "Stripe | Engineer | stripe.test")], existing).create).toEqual([]);
+  });
+  it("keeps the key and the name within the columns' 200 characters, counted in code points as Postgres does", () => {
+    const longName = `Gamma${" 😀".repeat(150)}`;
+    // The stored company name is long; the header the domain is read from is the usual short line.
+    const plan = planHnCompanies([post(6, longName, "Gamma | Engineer | gamma.test")], existing);
+    expect(plan.create).toHaveLength(1);
+    const [c] = plan.create;
+    expect([...c.sourceId].length).toBeLessThanOrEqual(SOURCE_ID_MAX);
+    expect([...c.name].length).toBeLessThanOrEqual(200);
+    expect(c.name).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/);
   });
   it("leaves its inputs untouched", () => {
     const rows = existing.map((r) => ({ ...r }));
     planHnCompanies([post(1, "Acme", "Acme | Engineer | acme.test")], rows);
     expect(rows).toEqual(existing);
+  });
+});
+
+describe("anyCandidate", () => {
+  it("is true only when some post names a domain of its own", () => {
+    expect(anyCandidate([post(1, "Quill Labs", "Quill Labs | Engineer | Remote")])).toBe(false);
+    expect(anyCandidate([post(1, "Quill Labs", "Quill Labs | Engineer | Remote"), post(2, "Gamma", "Gamma | x | gamma.test")])).toBe(true);
+    expect(anyCandidate([])).toBe(false);
   });
 });

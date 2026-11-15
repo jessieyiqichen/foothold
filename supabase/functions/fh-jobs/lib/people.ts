@@ -23,7 +23,12 @@ const INBOX = /^(jobs?|careers?|hiring|hire|hr|recruit\w*|talent|hello|hi|info|t
 /** Addresses written as examples, and addresses that are not a way to reach anyone. */
 const NOT_ROUTE = /@(example|company|domain|email|yourcompany)\.com$|^(you|your\.?name|name|first\.?last|git|noreply|no-reply|donotreply|do-not-reply|mailer-daemon)@/;
 /** Job-board and code hosts named in a header: their domain is not the company's. */
-const HOSTED = /(^|\.)(ashbyhq\.com|greenhouse\.io|lever\.co|workable\.com|rippling\.com|gem\.com|bamboohr\.com|github\.com|gitlab\.com|linkedin\.com|ycombinator\.com|notion\.site|google\.com|wellfound\.com)$/;
+const HOSTED = new RegExp(String.raw`(^|\.)(${[
+  "ashbyhq.com", "greenhouse.io", "lever.co", "workable.com", "rippling.com", "gem.com", "bamboohr.com", "github.com", "gitlab.com",
+  "linkedin.com", "ycombinator.com", "workatastartup.com", "wellfound.com", "google.com", "notion.site", "github.io", "vercel.app",
+  "netlify.app", "pages.dev", "herokuapp.com", "substack.com", "medium.com", "linktr.ee", "carrd.co", "webflow.io", "typeform.com",
+  "calendly.com",
+].map((d) => d.replace(/\./g, "\\.")).join("|")})$`);
 /** Capitalised words that follow "I'm" without being a name. */
 const NOT_NAMES = new Set(["Hiring", "Happy", "Looking", "Based", "Building", "Back", "Excited", "Not", "Also", "The", "A", "An", "Here", "Still", "Currently", "Now", "On", "In"]);
 /** "email me at acme dot com" is a website, not an address for "me". */
