@@ -170,7 +170,30 @@ alter table public.fh_people enable row level security;
 revoke all on table public.fh_people from public, anon, authenticated;
 grant select, insert, update, delete on table public.fh_people to service_role;
 
--- 4. The daily re-check of boards: which companies are due --------------------------------------------------------
+-- 4. Board discovery leaves HN companies alone, and the daily re-check of boards ------------------------------------
+
+-- fh_claim_companies as in 20261110190000_foothold_jobs_worker.sql, plus one rule: a company row made from an HN post
+-- (source 'hn', by the jobs worker's hn-companies task) is never handed to board discovery. Its name comes from a
+-- stranger's post, and guessing a board from it could match a real company's board ("Stripe | stripe-careers.com"
+-- would re-point Stripe's roles). The task also creates those rows already stamped as checked.
+create or replace function public.fh_claim_companies(n integer)
+returns table (id bigint, name text, slug text, domain text)
+language sql security definer set search_path = '' as $$
+  update public.fh_companies c
+  set ats_checked_at = now()
+  where c.id in (
+    select x.id from public.fh_companies x
+    where x.ats_checked_at is null
+      and x.source <> 'hn'
+      and not (x.source = 'vc' and exists (select 1 from public.fh_companies y where y.source = 'yc' and y.domain = x.domain))
+    order by x.is_hiring desc, x.id
+    limit least(greatest(n, 1), 50)
+    for update skip locked
+  )
+  returning c.id, c.name, c.slug, c.domain;
+$$;
+revoke all on function public.fh_claim_companies(integer) from public, anon, authenticated;
+grant execute on function public.fh_claim_companies(integer) to service_role;
 
 -- Hands the refresh task the companies with a board, checked longest ago first, and stamps them so the next call
 -- gets others. A company checked in the last 20 hours is not due, so a schedule that calls more often than needed
@@ -194,7 +217,7 @@ language sql security definer set search_path = '' as $$
              row_number() over (partition by d.ats = 'workable' order by d.ats_checked_at nulls first, d.id) as k
       from (
         select x.id, x.ats, x.ats_checked_at from public.fh_companies x
-        where x.ats is not null and x.ats_slug is not null
+        where x.ats is not null and x.ats_slug is not null and x.source <> 'hn'
           and (x.ats_checked_at is null or x.ats_checked_at < now() - interval '20 hours')
         order by x.ats_checked_at nulls first, x.id
         limit 100
