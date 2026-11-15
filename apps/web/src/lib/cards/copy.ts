@@ -19,6 +19,8 @@ export const CARDS_COPY = {
   contact: "Who to contact",
   noContact: "No contact found yet",
   website: "Their website",
+  founders: "The founders are listed on Y Combinator",
+  foundersNote: "Foothold links to this page and does not collect contacts from it",
   draft: "A draft message will appear here",
   untitledRole: "Role from a Hacker News hiring post",
   unnamedPerson: "The person who posted this role",

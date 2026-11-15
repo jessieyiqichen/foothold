@@ -64,6 +64,13 @@ describe("roleTitle and personName: what a card says when the source gave no tit
   });
 });
 
+describe("the founders link", () => {
+  it("says where the founders are listed, and that Foothold only links there", () => {
+    expect(CARDS_COPY.founders).toBe("The founders are listed on Y Combinator");
+    expect(CARDS_COPY.foundersNote).toContain("does not collect contacts");
+  });
+});
+
 describe("decidedLine: what the Undo bar says", () => {
   it("names the decision and the company", () => {
     expect(decidedLine("saved", "Acme")).toBe("Saved Acme");

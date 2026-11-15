@@ -8,6 +8,9 @@ export const DECISIONS_TABLE = "fh_decisions";
 /** The decisions table holds one row per person and company; a new decision replaces the old one. */
 export const DECISION_CONFLICT = "user_id,company_id";
 
+/** The one host a founders link may point to: the company's page in the YC directory. */
+export const FOUNDERS_HOST = "www.ycombinator.com";
+
 /** Today's cards come in fives; the done screen follows each five. */
 export const ROUND_SIZE = 5;
 /** A card shows at most this many roles. */

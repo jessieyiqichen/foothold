@@ -11,4 +11,5 @@ export const row = {
     name: "Dana Lee", role: "Founder", contact_kind: "email", contact: "dana@acme.ai", source: "hn",
     source_url: "https://news.ycombinator.com/item?id=4242", seen_at: "2026-11-12T08:00:00Z",
   },
+  founders_url: "https://www.ycombinator.com/companies/acme-ai",
 };

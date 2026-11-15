@@ -94,6 +94,21 @@ describe("rowToCard: a row from fh_today is checked before it is shown", () => {
   });
 });
 
+describe("founders_url: the company's page in the YC directory", () => {
+  it("is read when it is an https page on www.ycombinator.com", () => {
+    expect(rowToCard(row)?.foundersUrl).toBe("https://www.ycombinator.com/companies/acme-ai");
+  });
+
+  it("is null when missing, not https, or on any other host, and the company is kept", () => {
+    for (const url of [null, undefined, "", "http://www.ycombinator.com/companies/acme-ai", "https://ycombinator.com/companies/acme-ai",
+      "https://www.ycombinator.com.evil.example/companies/acme-ai", "https://evil.example/?u=https://www.ycombinator.com", "javascript:alert(1)", 7]) {
+      const card = rowToCard({ ...row, founders_url: url });
+      expect(card?.companyId, String(url)).toBe(812);
+      expect(card?.foundersUrl, String(url)).toBeNull();
+    }
+  });
+});
+
 describe("readCards", () => {
   it("keeps readable rows in order and counts the dropped", () => {
     expect(readCards([row, { ...row, name: "" }, { ...row, company_id: 9 }])).toMatchObject({ dropped: 1 });

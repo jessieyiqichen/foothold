@@ -47,6 +47,9 @@ export interface CompanyCard {
   score: number;
   roles: CardRole[];
   person: CardPerson | null;
+  /** The company's page in the YC directory, where its founders are listed: a link only, no contacts are taken from
+   *  it. Always https on www.ycombinator.com, or null. */
+  foundersUrl: string | null;
 }
 
 export interface SavedCard extends CompanyCard {

@@ -1,7 +1,7 @@
 // Rows from fh_today and fh_saved, checked before use: the page shows nothing it has not read field by field. Links
 // are https only, and mail opens only for a contact the database calls an email.
 import { FAMILIES, LEVELS, type Family, type Level } from "../profile/roles";
-import { MAX_ROLES_ON_CARD, PERSON_SOURCES, type PersonSource } from "./constants";
+import { FOUNDERS_HOST, MAX_ROLES_ON_CARD, PERSON_SOURCES, type PersonSource } from "./constants";
 import type { CardPerson, CardRole, CompanyCard, SavedCard } from "./types";
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
@@ -19,6 +19,12 @@ export function httpsUrl(value: unknown): string | null {
   } catch {
     return null;
   }
+}
+
+/** The company's page in the YC directory, or null: https on www.ycombinator.com only, nothing else. */
+function foundersUrl(value: unknown): string | null {
+  const url = httpsUrl(value);
+  return url && new URL(url).hostname === FOUNDERS_HOST ? url : null;
 }
 
 /** A plain address, with nothing a mail link could carry along (no `?cc=`, no spaces). */
@@ -84,6 +90,7 @@ export function rowToCard(row: unknown): CompanyCard | null {
     website: httpsUrl(row.website), investors: [...investors], shared: [...shared], score: rank,
     roles: roles.map(rowToRole).filter((r): r is CardRole => r !== null).slice(0, MAX_ROLES_ON_CARD),
     person: rowToPerson(row.person),
+    foundersUrl: foundersUrl(row.founders_url),
   };
 }
 

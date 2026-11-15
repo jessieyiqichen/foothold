@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { ageLine } from "@/lib/cards/age";
+import { contactWays } from "@/lib/cards/contact";
 import { CARDS_COPY, doingLines, personName, roleTitle, sourceLine } from "@/lib/cards/copy";
 import type { CardPerson, CardRole, CompanyCard } from "@/lib/cards/types";
 import { levelLabel } from "@/lib/matches/copy";
@@ -86,17 +87,25 @@ function PersonLines({ person }: { person: CardPerson }) {
   );
 }
 
-/** "Who to contact": one person through a route they published, with where and when they were found; or, with no
- *  one found yet, the company's website as the way in. */
+/** The founders' page in the YC directory: a link out, with a quiet line that Foothold takes no contacts from it. */
+function FoundersLink({ href }: { href: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <OutLink href={href} className="self-start text-sm">{CARDS_COPY.founders}</OutLink>
+      <p className="font-mono text-[11px] leading-4 text-muted">{CARDS_COPY.foundersNote}</p>
+    </div>
+  );
+}
+
+/** "Who to contact": one person through a route they published, with where and when they were found, and the
+ *  founders' YC page beneath as a second way in; with no one found yet, the YC page, or else the company's website. */
 export function ContactPart({ card, id }: { card: CompanyCard; id: string }) {
+  const ways = contactWays(card);
   return (
     <Part id={id} title={CARDS_COPY.contact}>
-      {card.person ? <PersonLines person={card.person} /> : (
-        <div className="flex flex-col gap-1">
-          <p className="font-mono text-xs text-ink">{CARDS_COPY.noContact}</p>
-          {card.website && <OutLink href={card.website} className="self-start text-sm">{CARDS_COPY.website}</OutLink>}
-        </div>
-      )}
+      {card.person ? <PersonLines person={card.person} /> : <p className="font-mono text-xs text-ink">{CARDS_COPY.noContact}</p>}
+      {ways.founders && <FoundersLink href={ways.founders} />}
+      {ways.website && <OutLink href={ways.website} className="self-start text-sm">{CARDS_COPY.website}</OutLink>}
     </Part>
   );
 }
