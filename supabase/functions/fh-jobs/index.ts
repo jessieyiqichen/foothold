@@ -8,6 +8,8 @@
 //   {"task":"refresh","limit":25}  re-reads the boards of the companies checked longest ago (none within 20 hours),
 //                                  writes the roles found and marks closed the open roles the board no longer lists
 //   {"task":"people"}              reads the contact each HN poster wrote in their own post into fh_people
+//   {"task":"hn-companies"}        links HN posts with no company to the company with their domain, or creates one
+//                                  (source 'hn'), then runs people; repeating it does nothing new
 // Only company lists come from the VC boards; the roles always come from the company's own board.
 // It writes with the project's secret key, which Supabase gives the function on its own servers.
 
@@ -15,7 +17,7 @@ import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import {
   type Ats, type AtsJob, boardUrl, DETAILS, parseGetroCompanies, PARSERS, pickSystems, slugCandidates, type VcCompany, withDetail,
 } from "./lib/parse.ts";
-import { linkAgrees, peopleDue, peopleFromHnPost } from "./lib/people.ts";
+import { runHnCompanies, runPeople } from "./hn.ts";
 import { settleLimited } from "./lib/pool.ts";
 import { labelled, listedCount, planRefresh, type StoredRole } from "./lib/refresh.ts";
 import { SKILLS_VERSION } from "../../../packages/core/src/skills.ts";
@@ -38,8 +40,7 @@ const REFRESH_LIMIT_DEFAULT = 25;
 const REFRESH_LIMIT_MAX = 25;
 /** Boards re-read at once in one refresh call. */
 const REFRESH_AT_ONCE = 5;
-/** The people task reads linked HN postings in pages of this many. */
-const PEOPLE_PAGE = 1000;
+
 const GETRO_PAGES_MAX = 120;
 const CHUNK = 200;
 /** Getro collection ids of the VC boards, read from each board's own page on 2026-11-10. */
@@ -225,60 +226,6 @@ async function runRefresh(db: SupabaseClient, limit: number) {
   return { claimed: due.length, written: sum("written"), reopened: sum("reopened"), closed: sum("closed"), skipped: done.filter((r) => r.skipped).length, errors };
 }
 
-type HnPost = { company_id: number; text: string; url: string; posted_at: string | null; fh_companies: { domain: string | null } | null };
-
-/** Every HN posting linked to a company, read in pages. */
-async function linkedHnPosts(db: SupabaseClient): Promise<HnPost[]> {
-  const all: HnPost[] = [];
-  for (let from = 0; ; from += PEOPLE_PAGE) {
-    const { data, error } = await db.from("fh_postings").select("company_id, text, url, posted_at, fh_companies(domain)")
-      .eq("source", "hn").not("company_id", "is", null).order("id").range(from, from + PEOPLE_PAGE - 1);
-    if (error) throw new Error(`fh_postings: ${error.message}`);
-    const page = (data ?? []) as unknown as HnPost[];
-    all.push(...page);
-    if (page.length < PEOPLE_PAGE) return all;
-  }
-}
-
-/** The newest of `column` over the rows the filter keeps, or null. */
-async function newest(db: SupabaseClient, table: string, column: string, filter: (q: any) => any): Promise<string | null> {
-  const { data, error } = await filter(db.from(table).select(column)).order(column, { ascending: false }).limit(1);
-  if (error) throw new Error(`${table}: ${error.message}`);
-  return ((data ?? [])[0] as Record<string, string> | undefined)?.[column] ?? null;
-}
-
-/** The addresses HN posters wrote, upserted into fh_people. Does nothing (and writes no run row) when no linked HN
- *  posting changed since the last good run: the HN import rewrites every posting's updated_at each day. */
-async function runPeople(db: SupabaseClient) {
-  const lastRun = await newest(db, "fh_runs", "started_at", (q) => q.eq("source", "people").eq("ok", true));
-  const lastChange = await newest(db, "fh_postings", "updated_at", (q) => q.eq("source", "hn").not("company_id", "is", null));
-  if (!peopleDue(lastRun, lastChange)) return { skipped: true, posts: 0, doubted: 0, people: 0 };
-  const posts = await linkedHnPosts(db);
-  // One row a (company, address): the newest post wins, so seen_at is the last time the person published it.
-  const byKey = new Map<string, Record<string, unknown>>();
-  let doubted = 0;
-  for (const p of posts) {
-    const domain = p.fh_companies?.domain ?? null;
-    if (!linkAgrees(p.text, domain)) { doubted++; continue; }
-    const seen = p.posted_at ?? new Date().toISOString();
-    for (const person of peopleFromHnPost(p.text, domain)) {
-      const key = `${p.company_id}:${person.email}`;
-      const old = byKey.get(key);
-      if (old && String(old.seen_at) >= seen) continue;
-      byKey.set(key, {
-        company_id: p.company_id, name: person.name, role: person.role, contact_kind: "email", contact: person.email,
-        source: "hn", source_url: p.url, seen_at: seen,
-      });
-    }
-  }
-  const rows = [...byKey.values()];
-  for (let i = 0; i < rows.length; i += CHUNK) {
-    const { error: putError } = await db.from("fh_people").upsert(rows.slice(i, i + CHUNK), { onConflict: "company_id,source,contact" });
-    if (putError) throw new Error(`fh_people: ${putError.message}`);
-  }
-  return { skipped: false, posts: posts.length, doubted, people: rows.length };
-}
-
 async function runAts(db: SupabaseClient, limit: number, systems: Ats[]) {
   const { data, error } = await db.rpc("fh_claim_companies", { n: limit });
   if (error) throw new Error(`fh_claim_companies: ${error.message}`);
@@ -307,8 +254,8 @@ Deno.serve(async (req) => {
   if (!SUPABASE_URL || !SECRET_KEY) return json({ ok: false, error: "missing Supabase settings" }, 500);
   let body: { task?: unknown; board?: unknown; limit?: unknown; systems?: unknown };
   try { body = await req.json(); } catch { return json({ ok: false, error: "body must be JSON" }, 400); }
-  const task = ["vc", "ats", "tag", "refresh", "people"].includes(String(body.task)) ? String(body.task) : null;
-  if (!task) return json({ ok: false, error: 'task must be "vc", "ats", "tag", "refresh" or "people"' }, 400);
+  const task = ["vc", "ats", "tag", "refresh", "people", "hn-companies"].includes(String(body.task)) ? String(body.task) : null;
+  if (!task) return json({ ok: false, error: 'task must be "vc", "ats", "tag", "refresh", "people" or "hn-companies"' }, 400);
 
   const db = createClient(SUPABASE_URL, SECRET_KEY, { auth: { persistSession: false } });
   const started = new Date();
@@ -332,6 +279,11 @@ Deno.serve(async (req) => {
       out = r;
       idle = r.claimed === 0;
       if (r.errors.length > 0) failure = r.errors.join(" | ").slice(0, 500);
+    } else if (task === "hn-companies") {
+      const r = await runHnCompanies(db);
+      written = r.linked + r.people.people;
+      out = r;
+      idle = r.posts === 0 && r.people.skipped;
     } else if (task === "people") {
       const r = await runPeople(db);
       written = r.people;
