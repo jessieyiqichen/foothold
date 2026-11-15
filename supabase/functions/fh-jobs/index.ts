@@ -1,10 +1,16 @@
-// Foothold jobs worker, three tasks:
+// Foothold jobs worker, five tasks:
 //   {"task":"vc","board":"accel"}  reads one VC job board's company list (Getro) into fh_companies
 //   {"task":"ats","limit":20}      takes the next companies, looks for each one's public job board on Ashby,
 //                                  Greenhouse, Lever, Gem, Rippling or BambooHR, and writes its open roles into
 //                                  fh_postings. "systems":["gem","rippling"] tries only those; Workable is tried
 //                                  only when named there, a few companies a call (it allows few requests a minute)
 //   {"task":"tag","limit":200}     tags postings not yet tagged with this version of the skill vocabulary
+//   {"task":"refresh","limit":25}  re-reads the boards of the companies checked longest ago (none within 20 hours),
+//                                  writes the roles found and marks closed the open roles the board no longer lists
+//   {"task":"people"}              reads the contact each HN poster wrote in their own post into fh_people
+//   {"task":"hn-companies"}        links HN posts with no company to the company with their domain, or creates one
+//                                  (source 'hn') only for a domain that is the company's own name; then runs people.
+//                                  A repeat with nothing to link writes nothing, not even a run row
 // Only company lists come from the VC boards; the roles always come from the company's own board.
 // It writes with the project's secret key, which Supabase gives the function on its own servers.
 
@@ -12,6 +18,9 @@ import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import {
   type Ats, type AtsJob, boardUrl, DETAILS, parseGetroCompanies, PARSERS, pickSystems, slugCandidates, type VcCompany, withDetail,
 } from "./lib/parse.ts";
+import { runHnCompanies, runPeople } from "./hn.ts";
+import { settleLimited } from "./lib/pool.ts";
+import { labelled, listedCount, planRefresh, type StoredRole } from "./lib/refresh.ts";
 import { SKILLS_VERSION } from "../../../packages/core/src/skills.ts";
 import { tagsOf } from "../../../packages/core/src/tags.ts";
 
@@ -27,6 +36,12 @@ const DETAILS_AT_ONCE = 5;
 const DEFAULT_LIMIT = 20;
 const TAG_LIMIT_DEFAULT = 200;
 const TAG_LIMIT_MAX = 400;
+const REFRESH_LIMIT_DEFAULT = 25;
+/** fh_claim_refresh hands out at most 25 in any 2 minutes whatever is asked; this only bounds the request. */
+const REFRESH_LIMIT_MAX = 25;
+/** Boards re-read at once in one refresh call. */
+const REFRESH_AT_ONCE = 5;
+
 const GETRO_PAGES_MAX = 120;
 const CHUNK = 200;
 /** Getro collection ids of the VC boards, read from each board's own page on 2026-11-10. */
@@ -134,20 +149,82 @@ async function checkCompany(db: SupabaseClient, c: Claimed, systems: Ats[]): Pro
     throw new Error(`${limited.join(", ")} refused us for now (429); ${c.name} ${error ? `could not be handed back: ${error.message}` : "was handed back"}`);
   }
   if (!found) return 0;
+  const written = await writeRoles(db, c, found.ats, found.slug, found.jobs);
+  const { error } = await db.from("fh_companies")
+    .update({ ats: found.ats, ats_slug: found.slug, ats_jobs: written, is_hiring: true }).eq("id", c.id);
+  if (error) throw new Error(`fh_companies (${c.name}): ${error.message}`);
+  return written;
+}
+
+/** Upserts a board's roles for one company. A role found on its board is open, so closed_at is written null. Each
+ *  role is labelled (family, level) as it is written, so fh-roles has nothing to catch up on. Tag counts
+ *  (fh_tag_counts) are not recounted here: they follow when fh-roles next recounts, at most a day behind, which ranks
+ *  the same. */
+async function writeRoles(db: SupabaseClient, c: { id: number; name: string }, ats: Ats, slug: string, jobs: AtsJob[]): Promise<number> {
   const now = new Date().toISOString();
-  const rows = found.jobs.map((j) => ({
-    source: "ats", source_id: `${found.ats}:${found.slug}:${j.id}`, company_id: c.id, company_name: c.name,
-    title: j.title, location: j.location, text: j.text, url: j.url, posted_at: j.postedAt, updated_at: now,
-    tags: tagsOf(j.title, j.text), tags_version: SKILLS_VERSION,
+  const rows = jobs.map((j) => ({
+    source: "ats", source_id: `${ats}:${slug}:${j.id}`, company_id: c.id, company_name: c.name,
+    title: j.title, location: j.location, text: j.text, url: j.url, posted_at: j.postedAt, updated_at: now, closed_at: null,
+    tags: tagsOf(j.title, j.text), tags_version: SKILLS_VERSION, ...labelled(j.title),
   }));
   for (let i = 0; i < rows.length; i += CHUNK) {
     const { error } = await db.from("fh_postings").upsert(rows.slice(i, i + CHUNK), { onConflict: "source,source_id" });
     if (error) throw new Error(`fh_postings (${c.name}): ${error.message}`);
   }
-  const { error } = await db.from("fh_companies")
-    .update({ ats: found.ats, ats_slug: found.slug, ats_jobs: rows.length, is_hiring: true }).eq("id", c.id);
-  if (error) throw new Error(`fh_companies (${c.name}): ${error.message}`);
   return rows.length;
+}
+
+/** SHA-256 of a text's UTF-8 bytes, in hex: the same value fh_stored_roles computes in the database. */
+async function sha256Hex(text: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** Sets closed_at on these postings: now() to close them, null to re-open them. */
+async function setClosed(db: SupabaseClient, ids: number[], closedAt: string | null, name: string): Promise<void> {
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const { error } = await db.from("fh_postings").update({ closed_at: closedAt }).in("id", ids.slice(i, i + CHUNK));
+    if (error) throw new Error(`fh_postings (${name}, closed_at): ${error.message}`);
+  }
+}
+
+interface Due { id: number; name: string; ats: Ats; ats_slug: string }
+type Refreshed = { written: number; reopened: number; closed: number; skipped: string | null };
+
+/** Re-reads one company's board. A board that does not answer (timeout, 404, 5xx, 429) or answers oddly closes nothing;
+ *  so a board that 404s every day never closes its roles (a known gap, see lib/refresh.ts). Only new or changed roles
+ *  are written. */
+async function refreshCompany(db: SupabaseClient, c: Due): Promise<Refreshed> {
+  const board = await getBoard(c.ats, c.ats_slug);
+  if (board.raw === null) return { written: 0, reopened: 0, closed: 0, skipped: board.limited ? "429" : "no answer" };
+  const { data, error } = await db.rpc("fh_stored_roles", { p_company: c.id });
+  if (error) throw new Error(`fh_stored_roles (${c.name}): ${error.message}`);
+  type Row = { id: number; source_id: string; closed_at: string | null; title: string | null; posted_at: string | null; text_sha256: string | null };
+  const stored: StoredRole[] = ((data ?? []) as Row[]).map((r) => ({
+    id: r.id, sourceId: r.source_id, closedAt: r.closed_at, title: r.title, postedAt: r.posted_at, textSha256: r.text_sha256,
+  }));
+  const jobs = PARSERS[c.ats](board.raw, c.ats_slug);
+  const needsDetail = DETAILS[c.ats] !== undefined;
+  const hashes = new Map(needsDetail ? [] : await Promise.all(jobs.map(async (j) => [j.id, await sha256Hex(j.text)] as const)));
+  const plan = planRefresh({ ats: c.ats, slug: c.ats_slug, stored, jobs, listed: listedCount(c.ats, board.raw), needsDetail, hashes });
+  if (!plan.ok) return { written: 0, reopened: 0, closed: 0, skipped: plan.reason };
+  const written = await writeRoles(db, c, c.ats, c.ats_slug, await withText(c.ats, c.ats_slug, plan.upsert));
+  await setClosed(db, plan.reopen, null, c.name);
+  await setClosed(db, plan.close, new Date().toISOString(), c.name);
+  const { error: companyError } = await db.from("fh_companies").update({ ats_jobs: jobs.length, is_hiring: jobs.length > 0 }).eq("id", c.id);
+  if (companyError) throw new Error(`fh_companies (${c.name}): ${companyError.message}`);
+  return { written, reopened: plan.reopen.length, closed: plan.close.length, skipped: null };
+}
+
+async function runRefresh(db: SupabaseClient, limit: number) {
+  const { data, error } = await db.rpc("fh_claim_refresh", { n: limit });
+  if (error) throw new Error(`fh_claim_refresh: ${error.message}`);
+  const due = (data ?? []) as Due[];
+  const results = await settleLimited(due, REFRESH_AT_ONCE, (c) => refreshCompany(db, c));
+  const done = results.filter((r): r is PromiseFulfilledResult<Refreshed> => r.status === "fulfilled").map((r) => r.value);
+  const sum = (k: "written" | "reopened" | "closed") => done.reduce((a, r) => a + r[k], 0);
+  const errors = results.filter((r): r is PromiseRejectedResult => r.status === "rejected").map((r) => String(r.reason).slice(0, 200));
+  return { claimed: due.length, written: sum("written"), reopened: sum("reopened"), closed: sum("closed"), skipped: done.filter((r) => r.skipped).length, errors };
 }
 
 async function runAts(db: SupabaseClient, limit: number, systems: Ats[]) {
@@ -178,14 +255,15 @@ Deno.serve(async (req) => {
   if (!SUPABASE_URL || !SECRET_KEY) return json({ ok: false, error: "missing Supabase settings" }, 500);
   let body: { task?: unknown; board?: unknown; limit?: unknown; systems?: unknown };
   try { body = await req.json(); } catch { return json({ ok: false, error: "body must be JSON" }, 400); }
-  const task = body.task === "vc" || body.task === "ats" || body.task === "tag" ? body.task : null;
-  if (!task) return json({ ok: false, error: 'task must be "vc", "ats" or "tag"' }, 400);
+  const task = ["vc", "ats", "tag", "refresh", "people", "hn-companies"].includes(String(body.task)) ? String(body.task) : null;
+  if (!task) return json({ ok: false, error: 'task must be "vc", "ats", "tag", "refresh", "people" or "hn-companies"' }, 400);
 
   const db = createClient(SUPABASE_URL, SECRET_KEY, { auth: { persistSession: false } });
   const started = new Date();
   let out: Record<string, unknown> = {};
   let written = 0;
   let failure: string | null = null;
+  let idle = false; // a refresh that claimed nothing, or a people run with nothing new: no run row is written
   try {
     if (task === "vc") {
       written = await importVcBoard(db, String(body.board ?? ""));
@@ -195,6 +273,23 @@ Deno.serve(async (req) => {
       const r = await runTag(db, limit);
       written = r.tagged;
       out = r;
+    } else if (task === "refresh") {
+      const limit = Number.isInteger(body.limit) ? Math.min(Math.max(body.limit as number, 1), REFRESH_LIMIT_MAX) : REFRESH_LIMIT_DEFAULT;
+      const r = await runRefresh(db, limit);
+      written = r.written;
+      out = r;
+      idle = r.claimed === 0;
+      if (r.errors.length > 0) failure = r.errors.join(" | ").slice(0, 500);
+    } else if (task === "hn-companies") {
+      const r = await runHnCompanies(db);
+      written = r.linked + r.people.people;
+      out = r;
+      idle = r.linked === 0 && r.created === 0 && r.people.skipped;
+    } else if (task === "people") {
+      const r = await runPeople(db);
+      written = r.people;
+      out = r;
+      idle = r.skipped;
     } else {
       const limit = Number.isInteger(body.limit) ? Math.min(Math.max(body.limit as number, 1), 50) : DEFAULT_LIMIT;
       const r = await runAts(db, limit, pickSystems(body.systems));
@@ -207,7 +302,7 @@ Deno.serve(async (req) => {
   }
   const finished = new Date();
   const ok = failure === null;
-  const { error: runError } = await db.from("fh_runs").insert({
+  const { error: runError } = ok && idle ? { error: null } : await db.from("fh_runs").insert({
     source: task, started_at: started.toISOString(), finished_at: finished.toISOString(), ok, rows_written: written, error: failure,
   });
   const log = { task, ok, written, ...out, ms: finished.getTime() - started.getTime(), error: failure, bookkeeping: runError?.message ?? null };

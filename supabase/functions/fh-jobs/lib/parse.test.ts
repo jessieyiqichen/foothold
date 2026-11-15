@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   ATS_ORDER, boardUrl, clean, DETAILS, parseAshby, parseBamboo, parseBambooJob, parseGem, parseGetroCompanies, parseGreenhouse, parseLever, parseRippling, parseRipplingJob,
@@ -36,6 +36,7 @@ describe("plain", () => {
   it("unescapes Greenhouse's escaped HTML, keeps line breaks, drops tags", () => {
     expect(plain("&lt;p&gt;Hi &amp;amp; bye&lt;/p&gt;&lt;ul&gt;&lt;li&gt;2+ years&lt;/li&gt;&lt;/ul&gt;")).toBe("Hi & bye\n2+ years");
     expect(plain("a&nbsp;b &#8217;c&#x27;")).toBe("a b ’c'");
+    expect(plain("a\u00a0\u00a0b \t c")).toBe("a b c"); // a raw non-breaking space, as some boards send it
   });
 });
 
@@ -213,5 +214,20 @@ describe("withDetail", () => {
   });
   it("keeps what the job had when the detail is empty", () => {
     expect(withDetail(job, { text: null, postedAt: null })).toEqual(job);
+  });
+});
+
+describe("the deployed files", () => {
+  // A deploy made by pasting the source turned a literal non-breaking space in a pattern into a plain space, twice.
+  // Every file the Edge Function runs is kept ASCII, so a pasted deploy cannot change it; write \u escapes instead.
+  it("are ASCII only", () => {
+    const dir = new URL("../", import.meta.url);
+    const files = [...readdirSync(dir), ...readdirSync(new URL("lib/", dir)).map((f) => `lib/${f}`)]
+      .filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts"));
+    expect(files.length).toBeGreaterThan(5);
+    for (const f of files) {
+      const bad = [...readFileSync(new URL(f, dir), "utf8")].filter((c) => c.codePointAt(0)! > 127);
+      expect({ file: f, bad }).toEqual({ file: f, bad: [] });
+    }
   });
 });

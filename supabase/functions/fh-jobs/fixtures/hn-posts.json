@@ -1,0 +1,60 @@
+{
+ "note": "Eleven HN 'Who is hiring' posts in the shapes seen in the November 2026 thread (headers, introductions, written-out addresses), cut to the header and contact lines. Every id, person, company and domain is made up; the domains use the reserved .test top-level domain.",
+ "posts": [
+  {
+   "id": "p1",
+   "domain": "brightleaf.test",
+   "text": "Brightleaf Learning | Senior Frontend Engineer | Utrecht, The Netherlands | HYBRID | DUTCH REQUIRED\nE-mail jobs[at]brightleaf.test met (HN) + de functienaam in het onderwerp, samen met een korte introductie en een link naar je GitHub."
+  },
+  {
+   "id": "p2",
+   "domain": "tandemcare.test",
+   "text": "Tandemcare | Engineers, Designers, PMs | On-site in Stockholm, Sweden | Full time\nFeel free to reach out to me at olle.berg[at]tandemcare.test if you have any questions, but please don't send applications my way"
+  },
+  {
+   "id": "p3",
+   "domain": "scrapwise.test",
+   "text": "Scrapwise (Scrapwise Insights) | Software Engineer, new product line | REMOTE (US, East Coast hours) | Full-time | $125k-$155k + equity\nI'm Ravi, co-founder/CTO. Scrapwise builds data products for metal recyclers.\nQuestions: ravi[dot]patel[at]scrapwise[dot]test"
+  },
+  {
+   "id": "p4",
+   "domain": null,
+   "text": "Fernhill (YC W23) | Software Engineer | NYC | fernhill.test\nOr email me at dmitri [at] fernhill [dot] test"
+  },
+  {
+   "id": "p5",
+   "domain": null,
+   "text": "Location: REMOTE (anywhere) | 50% rev share\nhit me up if you're a video editor, or see a way to partner with me. email: kofi at quillmail dot test"
+  },
+  {
+   "id": "p6",
+   "domain": "riverbend.test",
+   "text": "Riverbend | Staff Engineers (Elixir) | NYC or REMOTE (US, Europe) | Full-Time | $200K-$250K + equity | https://jobs.ashbyhq.com/riverbend\nI'm Alex, founder and CEO of Riverbend. I also wrote the first line of code and still ship PRs."
+  },
+  {
+   "id": "p7",
+   "domain": "lumenfold.test",
+   "text": "Lumenfold | Software Engineer (L4) | San Francisco HYBRID (3 days/wk) or REMOTE (US) | Full-time\nI'm the CTO and I read every application myself. Happy to answer questions in this thread."
+  },
+  {
+   "id": "p8",
+   "domain": null,
+   "text": "Harborline | Engineering, Product & Data | REMOTE (US, Canada, Poland) | https://www.harborline.test/careers\nHi HN, I'm Nathan, CTO at Harborline. We're a Series D insurance company building technology for our own teams.\nQuestions: hiring@harborline.test"
+  },
+  {
+   "id": "p9",
+   "domain": "kestrelworks.test",
+   "text": "Kestrel Works | Dev Shop | Remote (US only) | Contract\nIf interested, reach out directly to me at lena [at] kestrelworks.test with your resume and a small blurb on why you think you'd be a good fit."
+  },
+  {
+   "id": "p10",
+   "domain": null,
+   "text": "Streamline | Multiple Positions | Amsterdam (NL) | Boulder, CO (US) | Remote possible | Full Time | https://streamline.test\nI'm marta on HN, been here for nearly two decades. Now I run the Video team at Streamline and I'm looking for a Staff Engineer.\nYou can email me directly at marta.k@streamline.test, happy to connect and tell you more."
+  },
+  {
+   "id": "p11",
+   "domain": "grokbox.test",
+   "text": "Grokbox | Software Engineer | REMOTE (Canada) | Part-time or Contract | $55 - $75/hr | https://grokbox.test\nI'm the founder of Grokbox, a SaaS that provides hands-on challenges for Linux engineers.\nPlease email jobs@grokbox.test with subject \"SRE AI Developer\"."
+  }
+ ]
+}

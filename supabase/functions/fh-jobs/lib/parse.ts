@@ -53,7 +53,7 @@ export function plain(html: string): string {
       return Number.isFinite(code) && code > 0 && code < 0x110000 ? String.fromCodePoint(code) : "";
     });
   return decode(decode(html).replace(/<(\/p|\/li|\/h[1-6]|br\s*\/?|\/div)>/gi, "\n").replace(/<[^>]+>/g, ""))
-    .replace(/[ \t ]+/g, " ").replace(/\s*\n\s*/g, "\n").trim();
+    .replace(/[ \t\u00a0]+/g, " ").replace(/\s*\n\s*/g, "\n").trim();
 }
 
 /** Characters Postgres refuses in JSON: the null character, and half of a surrogate pair (cutting a text at a fixed
