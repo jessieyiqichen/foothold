@@ -4,7 +4,7 @@
 // The level here is a stopgap until the Judge reads the posting's text: about half of all titles state no level.
 // Changing a rule: edit it, raise ROLES_VERSION, run the labelling worker. No Deno or Node imports.
 
-export const ROLES_VERSION = 1;
+export const ROLES_VERSION = 2;
 
 export const FAMILIES = [
   { id: "product", label: "Product" },
@@ -38,6 +38,11 @@ const whole = (pattern: string, flags = "i") => new RegExp(`(?<![A-Za-z0-9])(?:$
 /** First match wins, so the order is the rule: "Product Designer" is design before it can be product, "Product
  *  Marketing Manager" marketing, "Sales Engineer" sales, "Technical Sourcer - Engineering" people. */
 const FAMILY_RULES: [family: Family, re: RegExp][] = [
+  // Version 2 (2026-11-16): an engineer is engineering whatever team the title names ("Marketing Engineer", "Data
+  // Engineer, Marketing", "Engineering Manager, Accounting Products"), except the engineers who face customers,
+  // research or the law, who keep the kinds below. A title that names engineering only as a team ("People Partner,
+  // Engineering") has no engineer in it and is not caught here.
+  ["engineering", whole(String.raw`(?<!(?:sales|solutions?|value|support|implementation|research|analytics|legal|field|pre-?sales|customer success|onboarding|integrations?|partner solution)[ -])(?:engineers?|developers?)|engineering managers?|software engineering|(?:director|head|vp|vice president) of engineering`)],
   ["design", whole("designers?|head of design|product design|design lead|ux|ui/ux|creative director|art director")],
   ["legal", whole("counsel|attorney|lawyer|paralegal|legal")],
   ["data", whole("data scien\\w+|data analy\\w+|analytics|business analyst|business intelligence|bi analyst|quantitative analyst|statistician|decision scien\\w+")],
@@ -49,7 +54,7 @@ const FAMILY_RULES: [family: Family, re: RegExp][] = [
   ["product", whole("A?PM", "")],
   ["people", whole("recruit\\w+|sourcer|talent (?:acquisitions?|partner|operations|brand|sourc\\w+|manager|lead)|head of talent|people|human resources|hrbp|hr|compensation")],
   ["finance", whole("financ\\w+|accountants?|accounting|controller|fp&a|payable|receivable|tax|treasury|payroll|audit\\w*")],
-  ["engineering", whole("engineer\\w*|developers?|sdet|devops|sre|architect|member of technical staff|programmer|full[- ]?stack|backend|frontend")],
+  ["engineering", whole("engineer\\w*|developers?|sdet|devops|sre|architect|member of technical staff|programmer|full[- ]?stack|backend|frontend|qa|quality assurance")],
   ["operations", whole("operations|ops|bizops|chief of staff|program manager|project manager|strateg\\w+|supply chain|procurement|office manager")],
 ];
 
