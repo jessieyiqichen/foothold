@@ -1,5 +1,5 @@
 import type { Decision, PersonSource } from "./constants";
-import { MAX_INVESTORS_SHOWN } from "./constants";
+import { INVESTOR_NAMES, MAX_INVESTORS_SHOWN, STAGE_WORDS } from "./constants";
 import { ageLine } from "./age";
 
 /** What today's cards and the saved page say. Nudge's voice: short, warm; no full stops; errors without "!", each
@@ -86,8 +86,11 @@ export function sourceLine(source: PersonSource, seenAt: string, timeZone?: stri
   return `from ${SOURCE_WORDS[source]}, seen ${day}`;
 }
 
+const stageWords = (stage: string | null): string | null =>
+  stage === null ? null : Object.hasOwn(STAGE_WORDS, stage) ? STAGE_WORDS[stage] : stage;
+
 export function investorsLine(investors: readonly string[]): string {
-  const shown = investors.slice(0, MAX_INVESTORS_SHOWN);
+  const shown = investors.slice(0, MAX_INVESTORS_SHOWN).map((list) => (Object.hasOwn(INVESTOR_NAMES, list) ? INVESTOR_NAMES[list] : list));
   const more = investors.length - shown.length;
   const named = more > 0 ? `${shown.join(", ")} +${more} more` : shown.length > 1 ? `${shown.slice(0, -1).join(", ")} and ${shown[shown.length - 1]}` : shown[0];
   return `Backed by ${named}`;
@@ -108,9 +111,11 @@ export function doingLines({ stage, batch, teamSize, investors, lastPostedAt, re
   const posted = recentRoles && recentRoles > 0
     ? `${recentRoles} ${recentRoles === 1 ? "role" : "roles"} posted in the last 60 days${age ? `, the last ${age}` : ""}`
     : age ? `Last posted a role ${age}` : "";
+  // A VC board row (investors, no YC batch) holds the board's size band, 1 to 6, not a head count: left off
+  const headCount = investors.length > 0 && !batch ? null : teamSize;
   const lines = [
-    [stage, batch ? `YC ${batch}` : null].filter(Boolean).join(" · "),
-    teamSize ? `${teamSize} ${teamSize === 1 ? "person" : "people"}` : "",
+    [stageWords(stage), batch ? `YC ${batch}` : null].filter(Boolean).join(" · "),
+    headCount ? `${headCount} ${headCount === 1 ? "person" : "people"}` : "",
     investors.length > 0 ? investorsLine(investors) : "",
     posted,
   ].filter(Boolean);

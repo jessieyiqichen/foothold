@@ -50,6 +50,25 @@ describe("doingLines: how the company is doing", () => {
   it("cuts a long list of investors", () => {
     expect(investorsLine(["A", "B", "C", "D", "E"])).toBe("Backed by A, B, C +2 more");
   });
+
+  // A VC board row (Figma, 2026-11-17) read "ipo", "5 people" and "Backed by thrive": the board's stage code, its
+  // size band (1 to 6, not a head count) and the list's short name
+  it("reads a VC board row in plain words, without the size band", () => {
+    expect(doingLines({ stage: "ipo", batch: null, teamSize: 5, investors: ["thrive"], lastPostedAt: null, recentRoles: null }, NOW))
+      .toEqual(["Public company", "Backed by Thrive Capital"]);
+    expect(doingLines({ stage: "series_c_plus", batch: null, teamSize: 3, investors: ["8vc", "general-catalyst"], lastPostedAt: null, recentRoles: null }, NOW))
+      .toEqual(["Series C+", "Backed by 8VC and General Catalyst"]);
+  });
+
+  it("leaves out a stage that says nothing", () => {
+    for (const stage of ["other", "series_unknown", "undisclosed"]) {
+      expect(doingLines({ stage, batch: null, teamSize: null, investors: ["accel"], lastPostedAt: null, recentRoles: null }, NOW)).toEqual(["Backed by Accel"]);
+    }
+  });
+
+  it("names YC's stages", () => {
+    expect(doingLines({ stage: "Early", batch: "S24", teamSize: 4, investors: [], lastPostedAt: null, recentRoles: null }, NOW)).toEqual(["Early stage · YC S24", "4 people"]);
+  });
 });
 
 describe("roleTitle and personName: what a card says when the source gave no title or name", () => {
