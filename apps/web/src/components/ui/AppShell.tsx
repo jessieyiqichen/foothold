@@ -21,10 +21,10 @@ export function AppShell({ children, width = "narrow" }: { children: ReactNode; 
       <a href="#main" className="sr-only focus:not-sr-only focus:mt-2 focus:self-start focus:rounded-lg focus:bg-surface focus:p-2">
         Skip to content
       </a>
-      <header className="flex min-h-16 items-center gap-3 border-b-2 border-ink py-2 sm:gap-6">
+      <header className="flex min-h-16 shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b-2 border-ink py-2 sm:flex-nowrap sm:gap-6">
         <Link href={HOME_PATH} className="relative inline-flex min-h-10 shrink-0 -rotate-[1.2deg] items-center gap-2 border-2 border-ink bg-surface px-2 py-1 sm:pl-1 text-lg font-black tracking-[-0.03em] text-ink focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus">
           <Tape small className="-top-1.5 left-1/2 -translate-x-1/2 rotate-[4deg]" />
-          {/* Left out on a phone, so the wordmark, both keys and the account button fit on one line at 375px */}
+          {/* Left out on a phone, where the wordmark shares its row with the account button only */}
           <Shape shape="quarter" color="red" tile="mustard" size={26} className="hidden sm:block" />
           {WORDMARK}
         </Link>

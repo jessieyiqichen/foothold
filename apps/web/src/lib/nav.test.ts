@@ -11,19 +11,22 @@ describe("the signed-in shell", () => {
     expect(JSON.stringify(NAV_LINKS)).not.toMatch(/nudge/i);
   });
 
-  it("links to Today, Saved and Profile, Today first because it is the front door; all roles is not in it", () => {
-    expect(NAV_LINKS).toEqual([{ href: TODAY_PATH, label: "Today" }, { href: SAVED_PATH, label: "Saved" }, { href: PROFILE_PATH, label: "Profile" }]);
-    expect(NAV_LINKS.map((link) => link.href)).not.toContain(MATCHES_PATH);
+  it("links to Today, Saved, Roles and Profile, Today first because it is the front door", () => {
+    expect(NAV_LINKS).toEqual([
+      { href: TODAY_PATH, label: "Today" }, { href: SAVED_PATH, label: "Saved" },
+      { href: MATCHES_PATH, label: "Roles" }, { href: PROFILE_PATH, label: "Profile" },
+    ]);
     expect(NAV_LINKS[0].href).toBe(HOME_PATH);
   });
 });
 
 describe("isCurrentLink: which link is marked as the page you are on", () => {
-  const [today, saved, profile] = NAV_LINKS;
+  const [today, saved, roles, profile] = NAV_LINKS;
 
   it("marks the link of the page and of anything under it", () => {
     expect(isCurrentLink(today, "/today")).toBe(true);
     expect(isCurrentLink(saved, "/saved")).toBe(true);
+    expect(isCurrentLink(roles, "/matches")).toBe(true);
     expect(isCurrentLink(profile, "/profile")).toBe(true);
     expect(isCurrentLink(profile, "/profile/anything")).toBe(true);
   });
