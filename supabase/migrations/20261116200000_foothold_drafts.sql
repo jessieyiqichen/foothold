@@ -1,13 +1,14 @@
 -- fh_drafts: the Connector's draft message for one person and one company (user, 2026-11-16: the design in log.md).
--- One row per person and company; writing again replaces it. fh_draft_runs: one row per try, so a person's tries can
--- be capped per day (10 since the start of the UTC day), taken only through fh_take_draft_run below.
+-- One row per person and company; writing again replaces it. fh_draft_runs: one row per try, so tries can be capped per
+-- UTC day, per person and for everyone together, taken only through fh_take_draft_run below.
 --
 -- NOT APPLIED. Per-person data: goes to `reviewer`, then the lead applies it.
 --
 -- user_id is the Clerk user id, read from the signed-in person's token, as in fh_profiles and fh_decisions. Every
 -- read and write is made as the signed-in person (their token, the publishable key): the route POST /api/drafts takes
 -- a try and calls the model, and the person's own browser saves the draft. Row-level security applies throughout.
--- Both tables hang off the person's profile: "Delete my resume" deletes their drafts, which quote it, and their tries.
+-- "Delete my resume" deletes the person's drafts, which quote it (the foreign key on fh_drafts.user_id). It does not
+-- delete their tries: tries are not tied to the profile, so deleting and adding a resume again cannot reset the limit.
 -- The length limits and the daily limit repeat apps/web/src/lib/connector/constants.ts; change both together.
 
 create table public.fh_drafts (
@@ -65,13 +66,14 @@ revoke all on table public.fh_drafts from anon, authenticated, public, service_r
 grant select, insert, update, delete on table public.fh_drafts to authenticated;
 
 create table public.fh_draft_runs (
-  user_id text not null default (auth.jwt() ->> 'sub') references public.fh_profiles (user_id) on delete cascade,
+  user_id text not null default (auth.jwt() ->> 'sub'),
   company_id bigint not null references public.fh_companies (id) on delete cascade,
   at timestamptz not null default now()
 );
 
--- fh_take_draft_run counts a person's tries since the start of the UTC day on every request.
+-- fh_take_draft_run counts a person's tries, and everyone's, since the start of the UTC day on every request.
 create index fh_draft_runs_user_at_idx on public.fh_draft_runs (user_id, at);
+create index fh_draft_runs_at_idx on public.fh_draft_runs (at);
 
 alter table public.fh_draft_runs enable row level security;
 
@@ -84,24 +86,37 @@ create policy "Read own draft runs" on public.fh_draft_runs for select to authen
 revoke all on table public.fh_draft_runs from anon, authenticated, public, service_role;
 grant select on table public.fh_draft_runs to authenticated;
 
--- Takes one of today's tries for the signed-in person, or refuses. Race-safe: a transaction-scoped advisory lock on
--- the person serialises their concurrent calls, so 30 parallel requests take at most 10 tries (reviewer, 2026-11-16:
--- the count-then-insert in the route made 22 model calls). security definer, because the person may not insert into
--- fh_draft_runs themself; it only ever writes a row for the caller's own id, read from their token.
--- False when there is no signed-in person, or when today's 10 are used.
+-- Takes one of today's tries for the signed-in person, or refuses. Two limits, both counted since the start of the
+-- UTC day: c_per_person for one person, and c_everyone for all people together, because new Clerk accounts are free
+-- and the model's free quota is shared by everyone. Each count runs under a transaction-scoped advisory lock (first the
+-- person's, then a fixed one for everyone, always in that order), so concurrent calls are taken one at a time and
+-- cannot both pass a count that only one of them should. Not yet measured against the live database.
+-- security definer, because the person may not insert into fh_draft_runs themself; it only ever writes a row for the
+-- caller's own id, read from their token. It also deletes the caller's tries older than c_keep: no more is needed to
+-- count today's.
+-- False when there is no signed-in person, or when either limit is used.
 create function public.fh_take_draft_run(p_company bigint) returns boolean
 language plpgsql security definer set search_path = '' as $$
 declare
+  -- Tries per person per UTC day; apps/web/src/lib/connector/constants.ts says the same number on the page
+  c_per_person constant integer := 10;
+  -- Tries for everyone together per UTC day (lead's call, 2026-11-16), a ceiling on the shared model quota
+  c_everyone constant integer := 200;
+  -- How long a person's tries are kept
+  c_keep constant interval := interval '2 days';
   v_user text := (select auth.jwt()) ->> 'sub';
+  v_day timestamptz := date_trunc('day', now() at time zone 'utc') at time zone 'utc';
 begin
   if v_user is null or v_user = '' then
     return false;
   end if;
   perform pg_advisory_xact_lock(hashtextextended('fh_draft_runs:' || v_user, 0));
-  if (
-    select count(*) from public.fh_draft_runs r
-    where r.user_id = v_user and r.at >= date_trunc('day', now() at time zone 'utc') at time zone 'utc'
-  ) >= 10 then
+  delete from public.fh_draft_runs r where r.user_id = v_user and r.at < now() - c_keep;
+  if (select count(*) from public.fh_draft_runs r where r.user_id = v_user and r.at >= v_day) >= c_per_person then
+    return false;
+  end if;
+  perform pg_advisory_xact_lock(hashtextextended('fh_draft_runs:everyone', 0));
+  if (select count(*) from public.fh_draft_runs r where r.at >= v_day) >= c_everyone then
     return false;
   end if;
   insert into public.fh_draft_runs (user_id, company_id) values (v_user, p_company);
