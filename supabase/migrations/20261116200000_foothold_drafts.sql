@@ -65,9 +65,11 @@ create policy "Delete own drafts" on public.fh_drafts for delete to authenticate
 revoke all on table public.fh_drafts from anon, authenticated, public, service_role;
 grant select, insert, update, delete on table public.fh_drafts to authenticated;
 
+-- company_id is kept for reading the tries later, and set to null when its company goes: deleting a company must not
+-- free tries, and the counts never look at the company.
 create table public.fh_draft_runs (
   user_id text not null default (auth.jwt() ->> 'sub'),
-  company_id bigint not null references public.fh_companies (id) on delete cascade,
+  company_id bigint references public.fh_companies (id) on delete set null,
   at timestamptz not null default now()
 );
 
@@ -94,7 +96,8 @@ grant select on table public.fh_draft_runs to authenticated;
 -- security definer, because the person may not insert into fh_draft_runs themself; it only ever writes a row for the
 -- caller's own id, read from their token. It also deletes the caller's tries older than c_keep: no more is needed to
 -- count today's.
--- False when there is no signed-in person, or when either limit is used.
+-- False when there is no signed-in person, when they have no profile (a fresh account with no resume must not use up
+-- everyone's daily total; the route refuses them before this anyway), or when either limit is used.
 create function public.fh_take_draft_run(p_company bigint) returns boolean
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -108,6 +111,9 @@ declare
   v_day timestamptz := date_trunc('day', now() at time zone 'utc') at time zone 'utc';
 begin
   if v_user is null or v_user = '' then
+    return false;
+  end if;
+  if not exists (select 1 from public.fh_profiles p where p.user_id = v_user) then
     return false;
   end if;
   perform pg_advisory_xact_lock(hashtextextended('fh_draft_runs:' || v_user, 0));
