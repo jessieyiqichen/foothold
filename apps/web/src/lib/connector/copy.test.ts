@@ -19,6 +19,11 @@ describe("draft lines", () => {
     expect(DRAFT_COPY.limit).not.toMatch(/drafts written/);
   });
 
+  it("tells a model that could not be reached apart from a draft that failed its checks", () => {
+    expect(DRAFT_COPY.unavailable).toBe("I couldn't reach the writing model, try again later");
+    expect(DRAFT_COPY.unverified).toBe("The draft didn't hold up to checking, try again");
+  });
+
   it("says plainly that nothing is sent", () => {
     expect(DRAFT_COPY.neverSends).toBe("Foothold never sends anything for you");
   });

@@ -30,8 +30,8 @@ export const DRAFT_COPY = {
   keepEdits: "Keep my changes",
   noKey: "Drafts are switched off right now, try again later",
   busy: "The writing model is busy, try again in a minute",
-  unavailable: "The writing model didn't answer, try again in a minute",
-  unverified: "The draft quoted something I couldn't find in your resume or this company, so I didn't show it, try Write again",
+  unavailable: "I couldn't reach the writing model, try again later",
+  unverified: "The draft didn't hold up to checking, try again",
   badInput: "There isn't enough about this company to write from yet, try another card",
   failed: "The draft didn't come through, check your connection and try again",
 };
