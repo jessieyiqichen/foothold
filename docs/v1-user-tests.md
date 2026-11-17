@@ -6,6 +6,26 @@ The brief: give each person the core task, watch without helping, write down wha
 
 **Link:** https://foothold.vercel.app (each person signs up with their own email).
 
+## Results so far
+
+### Session on 2026-11-17
+
+Reported by Jessie right after the session, on https://foothold.vercel.app (the version deployed that afternoon: cards with the company in one sentence and five skills, drafts about one role).
+
+| | |
+|---|---|
+| Who, and how many | (to add) |
+| Device and browser | (to add) |
+| Real resume or made up | (to add) |
+
+| What was seen | Where in the flow |
+|---|---|
+| The card is too long | Today's cards |
+| All roles and the cards are not connected: a role found in All roles leads nowhere in Foothold | All roles → cards |
+| The flow as a whole does not feel smooth | Across Today, All roles and Saved |
+
+Their own words, and the answers to the three questions below: (to add)
+
 ## Before each session
 
 - Ask if you may take notes. Do not record anything they have not agreed to.
