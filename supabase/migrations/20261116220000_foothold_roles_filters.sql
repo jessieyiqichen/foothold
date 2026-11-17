@@ -15,17 +15,19 @@
 -- One place that turns what the page sends into what the queries use, so fh_roles and fh_roles_facets cannot read the
 -- same request two ways. It runs as the caller and reads only the caller's own profile row.
 --   families, levels: null = the caller's profile values (the page's default); an empty array = no filter; otherwise
---     those values, with ids that are not a known family or level dropped. A list of only unknown ids is therefore
---     no filter, not "nothing".
+--     those values, with ids that are not a known family or level dropped. A non-empty list in which no id survives
+--     matches nothing (it comes back as array['(none)'], which no posting carries): the page always sends ids, and a
+--     wrong id must not silently show everything.
 --   since: p_days null = any age (null); otherwise now() minus p_days kept inside 1..365.
---   query: matched against title or company name, case-insensitive. place: matched against the location text.
---     Both are trimmed, cut at 100 characters, and have \ % _ escaped, so what the person types is matched as
---     written and never as a pattern; empty = no filter. They come back as ILIKE patterns ('%...%').
+--   q_pattern: matched against title or company name, case-insensitive. place_pattern: matched against the location
+--     text. Both are trimmed of spaces, tabs and line breaks, cut at 100 characters, and have \ % _ escaped, so what
+--     the person types is matched as written and never as a pattern; empty = no filter. They come back as ILIKE
+--     patterns ('%...%'), used with escape '\'.
 --   remote: p_place 'remote' (any case) matches 'remote', 'anywhere' or 'distributed' in the location instead of
 --     the word itself. Location is free text with no region field, so this is a text match, not a region.
 create function public.fh_roles_filter(
   p_families text[], p_levels text[], p_days integer, p_query text, p_place text,
-  out families text[], out levels text[], out since timestamptz, out query text, out place text, out remote boolean
+  out families text[], out levels text[], out since timestamptz, out q_pattern text, out place_pattern text, out remote boolean
 )
 language plpgsql stable security invoker set search_path = '' as $$
 declare
@@ -34,6 +36,7 @@ declare
   v_profile_families text[];
   v_profile_levels text[];
   v_place text;
+  v_query text;
 begin
   select f.families, f.levels into v_profile_families, v_profile_levels
   from public.fh_profiles f
@@ -42,17 +45,23 @@ begin
     case when p_families is null then v_profile_families
          else array(select distinct x from unnest(p_families) as u(x) where x = any (v_known_families)) end,
     '{}');
+  if coalesce(cardinality(p_families), 0) > 0 and cardinality(families) = 0 then
+    families := array['(none)'];
+  end if;
   levels := coalesce(
     case when p_levels is null then v_profile_levels
          else array(select distinct x from unnest(p_levels) as u(x) where x = any (v_known_levels)) end,
     '{}');
+  if coalesce(cardinality(p_levels), 0) > 0 and cardinality(levels) = 0 then
+    levels := array['(none)'];
+  end if;
   since := case when p_days is null then null else now() - make_interval(days => least(greatest(p_days, 1), 365)) end;
-  query := nullif(left(btrim(coalesce(p_query, '')), 100), '');
-  query := '%' || replace(replace(replace(query, '\', '\\'), '%', '\%'), '_', '\_') || '%';
-  v_place := nullif(left(btrim(coalesce(p_place, '')), 100), '');
+  v_query := nullif(left(btrim(coalesce(p_query, ''), E' \t\r\n'), 100), '');
+  q_pattern := '%' || replace(replace(replace(v_query, '\', '\\'), '%', '\%'), '_', '\_') || '%';
+  v_place := nullif(left(btrim(coalesce(p_place, ''), E' \t\r\n'), 100), '');
   remote := lower(coalesce(v_place, '')) = 'remote';
-  place := case when remote then null
-                else '%' || replace(replace(replace(v_place, '\', '\\'), '%', '\%'), '_', '\_') || '%' end;
+  place_pattern := case when remote then null
+                        else '%' || replace(replace(replace(v_place, '\', '\\'), '%', '\%'), '_', '\_') || '%' end;
 end $$;
 revoke all on function public.fh_roles_filter(text[], text[], integer, text, text) from public, anon, authenticated, service_role;
 grant execute on function public.fh_roles_filter(text[], text[], integer, text, text) to authenticated;
@@ -93,7 +102,7 @@ begin
   if not found or coalesce(cardinality(v_tags), 0) = 0 then
     return;
   end if;
-  select r.families, r.levels, r.since, r.query, r.place, r.remote
+  select r.families, r.levels, r.since, r.q_pattern, r.place_pattern, r.remote
     into v_families, v_levels, v_since, v_query, v_place, v_remote
   from public.fh_roles_filter(p_families, p_levels, p_days, p_query, p_place) r;
   select count(*) into v_all from public.fh_postings;
@@ -119,8 +128,8 @@ begin
       and (v_since is null or p.posted_at >= v_since or (p.posted_at is null and p.source = 'hn'))
       and (cardinality(v_families) = 0 or p.family = any (v_families))
       and (cardinality(v_levels) = 0 or p.level = any (v_levels))
-      and (v_query is null or p.title ilike v_query or p.company_name ilike v_query)
-      and (v_place is null or p.location ilike v_place)
+      and (v_query is null or p.title ilike v_query escape '\' or p.company_name ilike v_query escape '\')
+      and (v_place is null or p.location ilike v_place escape '\')
       and (not v_remote or p.location ~* 'remote|anywhere|distributed')
   ),
   ranked as (
@@ -152,7 +161,8 @@ grant execute on function public.fh_roles(text[], text[], integer, text, text, t
 --   facet 'days',   value '7', '30', '60' or 'any': every filter applied except the age. An HN post with no date
 --     counts in every one, as fh_roles keeps it.
 -- An option with no role has no row (the page shows 0). Roles not yet labelled with a family or level are left out of
--- those two facets. One read of fh_postings: the matching open postings, filtered by query and place, are kept once
+-- those two facets. A role is counted once by its (company, title) pair, kept as two columns so no name can collide
+-- with a separator. One read of fh_postings: the matching open postings, filtered by query and place, are kept once
 -- with a flag for each of the three filters, and the counts are taken from that. No scores are computed.
 -- Same parameters and the same cleaning as fh_roles (fh_roles_filter). No profile, or no tags: no rows.
 create function public.fh_roles_facets(
@@ -178,13 +188,14 @@ begin
   if not found or coalesce(cardinality(v_tags), 0) = 0 then
     return;
   end if;
-  select r.families, r.levels, r.since, r.query, r.place, r.remote
+  select r.families, r.levels, r.since, r.q_pattern, r.place_pattern, r.remote
     into v_families, v_levels, v_since, v_query, v_place, v_remote
   from public.fh_roles_filter(p_families, p_levels, p_days, p_query, p_place) r;
 
   return query
   with base as materialized (
-    select coalesce(p.company_id::text, 'name:' || lower(p.company_name)) || '|' || coalesce(lower(btrim(p.title)), 'id:' || p.id::text) as k,
+    select coalesce(p.company_id::text, 'name:' || lower(p.company_name)) as ck,
+           coalesce(lower(btrim(p.title)), 'id:' || p.id::text) as tk,
            p.family, p.level, p.posted_at, p.source = 'hn' and p.posted_at is null as undated_hn,
            (cardinality(v_families) = 0 or p.family = any (v_families)) as fam_ok,
            (cardinality(v_levels) = 0 or p.level = any (v_levels)) as lvl_ok,
@@ -192,17 +203,17 @@ begin
     from public.fh_postings p
     where p.tags && v_tags
       and p.closed_at is null
-      and (v_query is null or p.title ilike v_query or p.company_name ilike v_query)
-      and (v_place is null or p.location ilike v_place)
+      and (v_query is null or p.title ilike v_query escape '\' or p.company_name ilike v_query escape '\')
+      and (v_place is null or p.location ilike v_place escape '\')
       and (not v_remote or p.location ~* 'remote|anywhere|distributed')
   )
-  select 'family'::text, b.family, count(distinct b.k)
+  select 'family'::text, b.family, count(distinct (b.ck, b.tk))
   from base b where b.lvl_ok and b.day_ok and b.family is not null group by b.family
   union all
-  select 'level'::text, b.level, count(distinct b.k)
+  select 'level'::text, b.level, count(distinct (b.ck, b.tk))
   from base b where b.fam_ok and b.day_ok and b.level is not null group by b.level
   union all
-  select 'days'::text, d.v, count(distinct b.k)
+  select 'days'::text, d.v, count(distinct (b.ck, b.tk))
   from (values ('7', 7), ('30', 30), ('60', 60), ('any', null)) as d(v, days)
   join base b on b.fam_ok and b.lvl_ok
     and (d.days is null or b.undated_hn or b.posted_at >= now() - make_interval(days => d.days))
