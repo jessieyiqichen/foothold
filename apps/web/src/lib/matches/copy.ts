@@ -8,25 +8,16 @@ const count = (n: number) => n.toLocaleString("en-US");
  *  (copy.test.ts). */
 export const MATCHES_COPY = {
   title: "All roles",
-  intro: "Roles at startups that fit your resume, each with the reason it is here",
   loading: "Finding your matches…",
   tryAgain: "Try again",
   loadFailed: "Your matches didn't load, check your connection and try again",
 
   noResume: "Add your resume first, your matches are found from it",
   toProfile: "Add your resume",
-  noFamilies: "These are ranked on skills alone, pick the kind of work you want to put it first",
-  pickFamilies: "Pick the kind of work",
   empty: "No roles match your profile yet, add skills or pick another kind of work on your profile",
-  emptyAtLevels: "No roles match at these levels, turn a level off to see more",
-  editProfile: "Edit your profile",
 
-  levelsLegend: "Level",
-  levelsNote: "Nothing picked shows every level · The level is read from the job title, and \"Level not in the title\" means the title doesn't say, not that the role is open to anyone",
-  savingLevels: "Updating…",
   why: "Why this is here",
   noShared: "It is the kind of work you picked",
-  olderLabel: "Include roles older than 60 days",
   newTab: "(opens in a new tab)",
   showingMore: "Loading more…",
   moreFailed: "More matches didn't load, check your connection and try again",

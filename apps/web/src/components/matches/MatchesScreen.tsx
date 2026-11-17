@@ -1,22 +1,22 @@
 "use client";
 
-import { useState } from "react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { EmptySheet } from "@/components/ui/EmptySheet";
 import { FlashNumber } from "@/components/ui/FlashNumber";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { FilterChips } from "@/components/roles/FilterChips";
+import { RolesToolbar } from "@/components/roles/RolesToolbar";
+import { useRoleFilters } from "@/components/roles/useRoleFilters";
+import { useRoles } from "@/components/roles/useRoles";
 import { useFirstVisitGate } from "@/components/start/useFirstVisitGate";
-import { START_PATH } from "@/lib/start/constants";
 import { useProfile } from "@/components/profile/useProfile";
-import { countLine, MATCHES_COPY, showMoreLabel } from "@/lib/matches/copy";
+import { MATCHES_COPY, showMoreLabel } from "@/lib/matches/copy";
 import { hasMore } from "@/lib/matches/remote";
-import { FRESH_DAYS } from "@/lib/matches/constants";
-import { ToggleChip } from "@/components/ui/ToggleChip";
-import { PROFILE_PATH } from "@/lib/profile/constants";
 import type { Profile } from "@/lib/profile/types";
-import { LevelFilter } from "./LevelFilter";
+import { SORTS, type Sort } from "@/lib/roles/constants";
+import { ROLES_COPY, rolesCount } from "@/lib/roles/copy";
+import { START_PATH } from "@/lib/start/constants";
 import { MatchRow } from "./MatchRow";
-import { useMatches } from "./useMatches";
 
 function Failed({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
@@ -27,55 +27,45 @@ function Failed({ message, onRetry }: { message: string; onRetry: () => void }) 
   );
 }
 
-/** The invitation to pick the kind of work, while none is picked. */
-function PickFamilies() {
+/** The count on the left, lit up when a filter changes it, and Sort on the right. */
+function ResultLine({ total, sort, onSort }: { total: number | null; sort: Sort; onSort: (sort: Sort) => void }) {
   return (
-    <div className="flex flex-col items-start gap-2">
-      <p className="text-ink">{MATCHES_COPY.noFamilies}</p>
-      <ButtonLink variant="secondary" href={PROFILE_PATH}>{MATCHES_COPY.pickFamilies}</ButtonLink>
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-ink pb-2">
+      <p id="roles-count" aria-live="polite" className="min-h-6 text-base font-extrabold tracking-[-0.01em] text-ink">
+        {total === null ? "" : <FlashNumber value={total} className="px-1">{rolesCount(total)}</FlashNumber>}
+      </p>
+      <label className="flex items-center gap-2 font-mono text-xs text-ink">
+        {ROLES_COPY.sort}
+        <select value={sort} onChange={(event) => onSort(event.target.value as Sort)}
+          className="min-h-9 border border-ink bg-surface px-2 font-sans text-sm text-ink focus-visible:outline-3 focus-visible:outline-focus">
+          {SORTS.map((value) => <option key={value} value={value}>{value === "fit" ? ROLES_COPY.fit : ROLES_COPY.newest}</option>)}
+        </select>
+      </label>
     </div>
   );
 }
 
-/** The list for a person with a resume: the invitation to pick a direction if none is picked, the level filter, the
- *  count, the rows, and Show more. While new rows are on their way the old ones stay, dimmed. */
-function Matches({ profile, filterLevels, withDb }: { profile: Profile } & Pick<ReturnType<typeof useProfile>, "filterLevels" | "withDb">) {
-  // Off by default: only roles first posted in the last 60 days (docs/architecture.md, freshness)
-  const [includeOld, setIncludeOld] = useState(false);
-  const { state, more, refreshing, retry, showMore } = useMatches(`${profile.updatedAt}|${includeOld}`, withDb, includeOld ? null : FRESH_DAYS);
+/** The roles for a person with a resume: the toolbar, the active filters, the count and sort, the rows and Show more.
+ *  Kind of work and level start from the profile; changing them here does not change it. While new rows are on their
+ *  way the old ones stay, dimmed, so nothing jumps. */
+function Roles({ profile, withDb }: { profile: Profile } & Pick<ReturnType<typeof useProfile>, "withDb">) {
+  const { filters, query, setFilters } = useRoleFilters();
+  const { state, facets, more, refreshing, retry, showMore } = useRoles(filters, `${query}|${profile.updatedAt}`, withDb);
   const ready = state.kind === "ready" ? state : null;
-
+  const controls = { filters, profile, facets, onChange: setFilters };
   return (
     <>
-      {profile.families.length === 0 && <PickFamilies />}
-      <div className="self-start">
-        <ToggleChip on={includeOld} onClick={() => setIncludeOld(!includeOld)}>{MATCHES_COPY.olderLabel}</ToggleChip>
-      </div>
-      {/* The count sits beside the levels where there is room. It keeps its place and height while rows load */}
-      <LevelFilter
-        levels={profile.levels}
-        onChange={filterLevels}
-        aside={
-          <p id="matches-count" aria-live="polite" className="min-h-6 text-base font-extrabold tracking-[-0.01em] text-ink">
-            {/* Lights up when a level filter changes the count; not on the first load */}
-            {ready ? <FlashNumber value={ready.page.total} className="px-1">{countLine(ready.page.matches.length, ready.page.total)}</FlashNumber> : ""}
-          </p>
-        }
-      />
-
+      <RolesToolbar {...controls} total={ready ? ready.page.total : null} />
+      <FilterChips {...controls} />
+      <ResultLine total={ready ? ready.page.total : null} sort={filters.sort} onSort={(sort) => setFilters({ ...filters, sort })} />
       {state.kind === "loading" && <p className="font-mono text-xs text-muted">{MATCHES_COPY.loading}</p>}
       {state.kind === "failed" && <Failed message={state.message} onRetry={retry} />}
       {ready && (
-        <section aria-labelledby="matches-count" aria-busy={refreshing} className={`flex flex-col gap-2 border-t-2 border-ink ${refreshing ? "opacity-60" : ""}`}>
+        <section aria-labelledby="roles-count" aria-busy={refreshing} className={`flex flex-col gap-2 ${refreshing ? "opacity-60" : ""}`}>
           {ready.page.matches.length === 0 && (
-            <EmptySheet shape="half" color="off" tile="red">
-              <p className="text-ink">{profile.levels.length > 0 ? MATCHES_COPY.emptyAtLevels : MATCHES_COPY.empty}</p>
-              {profile.levels.length === 0 && <ButtonLink variant="secondary" href={PROFILE_PATH}>{MATCHES_COPY.editProfile}</ButtonLink>}
-            </EmptySheet>
+            <EmptySheet shape="half" color="off" tile="red"><p className="text-ink">{MATCHES_COPY.empty}</p></EmptySheet>
           )}
-          <ul className="flex flex-col">
-            {ready.page.matches.map((match) => <MatchRow key={match.id} match={match} />)}
-          </ul>
+          <ul className="flex flex-col">{ready.page.matches.map((match) => <MatchRow key={match.id} match={match} />)}</ul>
           {hasMore({ asked: ready.asked, total: ready.page.total }) && (
             <div className="flex flex-col items-start gap-2 pt-2">
               {more === "failed" && <p role="alert" className="font-bold text-danger">{MATCHES_COPY.moreFailed}</p>}
@@ -90,15 +80,15 @@ function Matches({ profile, filterLevels, withDb }: { profile: Profile } & Pick<
   );
 }
 
-/** All roles (`/matches`): every role that fits, reached from today's done screen and the foot of Saved. Loading,
- *  couldn't load, or the list. Someone the first visit still has a question for is sent there (`/start`) instead. */
+/** All roles (`/matches`): every role that fits, with the filters in a toolbar. Someone the first visit still has a
+ *  question for is sent there (`/start`) instead. */
 export function MatchesScreen() {
-  const { state, userId, retry, filterLevels, withDb } = useProfile();
+  const { state, userId, retry, withDb } = useProfile();
   const firstVisit = useFirstVisitGate(state, userId);
 
   return (
-    <div className="flex w-full flex-col gap-5 lg:max-w-4xl">
-      <PageHeader title={MATCHES_COPY.title} intro={MATCHES_COPY.intro} back={null} />
+    <div className="flex w-full flex-col gap-4 lg:max-w-4xl">
+      <PageHeader title={MATCHES_COPY.title} back={null} />
       {(state.kind === "loading" || firstVisit) && <p className="font-mono text-xs text-muted">{MATCHES_COPY.loading}</p>}
       {state.kind === "failed" && <Failed message={state.message} onRetry={retry} />}
       {/* Not reached while the first visit sends anyone without a resume to /start; kept should that ever fail */}
@@ -108,7 +98,7 @@ export function MatchesScreen() {
           <ButtonLink href={START_PATH}>{MATCHES_COPY.toProfile}</ButtonLink>
         </EmptySheet>
       )}
-      {state.kind === "ready" && !firstVisit && state.profile && <Matches profile={state.profile} filterLevels={filterLevels} withDb={withDb} />}
+      {state.kind === "ready" && !firstVisit && state.profile && <Roles profile={state.profile} withDb={withDb} />}
     </div>
   );
 }
