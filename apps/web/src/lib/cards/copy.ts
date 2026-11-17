@@ -24,6 +24,8 @@ export const CARDS_COPY = {
   untitledRole: "Role from a Hacker News hiring post",
   unnamedPerson: "The person who posted this role",
   newTab: "(opens in a new tab)",
+  more: "More",
+  less: "Less",
 
   save: "Save",
   reachedOut: "I reached out",
@@ -121,3 +123,6 @@ export function doingLines({ stage, batch, teamSize, investors, lastPostedAt, re
   ].filter(Boolean);
   return lines.length > 0 ? lines : [CARDS_COPY.littleKnown];
 }
+
+/** The tile after a card's first few skills: "+7 more". */
+export const moreSkillsLine = (n: number): string => `+${n} more`;

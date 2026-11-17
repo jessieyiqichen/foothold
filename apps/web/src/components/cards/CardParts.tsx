@@ -6,6 +6,7 @@ import { CARDS_COPY, doingLines, personName, roleTitle, sourceLine } from "@/lib
 import type { CardPerson, CardRole, CompanyCard } from "@/lib/cards/types";
 import { levelLabel } from "@/lib/matches/copy";
 import { LEVEL_TILE_CLASS } from "@/lib/matches/tiles";
+import { SkillList } from "./Expandable";
 
 const LINK = "text-link underline underline-offset-4 hover:text-ink focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus";
 const SKILL = "bg-wash px-1.5 py-0.5 font-mono text-[11px] leading-4 text-ink";
@@ -35,9 +36,7 @@ export function WhyPart({ card, id }: { card: CompanyCard; id: string }) {
   return (
     <Part id={id} title={CARDS_COPY.why}>
       {card.shared.length === 0 ? <p className="font-mono text-xs text-ink">{CARDS_COPY.noShared}</p> : (
-        <ul aria-label={CARDS_COPY.why} className="flex flex-wrap gap-1.5">
-          {card.shared.map((skill) => <li key={skill} className={SKILL}>{skill}</li>)}
-        </ul>
+        <SkillList skills={card.shared} label={CARDS_COPY.why} itemClass={SKILL} />
       )}
     </Part>
   );

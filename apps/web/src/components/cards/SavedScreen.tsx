@@ -11,6 +11,7 @@ import { MATCHES_PATH } from "@/lib/matches/constants";
 import type { WithDb } from "@/components/auth/useSessionDb";
 import { ContactPart, RolesPart } from "./CardParts";
 import { DraftPanel } from "./DraftPanel";
+import { Blurb } from "./Expandable";
 import { UndoBar } from "./UndoBar";
 import { useSaved } from "./useSaved";
 
@@ -40,7 +41,7 @@ function SavedCardView({ card, busy, error, onReached, onRemove, withDb, userId 
         <h2 id={id("name")} className="text-xl font-black tracking-[-0.02em] break-words text-ink">{card.name}</h2>
         <span className={`px-1.5 py-0.5 font-mono text-[11px] leading-4 ${DECISION_TILE[card.decision]}`}>{DECISION_LABEL[card.decision]}</span>
       </div>
-      {card.oneLiner && <p className="text-[15px] text-ink">{card.oneLiner}</p>}
+      {card.oneLiner && <Blurb text={card.oneLiner} className="text-[15px] text-ink" />}
       <ContactPart card={card} id={id("contact")} />
       <RolesPart card={card} id={id("roles")} />
       <DraftPanel companyId={card.companyId} userId={userId} withDb={withDb} />

@@ -6,6 +6,7 @@ import type { CompanyCard } from "@/lib/cards/types";
 import type { WithDb } from "@/components/auth/useSessionDb";
 import { ContactPart, DoingPart, RolesPart, WhyPart } from "./CardParts";
 import { DraftPanel } from "./DraftPanel";
+import { Blurb } from "./Expandable";
 
 interface CompanyCardViewProps {
   card: CompanyCard;
@@ -25,7 +26,7 @@ export function CompanyCardView({ card, busy, error, onDecide, withDb, userId }:
     <article aria-labelledby="today-card" className="flex flex-col gap-4 border-2 border-ink bg-surface p-5 shadow-[6px_6px_0_var(--color-ink)] sm:p-7">
       <div className="flex flex-col gap-1.5">
         <ScreenHeading id="today-card" className="text-3xl leading-tight font-black tracking-[-0.03em] break-words text-ink">{card.name}</ScreenHeading>
-        {card.oneLiner && <p className="text-base text-ink">{card.oneLiner}</p>}
+        {card.oneLiner && <Blurb text={card.oneLiner} className="text-base text-ink" />}
       </div>
       <WhyPart card={card} id={id("why")} />
       <DoingPart card={card} id={id("doing")} />
