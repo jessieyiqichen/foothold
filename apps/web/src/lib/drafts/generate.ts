@@ -3,6 +3,7 @@
 // The person edits and sends it themselves; Foothold never sends anything.
 
 import { askGemini } from "./gemini";
+import { resumeForModel } from "./redact";
 import { checkDraft, type DraftText } from "./verify";
 
 /** Tried in order; the next is used when one is not available to this key. Named on 2026-11-16 from Gemini's docs. */
@@ -42,7 +43,8 @@ export const SYSTEM = [
  *  against the same cleaned text. */
 const clean = (text: string | null | undefined) => (text ?? "").replace(/[<>]/g, " ");
 const companyText = (c: DraftInput["company"]) => clean([c.oneLiner, c.description].filter(Boolean).join("\n")).slice(0, COMPANY_MAX);
-const resumeText = (input: DraftInput) => clean(input.resumeText).slice(0, RESUME_MAX);
+/** Only the experience goes to the model: no name line, no contact details (user, 2026-11-16). */
+const resumeText = (input: DraftInput) => clean(resumeForModel(input.resumeText.slice(0, RESUME_MAX))).slice(0, RESUME_MAX);
 
 /** Every field that came from outside (company name, the person, the role titles) sits inside a fence. */
 function prompt(input: DraftInput, problems: string[]): string {
@@ -84,7 +86,7 @@ async function withModel(input: DraftInput, deps: { apiKey: string; fetch?: type
 }
 
 export async function generateDraft(input: DraftInput, deps: { apiKey: string; fetch?: typeof fetch; models?: readonly string[] }): Promise<DraftResult> {
-  if (input.resumeText.trim().length === 0 || input.company.name.trim().length === 0) return { ok: false, reason: "bad_input" };
+  if (resumeText(input).trim().length === 0 || input.company.name.trim().length === 0) return { ok: false, reason: "bad_input" };
   if (!deps.apiKey) return { ok: false, reason: "unavailable" };
   for (const model of deps.models ?? DRAFT_MODELS) {
     const r = await withModel(input, deps, model);

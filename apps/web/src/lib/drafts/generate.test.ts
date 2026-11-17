@@ -82,4 +82,13 @@ describe("generateDraft", () => {
     const sent: string = JSON.parse(String((f.mock.calls[0] as unknown as [string, RequestInit])[1].body)).input;
     expect(sent.match(/[<>]/g)?.length).toBe(8);
   });
+  it("sends the resume without its name line or contact details", async () => {
+    const f = vi.fn(async () => reply(good));
+    await generateDraft({ ...input, resumeText: "Jessie Chen\njessie@example.com | +1 312 555 0199\n" + input.resumeText }, { apiKey: "k", fetch: f, models: ["m1"] });
+    const sent: string = JSON.parse(String((f.mock.calls[0] as unknown as [string, RequestInit])[1].body)).input;
+    expect(sent).not.toContain("Jessie Chen");
+    expect(sent).not.toContain("jessie@example.com");
+    expect(sent).not.toContain("555");
+    expect(sent).toContain("Shipped RAG evals for a lecture assistant");
+  });
 });
