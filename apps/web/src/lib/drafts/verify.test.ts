@@ -48,3 +48,33 @@ describe("checkDraft", () => {
     expect(wordCount("  one two\nthree ")).toBe(3);
   });
 });
+
+describe("checkDraft: what a hostile company text could make the model write (review, 2026-11-16)", () => {
+  const base = {
+    subject: "Voice agents and evals",
+    body: Array.from({ length: 90 }, (_, i) => `w${i}`).join(" "),
+    resumeQuote: "Shipped RAG evals for a lecture assistant",
+    companyQuote: "voice AI agents for Indian businesses",
+  };
+  const problems = (d: Partial<typeof base>) => checkDraft({ ...base, ...d }, { resume, company });
+  it("refuses a link or an address in the subject", () => {
+    expect(problems({ subject: "Re: https://acme-careers.co/verify" })).toContain("the subject must not contain an email address or a link");
+    expect(problems({ subject: "write ops@evil.example" })).toContain("the subject must not contain an email address or a link");
+  });
+  it("refuses bare domains and short links in the body", () => {
+    expect(problems({ body: `${base.body} confirm at acme-careers.co/verify` })).toContain("the body must not contain an email address or a link");
+    expect(problems({ body: `${base.body} or bit.ly/x9` })).toContain("the body must not contain an email address or a link");
+  });
+  it("refuses a phone number in the body", () => {
+    expect(problems({ body: `${base.body} call me at +1 (312) 555-0199` })).toContain("the body must not contain a phone number");
+    expect(problems({ body: `${base.body} 312.555.0199` })).toContain("the body must not contain a phone number");
+  });
+  it("keeps ordinary numbers and words with dots", () => {
+    expect(problems({ body: `${base.body} in 10 languages, 2027, Node.js and e.g. evals` })).toEqual([]);
+  });
+  it("caps the subject, the body and each quote in characters", () => {
+    expect(problems({ subject: "x".repeat(151) })).toContain("the subject is longer than 150 characters");
+    expect(problems({ body: `${base.body} ${"y".repeat(1600)}` })).toContain("the body is longer than 1500 characters");
+    expect(problems({ resumeQuote: "Shipped RAG evals for a lecture assistant".padEnd(301, "x") })).toContain("a quote is longer than 300 characters");
+  });
+});
