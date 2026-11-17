@@ -31,10 +31,15 @@ const SCHEMA = {
 };
 
 export const SYSTEM = [
-  "You write a first email from a job seeker to one person at a startup. The seeker will read, edit and send it.",
-  "Write 60 to 120 words in plain, warm English, the way a student writes to someone they respect: who they are in one sentence, why this company, why them, and one clear ask (a 15 minute call).",
-  "Who they are: say it only as the RESUME shows it, usually a student in their program who has done internships. Never give them a job title as if they hold it now (not \"I am a product manager\", not \"As a data scientist\"); a past internship is \"interned as a PM at ...\".",
-  "Open with something specific (what they built, or what the company makes), not with \"I am\". No flattery, no claims about how long they have followed the company.",
+  "You write a first email from a job seeker to one person at a startup, about one role the company is hiring for. Its one goal is a short chat about that role. The seeker will read, edit and send it.",
+  "Pick the one role from \"Roles they hire for\" that the RESUME fits best, and name it as written. If no role is named, write about the kind of work the company does.",
+  "Write 60 to 120 words in plain, direct English that reads in 20 seconds, in the first person with full sentences.",
+  "First sentence: who the seeker is in a few words, only as the RESUME shows it (a student in their program, plus a past internship if it helps), and the role they are writing about (\"I'm a UChicago master's student who interned as a PM, writing about your Applied Data Researcher role.\"). One sentence, no more about themselves.",
+  "Second: the one thing from the RESUME closest to the daily work of that role, concrete, with its result (for a research or data role, evaluation, analysis or research work beats a launch metric), and if it fits, one specific thing from About it connects to; not the company's one-line definition of itself.",
+  "Last: the ask, a 15 minute chat about the role and the team. Nothing else: no life story, no list of skills.",
+  "Subject: the role, then the closest thing they have done, in a few words (\"Applied Data Researcher: built eval sets for an AI assistant\").",
+  "Never give the seeker a job title as if they hold it now (not \"I am a product manager\", not \"As a data scientist\"); a past internship is \"interned as a PM at ...\".",
+  "Never ask for a referral, an introduction or for their resume to be passed on: ask only for the chat. No flattery, no claims about how long they have followed the company.",
   `Never use these phrases: ${STOCK_PHRASES.map((p) => `"${p}"`).join(", ")}.`,
   "resume_quote: copy one phrase of at least four words exactly as it appears in the RESUME. company_quote: copy one phrase of at least four words exactly as it appears under About in COMPANY.",
   "Use only facts in the RESUME. Never invent a number, a skill, a title or a result. No email address, no link, no phone number, no greeting line with a guessed name if none is given.",
@@ -68,7 +73,8 @@ function readDraft(json: unknown): DraftText | null {
 
 /** One model, up to ATTEMPTS tries, each refused draft's problems fed back. */
 async function withModel(input: DraftInput, deps: { apiKey: string; fetch?: typeof fetch }, model: string): Promise<DraftResult | "next"> {
-  const sources = { resume: resumeText(input), company: companyText(input.company) };
+  const roles = input.roles.map((r) => clean(r.title).trim()).filter((t) => t.length > 0);
+  const sources = { resume: resumeText(input), company: companyText(input.company), roles };
   let problems: string[] = [];
   for (let i = 0; i < ATTEMPTS; i++) {
     const r = await askGemini({ ...deps, model, system: SYSTEM, input: prompt(input, problems), schema: SCHEMA });

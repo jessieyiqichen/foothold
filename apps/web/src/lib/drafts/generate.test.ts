@@ -7,7 +7,8 @@ const input: DraftInput = {
   roles: [{ title: "Product Manager" }],
   person: { name: "Maitreya", role: "co-founder" },
 };
-const body = Array.from({ length: 80 }, (_, i) => `w${i}`).join(" ");
+// A draft names one of the roles (2026-11-17)
+const body = `Your Product Manager opening caught my eye. ${Array.from({ length: 80 }, (_, i) => `w${i}`).join(" ")}`;
 const good = { subject: "Voice agents", body, resume_quote: "Shipped RAG evals for a lecture assistant", company_quote: "voice AI agents for Indian businesses" };
 const reply = (json: unknown) => new Response(JSON.stringify({ output_text: JSON.stringify(json) }), { status: 200 });
 

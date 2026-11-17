@@ -45,6 +45,28 @@ export const STOCK_PHRASES = [
   "delve", "in today's", "metric-driven", "results-driven", "a unique blend",
 ] as const;
 
+/** A request for a referral: the user wants a first email to ask only for a chat (2026-11-17). */
+const REFERRAL = /\b(?:refer|referral|referrals|referring|referred)\b|\bpass(?:ing)? (?:my|this) (?:resume|cv|name|profile) (?:along|on)\b|\bpass along my\b/i;
+
+/** The ways a draft may name a role: the title without brackets ("(2027)"), or one part of a title joined by commas
+ *  or dashes ("AI Applied Scientist"), compared in normal form. */
+export function roleNames(title: string): string[] {
+  const plain = normal(title.replace(/\([^)]*\)|\[[^\]]*\]/g, " ")).replace(/[\s,;:-]+$/, "");
+  const parts = plain.split(/\s*(?:,|\s-\s|\|)\s*/).map((p) => p.trim()).filter((p) => p.length >= 8);
+  return [...new Set([plain, ...parts])].filter((p) => p.length >= 4);
+}
+
+/** The role and the ask: one role named, a chat and never a referral. */
+function askProblems(body: string, roles: readonly string[]): string[] {
+  const problems: string[] = [];
+  const text = normal(body);
+  if (roles.length > 0 && !roles.some((title) => roleNames(title).some((name) => text.includes(name)))) {
+    problems.push(`the body must name one of the roles they hire for: ${roles.map((r) => `"${r}"`).join("; ")}`);
+  }
+  if (REFERRAL.test(body)) problems.push("the body must not ask for a referral; ask only for a short chat");
+  return problems;
+}
+
 function voiceProblems(body: string): string[] {
   const problems: string[] = [];
   const claim = OWN_TITLE.exec(body);
@@ -55,7 +77,7 @@ function voiceProblems(body: string): string[] {
 }
 
 /** Every problem with a draft, in a fixed order; an empty list means it may be shown. */
-export function checkDraft(d: DraftText, sources: { resume: string; company: string }): string[] {
+export function checkDraft(d: DraftText, sources: { resume: string; company: string; roles?: readonly string[] }): string[] {
   const problems: string[] = [];
   if (d.subject.trim().length === 0) problems.push("the subject is empty");
   if (d.subject.length > CHARS.subject) problems.push(`the subject is longer than ${CHARS.subject} characters`);
@@ -67,7 +89,7 @@ export function checkDraft(d: DraftText, sources: { resume: string; company: str
   }
   if (ADDRESS_OR_LINK.test(d.body)) problems.push("the body must not contain an email address or a link");
   if (PHONE.test(d.body)) problems.push("the body must not contain a phone number");
-  problems.push(...voiceProblems(d.body));
+  problems.push(...askProblems(d.body, sources.roles ?? []), ...voiceProblems(d.body));
   if (d.resumeQuote.length > CHARS.quote || d.companyQuote.length > CHARS.quote) problems.push(`a quote is longer than ${CHARS.quote} characters`);
   if (!quotedIn(d.resumeQuote, sources.resume)) problems.push("the resume quote is not word for word in the resume");
   if (!quotedIn(d.companyQuote, sources.company)) problems.push("the company quote is not word for word in the company description");
