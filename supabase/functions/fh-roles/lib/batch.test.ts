@@ -73,6 +73,23 @@ describe("the matching migration", () => {
   });
 });
 
+// The roles filters migration repeats the same ids again, to drop ids a caller sends that are not known.
+describe("the roles filters migration", () => {
+  const sql = readFileSync(new URL("../../../migrations/20261116220000_foothold_roles_filters.sql", import.meta.url), "utf8");
+  const listAfter = (marker: string): string[] => {
+    const at = sql.indexOf(marker);
+    expect(at, marker).toBeGreaterThan(-1);
+    const rest = sql.slice(at + marker.length);
+    return [...rest.slice(0, rest.search(/[)\]]/)).matchAll(/'([a-z]+)'/g)].map((m) => m[1]);
+  };
+  it("knows exactly the family ids", () => {
+    expect(listAfter("v_known_families constant text[] := array[")).toEqual(FAMILIES.map((f) => f.id));
+  });
+  it("knows exactly the level ids", () => {
+    expect(listAfter("v_known_levels constant text[] := array[")).toEqual(LEVELS.map((l) => l.id));
+  });
+});
+
 describe("when a call recounts the tags", () => {
   it("only the call that labelled the last rows does", () => {
     expect(shouldRecount(120, 500, 120)).toBe(true);
