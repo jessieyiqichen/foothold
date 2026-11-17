@@ -3,19 +3,22 @@ import { Button } from "@/components/ui/Button";
 import { CARDS_COPY } from "@/lib/cards/copy";
 import type { Decision } from "@/lib/cards/constants";
 import type { CompanyCard } from "@/lib/cards/types";
+import type { WithDb } from "@/components/auth/useSessionDb";
 import { ContactPart, DoingPart, RolesPart, WhyPart } from "./CardParts";
+import { DraftPanel } from "./DraftPanel";
 
 interface CompanyCardViewProps {
   card: CompanyCard;
   busy: boolean;
   error: string | null;
   onDecide: (decision: Decision) => void;
+  withDb: WithDb;
 }
 
 /** One company card: one company, one person, one message (docs/architecture.md). A straight sheet with a hard
  *  shadow, read top to bottom, ending in the three decisions: Save is the one primary key. Its heading takes focus
  *  when it appears. */
-export function CompanyCardView({ card, busy, error, onDecide }: CompanyCardViewProps) {
+export function CompanyCardView({ card, busy, error, onDecide, withDb }: CompanyCardViewProps) {
   const id = (part: string) => `card-${card.companyId}-${part}`;
   return (
     <article aria-labelledby="today-card" className="flex flex-col gap-4 border-2 border-ink bg-surface p-5 shadow-[6px_6px_0_var(--color-ink)] sm:p-7">
@@ -27,8 +30,7 @@ export function CompanyCardView({ card, busy, error, onDecide }: CompanyCardView
       <DoingPart card={card} id={id("doing")} />
       <RolesPart card={card} id={id("roles")} />
       <ContactPart card={card} id={id("contact")} />
-      {/* The model that drafts the message is not connected yet; nothing is faked in its place */}
-      <p className="border-2 border-dashed border-hairline px-3 py-3 font-mono text-xs text-muted">{CARDS_COPY.draft}</p>
+      <DraftPanel companyId={card.companyId} withDb={withDb} />
       <div className="flex flex-col gap-2 border-t-2 border-ink pt-4">
         {error && <p role="alert" className="text-sm font-bold text-danger">{error}</p>}
         <div className="flex flex-wrap items-center gap-3">

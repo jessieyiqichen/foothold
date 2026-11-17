@@ -1,6 +1,7 @@
 /** What the draft says, on the card and from the route. Nudge's voice: short, no full stops; errors without "!",
  *  each with what to do next (copy.test.ts). The route never sends a raw error, only these lines. */
 export const DRAFT_COPY = {
+  heading: "A first message",
   write: "Write a draft",
   writing: "Writing a draft from your resume and this company…",
   subject: "Subject",

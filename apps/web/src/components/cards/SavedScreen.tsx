@@ -8,7 +8,9 @@ import { TODAY_PATH } from "@/lib/cards/constants";
 import { CARDS_COPY, DECISION_LABEL } from "@/lib/cards/copy";
 import type { SavedCard } from "@/lib/cards/types";
 import { MATCHES_PATH } from "@/lib/matches/constants";
+import type { WithDb } from "@/components/auth/useSessionDb";
 import { ContactPart, RolesPart } from "./CardParts";
+import { DraftPanel } from "./DraftPanel";
 import { UndoBar } from "./UndoBar";
 import { useSaved } from "./useSaved";
 
@@ -24,11 +26,12 @@ interface SavedCardProps {
   error: string | null;
   onReached: () => void;
   onRemove: () => void;
+  withDb: WithDb;
 }
 
 /** A compact card: the name, its decision, the line about the company, who to contact and the roles, then the
  *  changes. Straight and untilted: it is a list item. */
-function SavedCardView({ card, busy, error, onReached, onRemove }: SavedCardProps) {
+function SavedCardView({ card, busy, error, onReached, onRemove, withDb }: SavedCardProps) {
   const id = (part: string) => `saved-${card.companyId}-${part}`;
   return (
     <li className="flex flex-col gap-3 border-2 border-ink bg-surface p-4">
@@ -39,6 +42,7 @@ function SavedCardView({ card, busy, error, onReached, onRemove }: SavedCardProp
       {card.oneLiner && <p className="text-[15px] text-ink">{card.oneLiner}</p>}
       <ContactPart card={card} id={id("contact")} />
       <RolesPart card={card} id={id("roles")} />
+      <DraftPanel companyId={card.companyId} withDb={withDb} />
       {error && <p role="alert" className="text-sm font-bold text-danger">{error}</p>}
       <div className="flex flex-wrap items-center gap-3 border-t border-hairline pt-3">
         {card.decision === "saved" && <Button variant="secondary" onClick={onReached} disabled={busy} aria-label={`${CARDS_COPY.markReached}: ${card.name}`}>{CARDS_COPY.markReached}</Button>}
@@ -74,7 +78,7 @@ export function SavedScreen() {
           <ul className="flex flex-col gap-4">
             {state.cards.map((card) => (
               <SavedCardView key={card.companyId} card={card} busy={busy === card.companyId} error={error?.companyId === card.companyId ? error.message : null}
-                onReached={() => markReached(card)} onRemove={() => remove(card)} />
+                onReached={() => markReached(card)} onRemove={() => remove(card)} withDb={profile.withDb} />
             ))}
           </ul>
         )}

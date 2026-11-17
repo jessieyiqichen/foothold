@@ -21,7 +21,6 @@ export const CARDS_COPY = {
   website: "Their website",
   founders: "The founders are listed on Y Combinator",
   foundersNote: "Foothold links to this page and does not collect contacts from it",
-  draft: "A draft message will appear here",
   untitledRole: "Role from a Hacker News hiring post",
   unnamedPerson: "The person who posted this role",
   newTab: "(opens in a new tab)",

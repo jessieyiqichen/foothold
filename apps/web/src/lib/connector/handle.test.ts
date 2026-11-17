@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DAILY_DRAFT_LIMIT, DRAFT_RUNS_TABLE, DRAFTS_TABLE, RESUME_CAP } from "./constants";
 import { DRAFT_COPY } from "./copy";
 import { handleDraftRequest, parseCompanyId, utcDayStart, type HandleDeps } from "./handle";
-import type { DraftInput, DraftResult } from "./types";
+import type { DraftResult, Generate } from "./types";
 
 const USER = "user_2abc";
 const NOW = new Date("2026-11-16T15:00:00Z");
@@ -59,7 +59,7 @@ const ready: World = {
 
 function run(world: World, over: Partial<Omit<HandleDeps, "db" | "userId">> & { signedIn?: boolean } = {}) {
   const { db, writes, reads } = fakeDb(world);
-  const generate = vi.fn(async (_input: DraftInput): Promise<DraftResult> => ({ ok: true, draft: DRAFT }));
+  const generate = vi.fn<Generate>(async () => ({ ok: true, draft: DRAFT }));
   const deps: HandleDeps = { db, userId: USER, body: { company_id: 812 }, apiKey: "test-key", generate, now: NOW, ...over };
   return { promise: handleDraftRequest(over.signedIn === false ? null : deps, deps), writes, reads, generate: (over.generate ?? generate) as typeof generate };
 }

@@ -21,7 +21,7 @@ export function OutLink({ href, children, className = "" }: { href: string; chil
   );
 }
 
-function Part({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+export function Part({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
     <section aria-labelledby={id} className="flex flex-col gap-2 border-t border-hairline pt-4">
       <SectionHeading id={id} level="h3">{title}</SectionHeading>
