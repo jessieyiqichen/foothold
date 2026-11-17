@@ -4,7 +4,7 @@
 -- the same tag weights, open roles only, one row for the same title at the same company, and the HN exception for a
 -- missing posted_at.
 --
--- NOT APPLIED. The functions read the caller's own profile (fh_profiles, per-person data), so this goes to `reviewer`
+-- Applied 2026-11-16 by the lead after review; checked as the latest profile in a rolled-back block (same rows as fh_matches, facet sums equal totals, anon denied). The functions read the caller's own profile (fh_profiles, per-person data), reviewed by `reviewer`
 -- before the lead applies it. No table, policy or grant on a table changes.
 --
 -- The family and level ids repeat FAMILIES and LEVELS in packages/core/src/roles.ts (and the checks on fh_postings
