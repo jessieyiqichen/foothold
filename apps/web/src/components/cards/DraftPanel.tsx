@@ -9,12 +9,11 @@ import { draftText, isEdited } from "@/lib/connector/client";
 import { hasConsent, rememberConsent } from "@/lib/connector/consent";
 import { CONSENT_LINES, DRAFT_COPY } from "@/lib/connector/copy";
 import { canWrite, type Shown } from "@/lib/connector/draftView";
-import type { Draft } from "@/lib/connector/types";
 import { Part } from "./CardParts";
 import { useDraft } from "./useDraft";
 
 /** The draft on a card: "Write a draft" until there is one, then the subject and message to edit, Copy and Write
- *  again, and the two quoted lines it rests on. Write again asks first when the person has changed the draft, since a
+ *  again. The two lines it rests on are checked before it is shown, not shown again (user, 2026-11-17). Write again asks first when the person has changed the draft, since a
  *  new one replaces their changes; while it is written, and if it is refused, their text stays. A saved draft that
  *  couldn't load says so. Before a person's first draft, a dialog says what is sent to Google Gemini and asks them to
  *  agree; a line under the button always says it. Foothold never sends anything; the line under it says so. */
@@ -34,7 +33,7 @@ export function DraftPanel({ companyId, userId, withDb }: { companyId: number; u
   };
   return (
     <Part id={id} title={DRAFT_COPY.heading}>
-      {draft && shown && <DraftEditor draft={draft} shown={shown} onChange={edit} id={id} />}
+      {draft && shown && <DraftEditor shown={shown} onChange={edit} id={id} />}
       {loadFailed && <p role="alert" className="text-sm font-bold text-danger">{DRAFT_COPY.loadFailed}</p>}
       <p role="status" className="font-mono text-xs text-ink">{writing ? DRAFT_COPY.writing : ""}</p>
       {error && <p role="alert" className="text-sm font-bold text-danger">{error}</p>}
@@ -64,14 +63,13 @@ export function DraftPanel({ companyId, userId, withDb }: { companyId: number; u
 }
 
 interface DraftEditorProps {
-  draft: Draft;
   shown: Shown;
   onChange: (text: Shown) => void;
   id: string;
 }
 
-/** The draft as text the person edits and copies, with the two lines it rests on. Edits stay on the page. */
-function DraftEditor({ draft, shown, onChange, id }: DraftEditorProps) {
+/** The draft as text the person edits and copies. Edits stay on the page. */
+function DraftEditor({ shown, onChange, id }: DraftEditorProps) {
   const [copied, setCopied] = useState<string | null>(null);
 
   async function copy() {
@@ -96,22 +94,6 @@ function DraftEditor({ draft, shown, onChange, id }: DraftEditorProps) {
         <Button variant="secondary" onClick={copy}>{DRAFT_COPY.copy}</Button>
         <p role="status" className="font-mono text-xs text-ink">{copied ?? ""}</p>
       </div>
-      <div className="flex flex-col gap-2">
-        <p className="font-mono text-xs text-muted">{DRAFT_COPY.basedOn}</p>
-        <dl className="flex flex-col gap-2">
-          <Quote label={DRAFT_COPY.fromResume} text={draft.resumeQuote} />
-          <Quote label={DRAFT_COPY.fromCompany} text={draft.companyQuote} />
-        </dl>
-      </div>
-    </div>
-  );
-}
-
-function Quote({ label, text }: { label: string; text: string }) {
-  return (
-    <div className="flex flex-col gap-0.5 border-l-4 border-tile-mustard bg-surface py-1 pl-3">
-      <dt className="font-mono text-[11px] text-muted">{label}</dt>
-      <dd><q className="text-[15px] text-ink">{text}</q></dd>
     </div>
   );
 }
