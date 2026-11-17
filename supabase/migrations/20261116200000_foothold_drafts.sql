@@ -2,7 +2,7 @@
 -- One row per person and company; writing again replaces it. fh_draft_runs: one row per try, so tries can be capped per
 -- UTC day, per person and for everyone together, taken only through fh_take_draft_run below.
 --
--- NOT APPLIED. Per-person data: goes to `reviewer`, then the lead applies it.
+-- Applied 2026-11-16 by the lead after two reviews; checked with the reviewer's SQL (all as expected, test rows rolled back).
 --
 -- user_id is the Clerk user id, read from the signed-in person's token, as in fh_profiles and fh_decisions. Every
 -- read and write is made as the signed-in person (their token, the publishable key): the route POST /api/drafts takes
