@@ -17,6 +17,8 @@ describe("draft lines", () => {
   it("states the daily limit from the constant, as tries", () => {
     expect(DRAFT_COPY.limit).toContain(`${DAILY_DRAFT_LIMIT} tries`);
     expect(DRAFT_COPY.limit).not.toMatch(/drafts written/);
+    expect(DRAFT_COPY.limit).toContain("midnight UTC");
+    expect(DRAFT_COPY.limit).not.toContain("tomorrow");
   });
 
   it("tells a model that could not be reached apart from a draft that failed its checks", () => {

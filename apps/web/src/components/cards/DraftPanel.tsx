@@ -7,33 +7,31 @@ import { Field, TextArea, TextInput } from "@/components/ui/Field";
 import { PaperDialog } from "@/components/ui/PaperDialog";
 import { draftText, isEdited } from "@/lib/connector/client";
 import { DRAFT_COPY } from "@/lib/connector/copy";
+import type { Shown } from "@/lib/connector/draftView";
 import type { Draft } from "@/lib/connector/types";
 import { Part } from "./CardParts";
 import { useDraft } from "./useDraft";
 
-type Shown = { subject: string; body: string };
-
 /** The draft on a card: "Write a draft" until there is one, then the subject and message to edit, Copy and Write
  *  again, and the two quoted lines it rests on. Write again asks first when the person has changed the draft, since a
- *  new one replaces their changes. Foothold never sends anything; the line under it says so. */
+ *  new one replaces their changes; while it is written, and if it is refused, their text stays. A saved draft that
+ *  couldn't load says so. Foothold never sends anything; the line under it says so. */
 export function DraftPanel({ companyId, withDb }: { companyId: number; withDb: WithDb }) {
-  const { state, error, unsaved, write } = useDraft(companyId, withDb);
+  const { view, write, edit } = useDraft(companyId, withDb);
+  const { draft, shown, writing, error, unsaved, loaded, loadFailed } = view;
   const id = `draft-${companyId}`;
-  const draft = state.kind === "ready" ? state.draft : null;
-  // What the fields hold, starting again from each new draft (adjusted while rendering, as React recommends)
-  const [shown, setShown] = useState<{ from: Draft | null; text: Shown | null }>({ from: null, text: null });
-  if (shown.from !== draft) setShown({ from: draft, text: draft && { subject: draft.subject, body: draft.body } });
   const [asking, setAsking] = useState(false);
 
-  const again = () => (draft && shown.text && isEdited(draft, shown.text) ? setAsking(true) : void write());
+  const again = () => (draft && shown && isEdited(draft, shown) ? setAsking(true) : void write());
   return (
     <Part id={id} title={DRAFT_COPY.heading}>
-      {draft && shown.text && <DraftEditor draft={draft} shown={shown.text} onChange={(text) => setShown({ from: draft, text })} id={id} />}
-      <p role="status" className="font-mono text-xs text-ink">{state.kind === "writing" ? DRAFT_COPY.writing : ""}</p>
+      {draft && shown && <DraftEditor draft={draft} shown={shown} onChange={edit} id={id} />}
+      {loadFailed && <p role="alert" className="text-sm font-bold text-danger">{DRAFT_COPY.loadFailed}</p>}
+      <p role="status" className="font-mono text-xs text-ink">{writing ? DRAFT_COPY.writing : ""}</p>
       {error && <p role="alert" className="text-sm font-bold text-danger">{error}</p>}
       {unsaved && draft && <p role="alert" className="text-sm font-bold text-danger">{DRAFT_COPY.notKept}</p>}
-      {state.kind !== "loading" && (
-        <Button variant={draft ? "ghost" : "secondary"} className="self-start" onClick={again} disabled={state.kind === "writing"}>
+      {loaded && (
+        <Button variant={draft ? "ghost" : "secondary"} className="self-start" onClick={again} disabled={writing}>
           {draft ? DRAFT_COPY.again : DRAFT_COPY.write}
         </Button>
       )}

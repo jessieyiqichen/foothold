@@ -41,16 +41,19 @@ export async function requestDraft(companyId: number, fetcher: typeof fetch = fe
   }
 }
 
-/** The person's saved draft for a company, or null. A failed read is logged and reads as no draft, so the card still
- *  offers to write one. */
-export async function loadSavedDraft(db: DraftsDb, companyId: number): Promise<Draft | null> {
+/** The person's saved draft for a company, or null when there is none. A failed read is logged and comes back as a
+ *  line, so the card says it couldn't load rather than presenting it as no draft. */
+export async function loadSavedDraft(db: DraftsDb, companyId: number): Promise<Result<Draft | null>> {
   try {
     const { data, error } = await db.from(DRAFTS_TABLE).select(DRAFT_COLUMNS).eq("company_id", companyId).maybeSingle();
     if (error) throw new Error(error.message);
-    return data === null ? null : rowToDraft(data);
+    if (data === null) return ok(null);
+    const draft = rowToDraft(data);
+    if (!draft) throw new Error("the saved row is not in the shape the page knows");
+    return ok(draft);
   } catch (cause) {
     console.error(`Foothold drafts: could not load the saved draft: ${cause instanceof Error ? cause.message : String(cause)}`);
-    return null;
+    return fail(DRAFT_COPY.loadFailed);
   }
 }
 

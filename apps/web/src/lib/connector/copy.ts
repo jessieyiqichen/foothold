@@ -21,9 +21,10 @@ export const DRAFT_COPY = {
   badCompany: "That company couldn't be found, reload the page and try again",
   noResume: "Add your resume first, the draft is written from it",
   readFailed: "Your profile or this company didn't load, try again in a moment",
-  limit: `You've used today's ${DAILY_DRAFT_LIMIT} tries, you can try again tomorrow`,
+  limit: `No draft tries left today, you get ${DAILY_DRAFT_LIMIT} tries a day and Foothold has a shared daily total, both reset at midnight UTC`,
   notJson: "That request wasn't sent as JSON, reload the page and try again",
   notKept: "This draft isn't saved, copy it before you leave this page",
+  loadFailed: "Your saved draft couldn't load, reload the page to see it",
   replaceTitle: "Write a new draft?",
   replaceBody: "Your changes to this draft will be replaced",
   replace: "Write again",
@@ -37,6 +38,6 @@ export const DRAFT_COPY = {
 };
 
 export const DRAFT_ERRORS = [
-  DRAFT_COPY.copyFailed, DRAFT_COPY.notKept, DRAFT_COPY.notJson, DRAFT_COPY.signedOut, DRAFT_COPY.badCompany, DRAFT_COPY.noResume, DRAFT_COPY.readFailed, DRAFT_COPY.limit,
+  DRAFT_COPY.copyFailed, DRAFT_COPY.notKept, DRAFT_COPY.loadFailed, DRAFT_COPY.notJson, DRAFT_COPY.signedOut, DRAFT_COPY.badCompany, DRAFT_COPY.noResume, DRAFT_COPY.readFailed, DRAFT_COPY.limit,
   DRAFT_COPY.noKey, DRAFT_COPY.busy, DRAFT_COPY.unavailable, DRAFT_COPY.unverified, DRAFT_COPY.badInput, DRAFT_COPY.failed,
 ];

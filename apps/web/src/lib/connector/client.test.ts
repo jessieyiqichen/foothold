@@ -46,13 +46,18 @@ describe("rowToDraft and loadSavedDraft: a saved draft loads with the card", () 
   it("asks for the person's draft for one company", async () => {
     const calls: unknown[] = [];
     const db = { from: (table: string) => ({ select: (columns: string) => ({ eq: (column: string, value: unknown) => ({ maybeSingle: async () => { calls.push([table, columns, column, value]); return { data: ROW, error: null }; } }) }) }) };
-    expect(await loadSavedDraft(db as unknown as DraftsDb, 812)).toEqual(DRAFT);
+    expect(await loadSavedDraft(db as unknown as DraftsDb, 812)).toEqual({ ok: true, value: DRAFT });
     expect(calls).toEqual([[DRAFTS_TABLE, "subject, body, resume_quote, company_quote, model", "company_id", 812]]);
   });
 
-  it("is no draft, logged, when the read fails: the card still offers to write one", async () => {
+  it("is no draft when there is none", async () => {
+    const db = { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }) };
+    expect(await loadSavedDraft(db as unknown as DraftsDb, 812)).toEqual({ ok: true, value: null });
+  });
+
+  it("says it couldn't load, logged, when the read fails, rather than calling it no draft", async () => {
     const db = { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: { message: "relation does not exist" } }) }) }) }) };
-    expect(await loadSavedDraft(db as unknown as DraftsDb, 812)).toBeNull();
+    expect(await loadSavedDraft(db as unknown as DraftsDb, 812)).toEqual({ ok: false, message: DRAFT_COPY.loadFailed });
     expect(logged).toHaveBeenCalledOnce();
   });
 });
