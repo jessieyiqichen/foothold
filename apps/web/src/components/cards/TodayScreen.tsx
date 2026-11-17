@@ -40,7 +40,7 @@ export function TodayScreen() {
         <>
           <p className="font-mono text-xs text-ink tabular-nums">{cardLine(cardPosition(state.decided.length))}</p>
           <div key={current.companyId}>
-            <CompanyCardView card={current} busy={busy} error={error} onDecide={choose} withDb={profile.withDb} />
+            <CompanyCardView card={current} busy={busy} error={error} onDecide={choose} withDb={profile.withDb} userId={profile.userId} />
           </div>
         </>
       ) : (

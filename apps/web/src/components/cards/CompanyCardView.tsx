@@ -13,12 +13,13 @@ interface CompanyCardViewProps {
   error: string | null;
   onDecide: (decision: Decision) => void;
   withDb: WithDb;
+  userId: string | null;
 }
 
 /** One company card: one company, one person, one message (docs/architecture.md). A straight sheet with a hard
  *  shadow, read top to bottom, ending in the three decisions: Save is the one primary key. Its heading takes focus
  *  when it appears. */
-export function CompanyCardView({ card, busy, error, onDecide, withDb }: CompanyCardViewProps) {
+export function CompanyCardView({ card, busy, error, onDecide, withDb, userId }: CompanyCardViewProps) {
   const id = (part: string) => `card-${card.companyId}-${part}`;
   return (
     <article aria-labelledby="today-card" className="flex flex-col gap-4 border-2 border-ink bg-surface p-5 shadow-[6px_6px_0_var(--color-ink)] sm:p-7">
@@ -30,7 +31,7 @@ export function CompanyCardView({ card, busy, error, onDecide, withDb }: Company
       <DoingPart card={card} id={id("doing")} />
       <RolesPart card={card} id={id("roles")} />
       <ContactPart card={card} id={id("contact")} />
-      <DraftPanel companyId={card.companyId} withDb={withDb} />
+      <DraftPanel companyId={card.companyId} userId={userId} withDb={withDb} />
       <div className="flex flex-col gap-2 border-t-2 border-ink pt-4">
         {error && <p role="alert" className="text-sm font-bold text-danger">{error}</p>}
         <div className="flex flex-wrap items-center gap-3">

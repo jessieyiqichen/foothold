@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/Button";
 import { Field, TextArea, TextInput } from "@/components/ui/Field";
 import { PaperDialog } from "@/components/ui/PaperDialog";
 import { draftText, isEdited } from "@/lib/connector/client";
-import { DRAFT_COPY } from "@/lib/connector/copy";
+import { hasConsent, rememberConsent } from "@/lib/connector/consent";
+import { CONSENT_LINES, DRAFT_COPY } from "@/lib/connector/copy";
 import { canWrite, type Shown } from "@/lib/connector/draftView";
 import type { Draft } from "@/lib/connector/types";
 import { Part } from "./CardParts";
@@ -15,14 +16,22 @@ import { useDraft } from "./useDraft";
 /** The draft on a card: "Write a draft" until there is one, then the subject and message to edit, Copy and Write
  *  again, and the two quoted lines it rests on. Write again asks first when the person has changed the draft, since a
  *  new one replaces their changes; while it is written, and if it is refused, their text stays. A saved draft that
- *  couldn't load says so. Foothold never sends anything; the line under it says so. */
-export function DraftPanel({ companyId, withDb }: { companyId: number; withDb: WithDb }) {
+ *  couldn't load says so. Before a person's first draft, a dialog says what is sent to Google Gemini and asks them to
+ *  agree; a line under the button always says it. Foothold never sends anything; the line under it says so. */
+export function DraftPanel({ companyId, userId, withDb }: { companyId: number; userId: string | null; withDb: WithDb }) {
   const { view, write, edit } = useDraft(companyId, withDb);
   const { draft, shown, writing, error, unsaved, loaded, loadFailed } = view;
   const id = `draft-${companyId}`;
-  const [asking, setAsking] = useState(false);
+  const [asking, setAsking] = useState<"replace" | "consent" | null>(null);
 
-  const again = () => (draft && shown && isEdited(draft, shown) ? setAsking(true) : void write());
+  // Asked at the moment of the click: the agreement lives in this browser's storage, read only here
+  const start = () => (hasConsent(userId) ? void write() : setAsking("consent"));
+  const again = () => (draft && shown && isEdited(draft, shown) ? setAsking("replace") : start());
+  const agree = () => {
+    rememberConsent(userId);
+    setAsking(null);
+    void write();
+  };
   return (
     <Part id={id} title={DRAFT_COPY.heading}>
       {draft && shown && <DraftEditor draft={draft} shown={shown} onChange={edit} id={id} />}
@@ -35,11 +44,19 @@ export function DraftPanel({ companyId, withDb }: { companyId: number; withDb: W
           {draft ? DRAFT_COPY.again : DRAFT_COPY.write}
         </Button>
       )}
+      <p className="font-mono text-[11px] leading-4 text-muted">{DRAFT_COPY.sendsLine}</p>
       <p className="font-mono text-[11px] leading-4 text-muted">{DRAFT_COPY.neverSends}</p>
-      <PaperDialog open={asking} title={DRAFT_COPY.replaceTitle} closeLabel={DRAFT_COPY.keepEdits} onClose={() => setAsking(false)}>
+      <PaperDialog open={asking === "replace"} title={DRAFT_COPY.replaceTitle} closeLabel={DRAFT_COPY.keepEdits} onClose={() => setAsking(null)}>
         <div className="flex flex-col items-start gap-4">
           <p>{DRAFT_COPY.replaceBody}</p>
-          <Button onClick={() => { setAsking(false); void write(); }}>{DRAFT_COPY.replace}</Button>
+          <Button onClick={() => { setAsking(null); start(); }}>{DRAFT_COPY.replace}</Button>
+        </div>
+      </PaperDialog>
+      {/* Escape and the close key are "Not now": nothing is sent, nothing is kept */}
+      <PaperDialog open={asking === "consent"} title={DRAFT_COPY.consentTitle} closeLabel={DRAFT_COPY.notNow} onClose={() => setAsking(null)}>
+        <div className="flex flex-col items-start gap-4">
+          <ul className="flex flex-col gap-2">{CONSENT_LINES.map((line) => <li key={line}>{line}</li>)}</ul>
+          <Button onClick={agree}>{DRAFT_COPY.agree}</Button>
         </div>
       </PaperDialog>
     </Part>

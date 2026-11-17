@@ -27,11 +27,12 @@ interface SavedCardProps {
   onReached: () => void;
   onRemove: () => void;
   withDb: WithDb;
+  userId: string | null;
 }
 
 /** A compact card: the name, its decision, the line about the company, who to contact and the roles, then the
  *  changes. Straight and untilted: it is a list item. */
-function SavedCardView({ card, busy, error, onReached, onRemove, withDb }: SavedCardProps) {
+function SavedCardView({ card, busy, error, onReached, onRemove, withDb, userId }: SavedCardProps) {
   const id = (part: string) => `saved-${card.companyId}-${part}`;
   return (
     <li className="flex flex-col gap-3 border-2 border-ink bg-surface p-4">
@@ -42,7 +43,7 @@ function SavedCardView({ card, busy, error, onReached, onRemove, withDb }: Saved
       {card.oneLiner && <p className="text-[15px] text-ink">{card.oneLiner}</p>}
       <ContactPart card={card} id={id("contact")} />
       <RolesPart card={card} id={id("roles")} />
-      <DraftPanel companyId={card.companyId} withDb={withDb} />
+      <DraftPanel companyId={card.companyId} userId={userId} withDb={withDb} />
       {error && <p role="alert" className="text-sm font-bold text-danger">{error}</p>}
       <div className="flex flex-wrap items-center gap-3 border-t border-hairline pt-3">
         {card.decision === "saved" && <Button variant="secondary" onClick={onReached} disabled={busy} aria-label={`${CARDS_COPY.markReached}: ${card.name}`}>{CARDS_COPY.markReached}</Button>}
@@ -78,7 +79,7 @@ export function SavedScreen() {
           <ul className="flex flex-col gap-4">
             {state.cards.map((card) => (
               <SavedCardView key={card.companyId} card={card} busy={busy === card.companyId} error={error?.companyId === card.companyId ? error.message : null}
-                onReached={() => markReached(card)} onRemove={() => remove(card)} withDb={profile.withDb} />
+                onReached={() => markReached(card)} onRemove={() => remove(card)} withDb={profile.withDb} userId={profile.userId} />
             ))}
           </ul>
         )}
