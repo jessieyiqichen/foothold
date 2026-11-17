@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   activeChips, applyChange, clearAll, DEFAULT_FILTERS, effectiveFamilies, effectiveLevels, filtersToQuery, isFiltering,
-  parseFilters, rolesArgs, facetsArgs, triggerLabel, type RoleFilters,
+  parseFilters, rolesArgs, facetsArgs, triggerLabel, postedTrigger, placeTrigger, narrowingCount, type RoleFilters,
 } from "./filters";
 
 const PROFILE = { families: ["product", "research"] as const, levels: ["intern", "entry"] as const };
@@ -72,34 +72,47 @@ describe("triggerLabel and isFiltering: what a dropdown's trigger shows", () => 
   });
 });
 
-describe("activeChips: what is filtering, each with a way to take it off", () => {
+describe("activeChips: only what the person changed here, each with a way to take it off", () => {
   const filters: RoleFilters = { query: "analyst", families: null, levels: ["entry"], days: 30, place: "remote", sort: "newest" };
 
-  it("lists the search, each kind of work and level, the age and the place, in that order", () => {
-    expect(activeChips(filters, profile).map((chip) => chip.label)).toEqual([
-      "“analyst”", "Product", "Research", "New grad or junior", "Last 30 days", "Remote",
-    ]);
+  it("lists the search, levels picked here, a changed age and the place; the profile's own picks and the default 60 days are not chips", () => {
+    expect(activeChips(filters, profile).map((chip) => chip.label)).toEqual(["“analyst”", "New grad or junior", "Last 30 days", "Remote"]);
+    expect(activeChips(DEFAULT_FILTERS, profile)).toEqual([]);
   });
 
-  it("takes one value off, turning the profile's default into an explicit list", () => {
-    const research = activeChips(filters, profile).find((chip) => chip.label === "Research");
-    expect(research?.without).toEqual({ ...filters, families: ["product"] });
+  it("takes one value off a list picked here", () => {
+    const both = { ...filters, families: ["product", "research"] } as RoleFilters;
+    expect(activeChips(both, profile).find((chip) => chip.label === "Research")?.without).toEqual({ ...both, families: ["product"] });
   });
 
-  it("takes the age off as Any time, and the search and place off as empty", () => {
+  it("takes the age off as the default 60 days, and the search and place off as empty", () => {
     const chips = activeChips(filters, profile);
-    expect(chips.find((chip) => chip.label === "Last 30 days")?.without.days).toBeNull();
+    expect(chips.find((chip) => chip.label === "Last 30 days")?.without.days).toBe(60);
     expect(chips.find((chip) => chip.label === "Remote")?.without.place).toBe("");
     expect(chips[0].without.query).toBe("");
   });
 
-  it("names a free-text place as the person typed it", () => {
-    expect(activeChips({ ...DEFAULT_FILTERS, families: [], levels: [], place: "Austin" }, profile).map((c) => c.label)).toEqual(["Last 60 days", "Place: Austin"]);
+  it("names a free-text place as the person typed it; Any time is no filter, so no chip", () => {
+    expect(activeChips({ ...DEFAULT_FILTERS, days: null, place: "Austin" }, profile).map((c) => c.label)).toEqual(["Place: Austin"]);
   });
 
-  it("Clear all turns every filter off and keeps the sort", () => {
-    expect(clearAll(filters)).toEqual({ query: "", families: [], levels: [], days: null, place: "", sort: "newest" });
+  it("clears to nothing", () => {
     expect(activeChips(clearAll(filters), profile)).toEqual([]);
+  });
+});
+
+describe("what the triggers and the phone button say", () => {
+  it("names the age and the place on their triggers", () => {
+    expect(postedTrigger(60)).toBe("Last 60 days");
+    expect(postedTrigger(null)).toBe("Posted");
+    expect(placeTrigger("remote")).toBe("Remote");
+    expect(placeTrigger("San Francisco Bay Area")).toBe("San Francisco Ba…");
+    expect(placeTrigger("")).toBe("Location");
+  });
+
+  it("counts every narrowing filter for the phone's Filters button, the profile's included", () => {
+    expect(narrowingCount(DEFAULT_FILTERS, profile)).toBe(5);
+    expect(narrowingCount(clearAll(DEFAULT_FILTERS), profile)).toBe(0);
   });
 });
 

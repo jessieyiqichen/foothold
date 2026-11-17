@@ -4,7 +4,8 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 interface FilterMenuProps {
   label: string;
-  /** Pressed in when the filter narrows anything. */
+  /** Pressed in when the filter narrows anything: an ink edge and a light wash, not the page's mustard, so four
+   *  filters on at once stay quiet. */
   pressed: boolean;
   /** The panel opens under the trigger, from its left or its right edge. */
   align?: "left" | "right";
@@ -46,7 +47,7 @@ export function FilterMenu({ label, pressed, align = "left", children }: FilterM
   return (
     <div ref={wrap} className="relative" onKeyDown={(event) => { if (event.key === "Escape" && open) { event.stopPropagation(); close(); } }}>
       <button ref={trigger} type="button" aria-expanded={open} aria-controls={panelId} aria-pressed={pressed}
-        onClick={() => setOpen(!open)} className={`${TRIGGER} ${pressed ? "bg-primary" : "bg-surface hover:bg-wash"}`}>
+        onClick={() => setOpen(!open)} className={`${TRIGGER} ${pressed ? "border-ink bg-wash" : "bg-surface hover:bg-wash"}`}>
         {label}
         <span aria-hidden className="text-xs">▾</span>
       </button>

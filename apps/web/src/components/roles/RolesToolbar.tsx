@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { inputClass } from "@/components/ui/Field";
 import { MAX_TEXT, SEARCH_DEBOUNCE_MS } from "@/lib/roles/constants";
 import { filtersButton, ROLES_COPY } from "@/lib/roles/copy";
-import { activeChips, effectiveFamilies, effectiveLevels, isFiltering, triggerLabel } from "@/lib/roles/filters";
+import { effectiveFamilies, effectiveLevels, isFiltering, narrowingCount, placeTrigger, postedTrigger, triggerLabel } from "@/lib/roles/filters";
 import { kindPanel, levelPanel, placePanel, postedPanel, type ControlsProps } from "./FilterControls";
 import { FilterMenu } from "./FilterMenu";
 import { FilterSheet } from "./FilterSheet";
@@ -28,7 +28,7 @@ function SearchBox({ filters, onChange }: Pick<ControlsProps, "filters" | "onCha
     return () => clearTimeout(timer);
   }, [text, seen]);
   return (
-    <div className="min-w-0 flex-1 sm:max-w-xs">
+    <div className="w-full">
       <label htmlFor="roles-search" className="sr-only">{ROLES_COPY.searchLabel}</label>
       <input id="roles-search" type="search" value={text} maxLength={MAX_TEXT} placeholder={ROLES_COPY.searchLabel}
         onChange={(event) => setText(event.target.value)} className={inputClass} />
@@ -36,14 +36,15 @@ function SearchBox({ filters, onChange }: Pick<ControlsProps, "filters" | "onCha
   );
 }
 
-/** One toolbar row: the search box, then the four filters as dropdowns (from 640px), or one Filters button that
- *  opens a sheet (on a phone). Quieter than the rest of the page: thin edges, keys only on the triggers, no tape. */
+/** The search box on its own row, full width; under it the four filters as dropdowns (from 640px), or one Filters
+ *  button that opens a sheet (on a phone). Quieter than the rest of the page: thin edges, keys only on the triggers,
+ *  no tape. Posted and Location name their value on the trigger ("Last 60 days", "Remote"). */
 export function RolesToolbar({ total, ...props }: ControlsProps & { total: number | null }) {
   const { filters, profile } = props;
   const on = isFiltering(filters, profile);
-  const narrowing = activeChips(filters, profile).filter((chip) => chip.key !== "q").length;
+  const narrowing = narrowingCount(filters, profile);
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-col gap-3">
       <SearchBox filters={filters} onChange={props.onChange} />
       <div className="hidden flex-wrap items-center gap-2 sm:flex">
         <FilterMenu label={triggerLabel(ROLES_COPY.kind, effectiveFamilies(filters, profile).length)} pressed={on.families}>
@@ -52,10 +53,10 @@ export function RolesToolbar({ total, ...props }: ControlsProps & { total: numbe
         <FilterMenu label={triggerLabel(ROLES_COPY.level, effectiveLevels(filters, profile).length)} pressed={on.levels}>
           {(close) => levelPanel(props, false, close)}
         </FilterMenu>
-        <FilterMenu label={triggerLabel(ROLES_COPY.posted, on.days ? 1 : 0)} pressed={on.days} align="right">
+        <FilterMenu label={postedTrigger(filters.days)} pressed={on.days} align="right">
           {(close) => postedPanel(props, false, close, "roles-posted")}
         </FilterMenu>
-        <FilterMenu label={triggerLabel(ROLES_COPY.location, on.place ? 1 : 0)} pressed={on.place} align="right">
+        <FilterMenu label={placeTrigger(filters.place)} pressed={on.place} align="right">
           {(close) => placePanel(props, false, close, "roles-place")}
         </FilterMenu>
       </div>

@@ -21,7 +21,7 @@ export function FilterSheet({ label, pressed, total, ...props }: ControlsProps &
   return (
     <>
       <button type="button" aria-haspopup="dialog" aria-expanded={open} aria-pressed={pressed} onClick={() => setOpen(true)}
-        className={`keycap inline-flex min-h-10 items-center border-2 border-line px-3 text-sm font-bold text-ink focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus ${pressed ? "bg-primary" : "bg-surface"}`}>
+        className={`keycap inline-flex min-h-10 items-center border-2 border-line px-3 text-sm font-bold text-ink focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus ${pressed ? "border-ink bg-wash" : "bg-surface"}`}>
         {label}
       </button>
       <dialog ref={ref} aria-labelledby={titleId} onClose={() => setOpen(false)}

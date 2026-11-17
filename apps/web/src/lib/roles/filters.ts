@@ -91,21 +91,44 @@ export interface Chip {
   without: RoleFilters;
 }
 
-/** What is filtering now, in the toolbar's order, each with the filters as they would be without it. */
+/** What the person changed here, in the toolbar's order, each with the filters as they would be without it. The
+ *  profile's own kinds of work and levels and the default 60 days are not chips: the triggers already show them, and
+ *  seven chips for the defaults read as clutter (user, 2026-11-16). Any time filters nothing, so it has no chip. */
 export function activeChips(filters: RoleFilters, profile: ProfilePicks): Chip[] {
-  const families = effectiveFamilies(filters, profile);
-  const levels = effectiveLevels(filters, profile);
   const chips: Chip[] = [];
   if (filters.query) chips.push({ key: "q", label: `“${filters.query}”`, without: { ...filters, query: "" } });
-  for (const id of families) {
-    chips.push({ key: `kind-${id}`, label: FAMILIES.find((f) => f.id === id)?.label ?? id, without: { ...filters, families: families.filter((f) => f !== id) } });
+  if (filters.families !== null) {
+    const families = effectiveFamilies(filters, profile);
+    for (const id of families) {
+      chips.push({ key: `kind-${id}`, label: FAMILIES.find((f) => f.id === id)?.label ?? id, without: { ...filters, families: families.filter((f) => f !== id) } });
+    }
   }
-  for (const id of levels) {
-    chips.push({ key: `level-${id}`, label: LEVELS.find((l) => l.id === id)?.label ?? id, without: { ...filters, levels: levels.filter((l) => l !== id) } });
+  if (filters.levels !== null) {
+    const levels = effectiveLevels(filters, profile);
+    for (const id of levels) {
+      chips.push({ key: `level-${id}`, label: LEVELS.find((l) => l.id === id)?.label ?? id, without: { ...filters, levels: levels.filter((l) => l !== id) } });
+    }
   }
-  if (filters.days !== null) chips.push({ key: "posted", label: daysLabel(filters.days), without: { ...filters, days: null } });
+  if (filters.days !== null && filters.days !== DEFAULT_DAYS) chips.push({ key: "posted", label: daysLabel(filters.days), without: { ...filters, days: DEFAULT_DAYS } });
   if (filters.place) chips.push({ key: "place", label: isRemote(filters.place) ? "Remote" : `Place: ${filters.place}`, without: { ...filters, place: "" } });
   return chips;
+}
+
+const PLACE_TRIGGER_MAX = 16;
+/** The Posted trigger names the age it keeps ("Last 60 days"), or just "Posted" when it keeps any age. */
+export const postedTrigger = (days: DayChoice): string => (days === null ? "Posted" : daysLabel(days));
+/** The Location trigger names the place, cut short, or just "Location" when there is none. */
+export function placeTrigger(place: string): string {
+  const t = place.trim();
+  if (!t) return "Location";
+  if (isRemote(t)) return "Remote";
+  return t.length > PLACE_TRIGGER_MAX ? `${t.slice(0, PLACE_TRIGGER_MAX)}…` : t;
+}
+
+/** Every filter that narrows the list, the profile's picks included: the number on the phone's Filters button. */
+export function narrowingCount(filters: RoleFilters, profile: ProfilePicks): number {
+  const on = isFiltering(filters, profile);
+  return effectiveFamilies(filters, profile).length + effectiveLevels(filters, profile).length + (on.days ? 1 : 0) + (on.place ? 1 : 0);
 }
 
 const placeArg = (place: string): string | null => (place.trim() ? (isRemote(place) ? REMOTE_PLACE : place.trim()) : null);
