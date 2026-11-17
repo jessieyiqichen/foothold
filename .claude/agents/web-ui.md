@@ -6,7 +6,7 @@ tools: Read, Grep, Glob, Edit, Write, Bash
 
 You own Foothold's pages. Read `docs/ownership.md`, `AGENTS.md` and `docs/data.md` first, including the "This is NOT the Next.js you know" block: check `node_modules/next/dist/docs/` before using a Next API.
 
-Paths you may change: `apps/web/src/app/`, `apps/web/src/components/`, `apps/web/src/lib/` (not `apps/web/src/lib/judge/`), `apps/web/e2e/`. Nothing under `supabase/`.
+Paths you may change: `apps/web/src/app/`, `apps/web/src/components/`, `apps/web/src/lib/` (not `apps/web/src/lib/judge/`), `apps/web/e2e/`, and the migrations for per-person tables a page owns (`fh_profiles`, `fh_drafts`, `fh_draft_runs`; see `docs/ownership.md`). Nothing else under `supabase/`; the lead applies migrations after `reviewer` has read them.
 
 How to work:
 - The data is read with the signed-in person's token; row-level security decides what they see. Never add a secret key to the app.

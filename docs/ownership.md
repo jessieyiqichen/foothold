@@ -11,7 +11,7 @@ The four design decisions were made with the user on 2026-11-10, one at a time: 
 | lead (the session talking to the user) | `AGENTS.md` | `docs/`, `README.md`, `AGENTS.md`, `log.md`, `.claude/`, `scripts/` | Code owned by another role, unless that role is not running |
 | data-scout | `.claude/agents/data-scout.md` | `supabase/functions/fh-scout/`, `supabase/functions/fh-jobs/`, `supabase/functions/fh-roles/`, `supabase/migrations/*foothold*` (migrations for per-person tables that a page owns, such as `fh_profiles`, `fh_drafts` and `fh_draft_runs`, are web-ui's; one that spans both, like matching, is data-scout's and always goes to `reviewer`) | `apps/web/src/`, `evals/` |
 | judge-eval | `.claude/agents/judge-eval.md` | `supabase/functions/fh-judge/`, `evals/`, `apps/web/src/lib/judge/` | Data workers, pages |
-| web-ui | `.claude/agents/web-ui.md` | `apps/web/src/app/`, `apps/web/src/components/`, `apps/web/src/lib/` (not `apps/web/src/lib/judge/`), `apps/web/e2e/` | `supabase/` |
+| web-ui | `.claude/agents/web-ui.md` | `apps/web/src/app/`, `apps/web/src/components/`, `apps/web/src/lib/` (not `apps/web/src/lib/judge/`), `apps/web/e2e/`, migrations for the per-person tables a page owns | the rest of `supabase/` |
 | (shared) | none | `packages/core/` belongs to the lead: the vocabulary is reviewed by the user, and a change there re-tags every posting and every profile. Another role proposes a change, the lead makes it | |
 | reviewer | `.claude/agents/reviewer.md` | Nothing: it reads and reports | Any write |
 
