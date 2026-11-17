@@ -52,3 +52,8 @@ export function draftView(view: DraftView, action: DraftAction): DraftView {
       return { ...view, unsaved: !action.ok };
   }
 }
+
+/** Whether "Write a draft" or "Write again" may be pressed: once the saved draft is known, while nothing is being
+ *  written. Not after a failed load: a saved draft may exist that the page could not show, and writing would replace
+ *  it unseen (reviewer, 2026-11-16). Reloading the page tries the load again. */
+export const canWrite = (view: DraftView): boolean => view.loaded && !view.loadFailed && !view.writing;

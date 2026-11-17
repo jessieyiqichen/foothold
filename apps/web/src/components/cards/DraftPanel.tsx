@@ -7,7 +7,7 @@ import { Field, TextArea, TextInput } from "@/components/ui/Field";
 import { PaperDialog } from "@/components/ui/PaperDialog";
 import { draftText, isEdited } from "@/lib/connector/client";
 import { DRAFT_COPY } from "@/lib/connector/copy";
-import type { Shown } from "@/lib/connector/draftView";
+import { canWrite, type Shown } from "@/lib/connector/draftView";
 import type { Draft } from "@/lib/connector/types";
 import { Part } from "./CardParts";
 import { useDraft } from "./useDraft";
@@ -31,7 +31,7 @@ export function DraftPanel({ companyId, withDb }: { companyId: number; withDb: W
       {error && <p role="alert" className="text-sm font-bold text-danger">{error}</p>}
       {unsaved && draft && <p role="alert" className="text-sm font-bold text-danger">{DRAFT_COPY.notKept}</p>}
       {loaded && (
-        <Button variant={draft ? "ghost" : "secondary"} className="self-start" onClick={again} disabled={writing}>
+        <Button variant={draft ? "ghost" : "secondary"} className="self-start" onClick={again} disabled={!canWrite(view)}>
           {draft ? DRAFT_COPY.again : DRAFT_COPY.write}
         </Button>
       )}

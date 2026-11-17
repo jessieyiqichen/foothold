@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DRAFT_COPY } from "./copy";
-import { draftView, INITIAL_VIEW, type DraftView } from "./draftView";
+import { canWrite, draftView, INITIAL_VIEW, type DraftView } from "./draftView";
 
 const FIRST = { subject: "Product intern at Acme", body: "Hi Dana,\n\nI read...", resumeQuote: "Built dashboards in SQL", companyQuote: "Agents for hospital billing", model: "m" };
 const SECOND = { ...FIRST, subject: "Another try", body: "Hi again" };
@@ -34,6 +34,14 @@ describe("draftView: one card's draft, as the person sees it", () => {
     const view = run({ type: "loadFailed" }, { type: "writeStart" }, { type: "written", draft: FIRST }, { type: "saved", ok: false });
     expect(view).toMatchObject({ loadFailed: false, draft: FIRST, unsaved: true });
     expect(draftView(view, { type: "saved", ok: true }).unsaved).toBe(false);
+  });
+
+  it("offers to write only once loaded, not while writing, and never after a failed load, which could hide a saved draft", () => {
+    expect(canWrite(INITIAL_VIEW)).toBe(false);
+    expect(canWrite(run({ type: "loaded", draft: null }))).toBe(true);
+    expect(canWrite(run({ type: "loaded", draft: FIRST }))).toBe(true);
+    expect(canWrite(run({ type: "loaded", draft: FIRST }, { type: "writeStart" }))).toBe(false);
+    expect(canWrite(run({ type: "loadFailed" }))).toBe(false);
   });
 
   it("does not change the view it is given", () => {
