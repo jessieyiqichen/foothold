@@ -4,43 +4,64 @@ import { useState } from "react";
 import type { WithDb } from "@/components/auth/useSessionDb";
 import { Button } from "@/components/ui/Button";
 import { Field, TextArea, TextInput } from "@/components/ui/Field";
-import { draftText } from "@/lib/connector/client";
+import { PaperDialog } from "@/components/ui/PaperDialog";
+import { draftText, isEdited } from "@/lib/connector/client";
 import { DRAFT_COPY } from "@/lib/connector/copy";
 import type { Draft } from "@/lib/connector/types";
 import { Part } from "./CardParts";
 import { useDraft } from "./useDraft";
 
+type Shown = { subject: string; body: string };
+
 /** The draft on a card: "Write a draft" until there is one, then the subject and message to edit, Copy and Write
- *  again, and the two quoted lines it rests on. Foothold never sends anything; the line under it says so. */
+ *  again, and the two quoted lines it rests on. Write again asks first when the person has changed the draft, since a
+ *  new one replaces their changes. Foothold never sends anything; the line under it says so. */
 export function DraftPanel({ companyId, withDb }: { companyId: number; withDb: WithDb }) {
-  const { state, error, write } = useDraft(companyId, withDb);
+  const { state, error, unsaved, write } = useDraft(companyId, withDb);
   const id = `draft-${companyId}`;
   const draft = state.kind === "ready" ? state.draft : null;
+  // What the fields hold, starting again from each new draft (adjusted while rendering, as React recommends)
+  const [shown, setShown] = useState<{ from: Draft | null; text: Shown | null }>({ from: null, text: null });
+  if (shown.from !== draft) setShown({ from: draft, text: draft && { subject: draft.subject, body: draft.body } });
+  const [asking, setAsking] = useState(false);
+
+  const again = () => (draft && shown.text && isEdited(draft, shown.text) ? setAsking(true) : void write());
   return (
     <Part id={id} title={DRAFT_COPY.heading}>
-      {/* The new draft replaces the editor and its edits; keyed so the fields start from it */}
-      {draft && <DraftEditor key={`${draft.subject}|${draft.body}`} draft={draft} id={id} />}
+      {draft && shown.text && <DraftEditor draft={draft} shown={shown.text} onChange={(text) => setShown({ from: draft, text })} id={id} />}
       <p role="status" className="font-mono text-xs text-ink">{state.kind === "writing" ? DRAFT_COPY.writing : ""}</p>
       {error && <p role="alert" className="text-sm font-bold text-danger">{error}</p>}
+      {unsaved && draft && <p role="alert" className="text-sm font-bold text-danger">{DRAFT_COPY.notKept}</p>}
       {state.kind !== "loading" && (
-        <Button variant={draft ? "ghost" : "secondary"} className="self-start" onClick={write} disabled={state.kind === "writing"}>
+        <Button variant={draft ? "ghost" : "secondary"} className="self-start" onClick={again} disabled={state.kind === "writing"}>
           {draft ? DRAFT_COPY.again : DRAFT_COPY.write}
         </Button>
       )}
       <p className="font-mono text-[11px] leading-4 text-muted">{DRAFT_COPY.neverSends}</p>
+      <PaperDialog open={asking} title={DRAFT_COPY.replaceTitle} closeLabel={DRAFT_COPY.keepEdits} onClose={() => setAsking(false)}>
+        <div className="flex flex-col items-start gap-4">
+          <p>{DRAFT_COPY.replaceBody}</p>
+          <Button onClick={() => { setAsking(false); void write(); }}>{DRAFT_COPY.replace}</Button>
+        </div>
+      </PaperDialog>
     </Part>
   );
 }
 
+interface DraftEditorProps {
+  draft: Draft;
+  shown: Shown;
+  onChange: (text: Shown) => void;
+  id: string;
+}
+
 /** The draft as text the person edits and copies, with the two lines it rests on. Edits stay on the page. */
-function DraftEditor({ draft, id }: { draft: Draft; id: string }) {
-  const [subject, setSubject] = useState(draft.subject);
-  const [body, setBody] = useState(draft.body);
+function DraftEditor({ draft, shown, onChange, id }: DraftEditorProps) {
   const [copied, setCopied] = useState<string | null>(null);
 
   async function copy() {
     try {
-      await navigator.clipboard.writeText(draftText({ subject, body }));
+      await navigator.clipboard.writeText(draftText(shown));
       setCopied(DRAFT_COPY.copied);
     } catch (cause) {
       console.error("Foothold drafts: the clipboard refused", cause);
@@ -51,10 +72,10 @@ function DraftEditor({ draft, id }: { draft: Draft; id: string }) {
   return (
     <div className="flex flex-col gap-3">
       <Field id={`${id}-subject`} label={DRAFT_COPY.subject}>
-        {(control) => <TextInput {...control} value={subject} onChange={(event) => setSubject(event.target.value)} />}
+        {(control) => <TextInput {...control} value={shown.subject} onChange={(event) => onChange({ ...shown, subject: event.target.value })} />}
       </Field>
       <Field id={`${id}-body`} label={DRAFT_COPY.body}>
-        {(control) => <TextArea {...control} value={body} rows={9} onChange={(event) => setBody(event.target.value)} className="resize-y" />}
+        {(control) => <TextArea {...control} value={shown.body} rows={9} onChange={(event) => onChange({ ...shown, body: event.target.value })} className="resize-y" />}
       </Field>
       <div className="flex flex-wrap items-center gap-3">
         <Button variant="secondary" onClick={copy}>{DRAFT_COPY.copy}</Button>
