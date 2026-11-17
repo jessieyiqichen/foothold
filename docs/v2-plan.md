@@ -8,9 +8,9 @@ From the session on 2026-11-17 (`docs/v1-user-tests.md`):
 
 | Seen in the tests | How many of the testers | What it means for v2 |
 |---|---|---|
-| The card is too long | (to add) | A card shows everything at once: why it fits, how the company is doing, roles, contact and the message. It should show one screen, the reason and the next step, with the rest on demand |
-| All roles and the cards are not connected | (to add) | A role found in All roles only links out to the posting: from there a person cannot save the company, see its card or write to anyone. Today and All roles are two separate products |
-| The flow is not smooth | (to add) | There is no single path from "find" to "reach out". The company should be the one unit: every role opens its company's card, and the card is where saving and writing happen, whichever way the person came in |
+| The card is too long | Reported for the two-person session (per person: to add) | A card shows everything at once: why it fits, how the company is doing, roles, contact and the message. It should show one screen, the reason and the next step, with the rest on demand |
+| All roles and the cards are not connected | Reported for the two-person session (per person: to add) | A role found in All roles only links out to the posting: from there a person cannot save the company, see its card or write to anyone. Today and All roles are two separate products |
+| The flow is not smooth | Reported for the two-person session (per person: to add) | There is no single path from "find" to "reach out". The company should be the one unit: every role opens its company's card, and the card is where saving and writing happen, whichever way the person came in |
 
 ## 2. Where v1 stands
 

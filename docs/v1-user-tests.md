@@ -14,11 +14,11 @@ Reported by Jessie right after the session, on https://foothold.vercel.app (the 
 
 | | |
 |---|---|
-| Who, and how many | (to add) |
+| Who, and how many | Two people (who: to add) |
 | Device and browser | (to add) |
 | Real resume or made up | (to add) |
 
-| What was seen | Where in the flow |
+| What was seen (reported for the session as a whole; which of the two said what: to add) | Where in the flow |
 |---|---|
 | The card is too long | Today's cards |
 | All roles and the cards are not connected: a role found in All roles leads nowhere in Foothold | All roles → cards |
