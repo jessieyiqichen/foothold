@@ -59,7 +59,7 @@ const ready: World = {
 function run(world: World, over: Partial<Omit<HandleDeps, "db" | "userId">> & { signedIn?: boolean } = {}) {
   const { db, calls } = fakeDb(world);
   const generate = vi.fn<Generate>(async () => ({ ok: true, draft: DRAFT }));
-  const deps: HandleDeps = { db, userId: USER, contentType: "application/json", body: { company_id: 812 }, apiKey: "test-key", generate, ...over };
+  const deps: HandleDeps = { db, userId: USER, contentType: "application/json", body: { company_id: 812, consent: true }, apiKey: "test-key", generate, ...over };
   return { promise: handleDraftRequest(over.signedIn === false ? null : deps, deps), calls, generate: (over.generate ?? generate) as typeof generate };
 }
 
@@ -144,8 +144,17 @@ describe("handleDraftRequest: refusals before any model call", () => {
     expect(calls).toEqual([]);
   });
 
+  it("needs the person's agreement in the body, before reading anything or taking a try", async () => {
+    for (const body of [{ company_id: 812 }, { company_id: 812, consent: false }, { company_id: 812, consent: "true" }, { company_id: 812, consent: 1 }]) {
+      const { promise, calls, generate } = run(ready, { body });
+      expect(await promise, JSON.stringify(body)).toEqual({ status: 400, body: { error: DRAFT_COPY.noConsent } });
+      expect(calls).toEqual([]);
+      expect(generate).not.toHaveBeenCalled();
+    }
+  });
+
   it("needs a company id", async () => {
-    const { promise, calls } = run(ready, { body: { company_id: "abc" } });
+    const { promise, calls } = run(ready, { body: { company_id: "abc", consent: true } });
     expect(await promise).toEqual({ status: 400, body: { error: DRAFT_COPY.badCompany } });
     expect(calls).toEqual([]);
   });

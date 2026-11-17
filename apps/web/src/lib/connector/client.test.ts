@@ -20,7 +20,7 @@ describe("requestDraft: asking the server route for a draft", () => {
   it("posts the company id and reads the draft", async () => {
     const fetcher = answer(200, { draft: DRAFT });
     expect(await requestDraft(812, fetcher)).toEqual({ ok: true, value: DRAFT });
-    expect(fetcher).toHaveBeenCalledWith(DRAFT_PATH, expect.objectContaining({ method: "POST", body: JSON.stringify({ company_id: 812 }) }));
+    expect(fetcher).toHaveBeenCalledWith(DRAFT_PATH, expect.objectContaining({ method: "POST", body: JSON.stringify({ company_id: 812, consent: true }) }));
   });
 
   it("shows the route's own line when it refuses", async () => {

@@ -1,7 +1,7 @@
 // House style: no full stops; errors take no "!" and say what to do next.
 import { describe, expect, it } from "vitest";
 import { DAILY_DRAFT_LIMIT } from "./constants";
-import { DRAFT_COPY, DRAFT_ERRORS } from "./copy";
+import { CONSENT_LINES, DRAFT_COPY, DRAFT_ERRORS } from "./copy";
 
 const FULL_STOP = /\.(\s|$)/;
 
@@ -24,6 +24,19 @@ describe("draft lines", () => {
   it("tells a model that could not be reached apart from a draft that failed its checks", () => {
     expect(DRAFT_COPY.unavailable).toBe("I couldn't reach the writing model, try again later");
     expect(DRAFT_COPY.unverified).toBe("The draft didn't hold up to checking, try again");
+  });
+
+  it("says what is sent where before the first draft, in the agreed words, one sentence a line", () => {
+    expect(CONSENT_LINES).toEqual([
+      "To write this, Foothold sends your resume's experience to Google Gemini",
+      "Your name, email, phone and links are taken out first",
+      "On Gemini's free tier, Google may keep what is sent and people at Google may read it",
+      "You must be 18 or older",
+    ]);
+    expect(DRAFT_COPY.sendsLine).toBe("Sends your experience, without contact details, to Google Gemini");
+    expect(DRAFT_COPY.agree).toBe("Send and write");
+    expect(DRAFT_COPY.notNow).toBe("Not now");
+    for (const line of CONSENT_LINES) expect(line, line).not.toMatch(FULL_STOP);
   });
 
   it("says plainly that nothing is sent", () => {

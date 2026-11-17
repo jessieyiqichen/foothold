@@ -16,6 +16,11 @@ export const DRAFT_COPY = {
   fromResume: "From your resume",
   fromCompany: "From the company",
   neverSends: "Foothold never sends anything for you",
+  sendsLine: "Sends your experience, without contact details, to Google Gemini",
+  consentTitle: "Before your first draft",
+  agree: "Send and write",
+  notNow: "Not now",
+  noConsent: "A draft needs your agreement to send your experience to Google Gemini, tap Write a draft and agree first",
 
   signedOut: "You're signed out, sign in again to write a draft",
   badCompany: "That company couldn't be found, reload the page and try again",
@@ -38,6 +43,15 @@ export const DRAFT_COPY = {
 };
 
 export const DRAFT_ERRORS = [
-  DRAFT_COPY.copyFailed, DRAFT_COPY.notKept, DRAFT_COPY.loadFailed, DRAFT_COPY.notJson, DRAFT_COPY.signedOut, DRAFT_COPY.badCompany, DRAFT_COPY.noResume, DRAFT_COPY.readFailed, DRAFT_COPY.limit,
+  DRAFT_COPY.copyFailed, DRAFT_COPY.notKept, DRAFT_COPY.loadFailed, DRAFT_COPY.noConsent, DRAFT_COPY.notJson, DRAFT_COPY.signedOut, DRAFT_COPY.badCompany, DRAFT_COPY.noResume, DRAFT_COPY.readFailed, DRAFT_COPY.limit,
   DRAFT_COPY.noKey, DRAFT_COPY.busy, DRAFT_COPY.unavailable, DRAFT_COPY.unverified, DRAFT_COPY.badInput, DRAFT_COPY.failed,
+];
+
+/** What is sent where, shown before a person's first draft (user, 2026-11-16). The agreed words, one sentence a line,
+ *  since the interface uses no full stops. */
+export const CONSENT_LINES = [
+  "To write this, Foothold sends your resume's experience to Google Gemini",
+  "Your name, email, phone and links are taken out first",
+  "On Gemini's free tier, Google may keep what is sent and people at Google may read it",
+  "You must be 18 or older",
 ];

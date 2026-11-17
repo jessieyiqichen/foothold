@@ -35,6 +35,9 @@ export function parseCompanyId(body: unknown): number | null {
   return typeof id === "number" && Number.isSafeInteger(id) && id > 0 ? id : null;
 }
 
+/** Whether the body carries the person's agreement: `consent` must be exactly true. */
+const hasConsent = (body: unknown): boolean => isRecord(body) && body.consent === true;
+
 /** Whether a Content-Type header says JSON (a charset is allowed). */
 export const isJson = (contentType: string | null): boolean => (contentType ?? "").split(";")[0].trim().toLowerCase() === "application/json";
 
@@ -85,6 +88,9 @@ async function takeRun(db: HandleDb, companyId: number): Promise<boolean> {
 export async function handleDraftRequest(signedIn: Pick<HandleDeps, "db" | "userId"> | null, deps: Omit<HandleDeps, "db" | "userId">): Promise<DraftAnswer> {
   if (!signedIn) return refuse(401, DRAFT_COPY.signedOut);
   if (!isJson(deps.contentType)) return refuse(415, DRAFT_COPY.notJson);
+  // The person's agreement to send their experience to Gemini travels with every request; the browser's memory of it
+  // is not enough on its own
+  if (!hasConsent(deps.body)) return refuse(400, DRAFT_COPY.noConsent);
   const companyId = parseCompanyId(deps.body);
   if (companyId === null) return refuse(400, DRAFT_COPY.badCompany);
   if (!deps.apiKey) {
