@@ -1,0 +1,48 @@
+import { describe, expect, it, vi } from "vitest";
+import { generateDraft, type DraftInput } from "./generate";
+
+const input: DraftInput = {
+  resumeText: "Built Nous, a cognitive-profile app that turns interviews into structured insight. Shipped RAG evals for a lecture assistant.",
+  company: { name: "Bolna", oneLiner: "Voice AI agents for Indian businesses", description: "Bolna builds voice AI agents for Indian businesses, in 10 languages." },
+  roles: [{ title: "Product Manager" }],
+  person: { name: "Maitreya", role: "co-founder" },
+};
+const body = Array.from({ length: 80 }, (_, i) => `w${i}`).join(" ");
+const good = { subject: "Voice agents", body, resume_quote: "Shipped RAG evals for a lecture assistant", company_quote: "voice AI agents for Indian businesses" };
+const reply = (json: unknown) => new Response(JSON.stringify({ output_text: JSON.stringify(json) }), { status: 200 });
+
+describe("generateDraft", () => {
+  it("returns a draft whose quotes were checked against the sources", async () => {
+    const f = vi.fn(async () => reply(good));
+    const r = await generateDraft(input, { apiKey: "k", fetch: f, models: ["m1"] });
+    expect(r).toEqual({ ok: true, draft: { subject: "Voice agents", body, resumeQuote: good.resume_quote, companyQuote: good.company_quote, model: "m1" } });
+  });
+  it("asks once more with the problems named, and gives up as unverified if the second try is no better", async () => {
+    const f = vi.fn(async () => reply({ ...good, resume_quote: "Led a team of 40" }));
+    const r = await generateDraft(input, { apiKey: "k", fetch: f, models: ["m1"] });
+    expect(r).toEqual({ ok: false, reason: "unverified" });
+    expect(f).toHaveBeenCalledTimes(2);
+    const second = JSON.parse(String((f.mock.calls[1] as unknown as [string, RequestInit])[1].body));
+    expect(second.input).toContain("the resume quote is not word for word in the resume");
+  });
+  it("moves to the next model when one is unavailable on this key, and reports rate limits as they are", async () => {
+    const f = vi.fn(async (_u: string, init: RequestInit) =>
+      JSON.parse(String(init.body)).model === "m1" ? new Response("{}", { status: 404 }) : reply(good));
+    const r = await generateDraft(input, { apiKey: "k", fetch: f as unknown as typeof fetch, models: ["m1", "m2"] });
+    expect(r.ok && r.draft.model).toBe("m2");
+    const limited = vi.fn(async () => new Response("{}", { status: 429 }));
+    expect(await generateDraft(input, { apiKey: "k", fetch: limited, models: ["m1", "m2"] })).toEqual({ ok: false, reason: "rate_limited" });
+  });
+  it("refuses bad input without calling the model", async () => {
+    const f = vi.fn();
+    expect(await generateDraft({ ...input, resumeText: "  " }, { apiKey: "k", fetch: f, models: ["m1"] })).toEqual({ ok: false, reason: "bad_input" });
+    expect(await generateDraft(input, { apiKey: "", fetch: f, models: ["m1"] })).toEqual({ ok: false, reason: "unavailable" });
+    expect(f).not.toHaveBeenCalled();
+  });
+  it("never puts more than the resume cap into the prompt", async () => {
+    const f = vi.fn(async () => reply(good));
+    await generateDraft({ ...input, resumeText: "Shipped RAG evals for a lecture assistant. " + "x".repeat(50_000) }, { apiKey: "k", fetch: f, models: ["m1"] });
+    const sent = JSON.parse(String((f.mock.calls[0] as unknown as [string, RequestInit])[1].body));
+    expect(sent.input.length).toBeLessThan(16_000);
+  });
+});
