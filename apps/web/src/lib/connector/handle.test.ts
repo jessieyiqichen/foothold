@@ -1,11 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DAILY_DRAFT_LIMIT, DRAFT_RUNS_TABLE, DRAFTS_TABLE, RESUME_CAP } from "./constants";
+import { RESUME_CAP, TAKE_RUN_RPC } from "./constants";
 import { DRAFT_COPY } from "./copy";
-import { handleDraftRequest, parseCompanyId, utcDayStart, type HandleDeps } from "./handle";
+import { handleDraftRequest, isJson, parseCompanyId, type HandleDeps } from "./handle";
 import type { DraftResult, Generate } from "./types";
 
 const USER = "user_2abc";
-const NOW = new Date("2026-11-16T15:00:00Z");
 const RESUME = "Built dashboards in SQL for a campus society. ".repeat(10);
 const DRAFT = { subject: "Product intern at Acme", body: "Hi Dana, ...", resumeQuote: "Built dashboards in SQL", companyQuote: "Agents for hospital billing", model: "gemini-2.5-flash" };
 
@@ -14,40 +13,40 @@ interface World {
   company?: unknown;
   fit?: unknown;
   person?: unknown;
-  runs?: number;
+  /** What fh_take_draft_run answers: true while today's tries are not used up. */
+  allowed?: unknown;
   fail?: string;
 }
 
-/** A stand-in for the Supabase client: answers from `world`, records every write, and fails the one step named in
- *  `world.fail` (a table or a function), so no request leaves the test. */
+/** A stand-in for the Supabase client: answers from `world`, records every call, and fails the one step named in
+ *  `world.fail` (a table or a function), so no request leaves the test. It has no insert or upsert at all: the route
+ *  writes only through fh_take_draft_run. */
 function fakeDb(world: World) {
-  const writes: unknown[] = [];
-  const reads: unknown[] = [];
-  const answer = (what: string, data: unknown, extra: Record<string, unknown> = {}) =>
-    Promise.resolve(world.fail === what ? { data: null, error: { message: `${what} refused` }, count: null } : { data, error: null, ...extra });
+  const calls: unknown[] = [];
+  const answer = (what: string, data: unknown) =>
+    Promise.resolve(world.fail === what ? { data: null, error: { message: `${what} refused` } } : { data, error: null });
+  const RPC: Record<string, () => unknown> = {
+    fh_company_fit: () => world.fit ?? [],
+    fh_company_person: () => world.person ?? null,
+    [TAKE_RUN_RPC]: () => ("allowed" in world ? world.allowed : true),
+  };
   const db = {
     rpc: (name: string, args: unknown) => {
-      reads.push([name, args]);
-      return answer(name, name === "fh_company_fit" ? world.fit ?? [] : world.person ?? null);
+      calls.push([name, args]);
+      return answer(name, RPC[name]());
     },
     from: (table: string) => ({
-      select: (columns: string, options?: unknown) => ({
+      select: (columns: string) => ({
         eq: (column: string, value: unknown) => ({
           maybeSingle: () => {
-            reads.push([table, columns, column, value]);
+            calls.push([table, columns, column, value]);
             return answer(table, table === "fh_profiles" ? world.profile ?? null : world.company ?? null);
           },
         }),
-        gte: (column: string, value: string) => {
-          reads.push([table, columns, options, column, value]);
-          return answer(`${table}:count`, null, { count: world.runs ?? 0 });
-        },
       }),
-      insert: (row: unknown) => { writes.push([table, "insert", row]); return answer(`${table}:insert`, null); },
-      upsert: (row: unknown, options: unknown) => { writes.push([table, "upsert", row, options]); return answer(`${table}:upsert`, null); },
     }),
   };
-  return { db: db as unknown as HandleDeps["db"], writes, reads };
+  return { db: db as unknown as HandleDeps["db"], calls };
 }
 
 const ready: World = {
@@ -58,11 +57,13 @@ const ready: World = {
 };
 
 function run(world: World, over: Partial<Omit<HandleDeps, "db" | "userId">> & { signedIn?: boolean } = {}) {
-  const { db, writes, reads } = fakeDb(world);
+  const { db, calls } = fakeDb(world);
   const generate = vi.fn<Generate>(async () => ({ ok: true, draft: DRAFT }));
-  const deps: HandleDeps = { db, userId: USER, body: { company_id: 812 }, apiKey: "test-key", generate, now: NOW, ...over };
-  return { promise: handleDraftRequest(over.signedIn === false ? null : deps, deps), writes, reads, generate: (over.generate ?? generate) as typeof generate };
+  const deps: HandleDeps = { db, userId: USER, contentType: "application/json", body: { company_id: 812 }, apiKey: "test-key", generate, ...over };
+  return { promise: handleDraftRequest(over.signedIn === false ? null : deps, deps), calls, generate: (over.generate ?? generate) as typeof generate };
 }
+
+const tookRun = (calls: unknown[]) => calls.filter((call) => Array.isArray(call) && call[0] === TAKE_RUN_RPC);
 
 let logged: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
@@ -85,16 +86,23 @@ describe("parseCompanyId", () => {
   });
 });
 
-describe("utcDayStart", () => {
-  it("is midnight UTC of the given moment", () => {
-    expect(utcDayStart(new Date("2026-11-16T23:59:00-06:00")).toISOString()).toBe("2026-11-17T00:00:00.000Z");
-    expect(utcDayStart(NOW).toISOString()).toBe("2026-11-16T00:00:00.000Z");
+describe("isJson", () => {
+  it("accepts JSON, with or without a charset", () => {
+    expect(isJson("application/json")).toBe(true);
+    expect(isJson("application/json; charset=utf-8")).toBe(true);
+    expect(isJson("Application/JSON")).toBe(true);
+  });
+
+  it("refuses anything else", () => {
+    for (const type of [null, "", "text/plain", "application/x-www-form-urlencoded", "multipart/form-data; boundary=x", "application/jsonp"]) {
+      expect(isJson(type), String(type)).toBe(false);
+    }
   });
 });
 
 describe("handleDraftRequest: the normal path", () => {
-  it("records a run, writes from the resume, the company, its roles and its person, saves the draft and returns it", async () => {
-    const { promise, writes, reads, generate } = run(ready);
+  it("takes a try, writes from the resume, the company, its roles and its person, and returns the draft without saving it", async () => {
+    const { promise, calls, generate } = run(ready);
     expect(await promise).toEqual({ status: 200, body: { draft: DRAFT } });
     expect(generate).toHaveBeenCalledWith(
       {
@@ -105,19 +113,14 @@ describe("handleDraftRequest: the normal path", () => {
       },
       { apiKey: "test-key" },
     );
-    expect(reads).toContainEqual(["fh_company_fit", { p_days: 60, p_companies: [812] }]);
-    expect(reads).toContainEqual(["fh_company_person", { p_company: 812 }]);
-    expect(reads).toContainEqual([DRAFT_RUNS_TABLE, "at", { count: "exact", head: true }, "at", "2026-11-16T00:00:00.000Z"]);
-    expect(writes).toEqual([
-      [DRAFT_RUNS_TABLE, "insert", { company_id: 812 }],
-      [DRAFTS_TABLE, "upsert", { company_id: 812, subject: DRAFT.subject, body: DRAFT.body, resume_quote: DRAFT.resumeQuote, company_quote: DRAFT.companyQuote, model: DRAFT.model }, { onConflict: "user_id,company_id" }],
-    ]);
+    expect(calls).toContainEqual(["fh_company_fit", { p_days: 60, p_companies: [812] }]);
+    expect(calls).toContainEqual(["fh_company_person", { p_company: 812 }]);
+    expect(tookRun(calls)).toEqual([[TAKE_RUN_RPC, { p_company: 812 }]]);
   });
 
-  it("passes at most 12,000 characters of the resume", async () => {
+  it("passes at most RESUME_CAP characters of the resume", async () => {
     const { promise, generate } = run({ ...ready, profile: { resume_text: "a".repeat(RESUME_CAP + 500) } });
     await promise;
-    expect(RESUME_CAP).toBe(12_000);
     expect(generate.mock.calls[0][0].resumeText).toHaveLength(RESUME_CAP);
   });
 
@@ -125,12 +128,6 @@ describe("handleDraftRequest: the normal path", () => {
     const { promise, generate } = run({ ...ready, fit: [], person: null });
     expect((await promise).status).toBe(200);
     expect(generate.mock.calls[0][0]).toMatchObject({ roles: [], person: null });
-  });
-
-  it("still returns the draft when saving it fails, and logs why", async () => {
-    const { promise } = run({ ...ready, fail: `${DRAFTS_TABLE}:upsert` });
-    expect(await promise).toEqual({ status: 200, body: { draft: DRAFT } });
-    expect(logged).toHaveBeenCalled();
   });
 });
 
@@ -141,47 +138,50 @@ describe("handleDraftRequest: refusals before any model call", () => {
     expect(generate).not.toHaveBeenCalled();
   });
 
-  it("needs a company id", async () => {
-    const { promise, writes } = run(ready, { body: { company_id: "abc" } });
-    expect(await promise).toEqual({ status: 400, body: { error: DRAFT_COPY.badCompany } });
-    expect(writes).toEqual([]);
+  it("refuses a body that is not JSON with 415, before reading anything", async () => {
+    const { promise, calls } = run(ready, { contentType: "text/plain" });
+    expect(await promise).toEqual({ status: 415, body: { error: DRAFT_COPY.notJson } });
+    expect(calls).toEqual([]);
   });
 
-  it("needs a resume", async () => {
+  it("needs a company id", async () => {
+    const { promise, calls } = run(ready, { body: { company_id: "abc" } });
+    expect(await promise).toEqual({ status: 400, body: { error: DRAFT_COPY.badCompany } });
+    expect(calls).toEqual([]);
+  });
+
+  it("needs a resume, and takes no try without one", async () => {
     for (const profile of [null, { resume_text: "" }, { resume_text: 5 }]) {
-      const { promise, writes } = run({ ...ready, profile });
+      const { promise, calls } = run({ ...ready, profile });
       expect(await promise).toEqual({ status: 409, body: { error: DRAFT_COPY.noResume } });
-      expect(writes).toEqual([]);
+      expect(tookRun(calls)).toEqual([]);
     }
   });
 
   it("needs the company to exist", async () => {
-    const { promise } = run({ ...ready, company: null });
+    const { promise, calls } = run({ ...ready, company: null });
     expect(await promise).toEqual({ status: 404, body: { error: DRAFT_COPY.badCompany } });
+    expect(tookRun(calls)).toEqual([]);
   });
 
-  it("stops at the daily limit, without recording a run", async () => {
-    expect(DAILY_DRAFT_LIMIT).toBe(10);
-    const { promise, writes, generate } = run({ ...ready, runs: 10 });
-    expect(await promise).toEqual({ status: 429, body: { error: DRAFT_COPY.limit } });
-    expect(writes).toEqual([]);
-    expect(generate).not.toHaveBeenCalled();
-  });
-
-  it("allows the tenth draft of the day", async () => {
-    expect((await run({ ...ready, runs: 9 }).promise).status).toBe(200);
+  it("stops when the database says today's tries are used up", async () => {
+    for (const allowed of [false, null, "yes"]) {
+      const { promise, generate } = run({ ...ready, allowed });
+      expect(await promise).toEqual({ status: 429, body: { error: DRAFT_COPY.limit } });
+      expect(generate).not.toHaveBeenCalled();
+    }
   });
 
   it("is switched off without a key, says so, and logs it", async () => {
     for (const apiKey of [undefined, ""]) {
-      const { promise, writes } = run(ready, { apiKey });
+      const { promise, calls } = run(ready, { apiKey });
       expect(await promise).toEqual({ status: 503, body: { error: DRAFT_COPY.noKey } });
-      expect(writes).toEqual([]);
+      expect(calls).toEqual([]);
     }
     expect(logged).toHaveBeenCalled();
   });
 
-  it.each(["fh_profiles", "fh_companies", "fh_company_fit", "fh_company_person", `${DRAFT_RUNS_TABLE}:count`, `${DRAFT_RUNS_TABLE}:insert`])(
+  it.each(["fh_profiles", "fh_companies", "fh_company_fit", "fh_company_person", TAKE_RUN_RPC])(
     "gives a line, never the raw error, when %s fails",
     async (step) => {
       const { promise, generate } = run({ ...ready, fail: step });
@@ -200,11 +200,9 @@ describe("handleDraftRequest: the model's answers", () => {
     ["unavailable", 503, DRAFT_COPY.unavailable],
     ["unverified", 422, DRAFT_COPY.unverified],
     ["bad_input", 422, DRAFT_COPY.badInput],
-  ] as const)("%s becomes %i with its own line, and nothing is saved", async (reason, status, line) => {
+  ] as const)("%s becomes %i with its own line", async (reason, status, line) => {
     const generate = vi.fn(async (): Promise<DraftResult> => ({ ok: false, reason }));
-    const { promise, writes } = run(ready, { generate });
-    expect(await promise).toEqual({ status, body: { error: line } });
-    expect(writes).toEqual([[DRAFT_RUNS_TABLE, "insert", { company_id: 812 }]]);
+    expect(await run(ready, { generate }).promise).toEqual({ status, body: { error: line } });
   });
 
   it("treats a throw from the model call as unavailable", async () => {

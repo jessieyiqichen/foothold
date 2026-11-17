@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DRAFTS_TABLE, DRAFT_PATH } from "./constants";
 import { DRAFT_COPY } from "./copy";
-import { draftText, loadSavedDraft, requestDraft, rowToDraft, type DraftsDb } from "./client";
+import { draftText, isEdited, loadSavedDraft, requestDraft, rowToDraft, saveDraft, type DraftsDb } from "./client";
 
 const DRAFT = { subject: "Product intern at Acme", body: "Hi Dana,\n\nI read...", resumeQuote: "Built dashboards in SQL", companyQuote: "Agents for hospital billing", model: "gemini-2.5-flash" };
 const ROW = { subject: DRAFT.subject, body: DRAFT.body, resume_quote: DRAFT.resumeQuote, company_quote: DRAFT.companyQuote, model: DRAFT.model };
@@ -54,6 +54,31 @@ describe("rowToDraft and loadSavedDraft: a saved draft loads with the card", () 
     const db = { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: { message: "relation does not exist" } }) }) }) }) };
     expect(await loadSavedDraft(db as unknown as DraftsDb, 812)).toBeNull();
     expect(logged).toHaveBeenCalledOnce();
+  });
+});
+
+describe("saveDraft: the browser keeps the draft with the person's own client", () => {
+  it("writes one row per company, replacing the earlier draft", async () => {
+    const calls: unknown[] = [];
+    const db = { from: (table: string) => ({ upsert: async (row: unknown, options: unknown) => { calls.push([table, row, options]); return { error: null }; } }) };
+    expect(await saveDraft(db as unknown as DraftsDb, 812, DRAFT)).toBe(true);
+    expect(calls).toEqual([[DRAFTS_TABLE, { company_id: 812, ...ROW }, { onConflict: "user_id,company_id" }]]);
+  });
+
+  it("is false, logged, when the write fails, so the card can say the draft is not kept", async () => {
+    const db = { from: () => ({ upsert: async () => ({ error: { message: "JWT expired" } }) }) };
+    expect(await saveDraft(db as unknown as DraftsDb, 812, DRAFT)).toBe(false);
+    const thrown = { from: () => ({ upsert: async () => { throw new TypeError("Failed to fetch"); } }) };
+    expect(await saveDraft(thrown as unknown as DraftsDb, 812, DRAFT)).toBe(false);
+    expect(logged).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("isEdited", () => {
+  it("is true once the subject or the message differs from the draft", () => {
+    expect(isEdited(DRAFT, { subject: DRAFT.subject, body: DRAFT.body })).toBe(false);
+    expect(isEdited(DRAFT, { subject: "Hello", body: DRAFT.body })).toBe(true);
+    expect(isEdited(DRAFT, { subject: DRAFT.subject, body: `${DRAFT.body} ` })).toBe(true);
   });
 });
 

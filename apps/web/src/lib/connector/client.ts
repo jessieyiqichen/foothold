@@ -2,7 +2,7 @@
 // ever called on the server, where the key is.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fail, ok, type Result } from "../profile/types";
-import { DRAFT_COLUMNS, DRAFT_PATH, DRAFTS_TABLE } from "./constants";
+import { DRAFT_COLUMNS, DRAFT_CONFLICT, DRAFT_PATH, DRAFTS_TABLE } from "./constants";
 import { DRAFT_COPY } from "./copy";
 import type { Draft } from "./types";
 
@@ -53,6 +53,24 @@ export async function loadSavedDraft(db: DraftsDb, companyId: number): Promise<D
     return null;
   }
 }
+
+/** Saves a new draft with the person's own client, which refreshes its token, one row per company. False, logged,
+ *  when it fails: the card then says the draft is not kept, so it is never lost without a word. */
+export async function saveDraft(db: DraftsDb, companyId: number, draft: Draft): Promise<boolean> {
+  try {
+    const row = { company_id: companyId, subject: draft.subject, body: draft.body, resume_quote: draft.resumeQuote, company_quote: draft.companyQuote, model: draft.model };
+    const { error } = await db.from(DRAFTS_TABLE).upsert(row, { onConflict: DRAFT_CONFLICT });
+    if (error) throw new Error(error.message);
+    return true;
+  } catch (cause) {
+    console.error(`Foothold drafts: could not save the draft: ${cause instanceof Error ? cause.message : String(cause)}`);
+    return false;
+  }
+}
+
+/** Whether the person has changed the draft's subject or message on the page. */
+export const isEdited = (draft: { subject: string; body: string }, shown: { subject: string; body: string }): boolean =>
+  draft.subject !== shown.subject || draft.body !== shown.body;
 
 /** What Copy puts on the clipboard: the subject line, a blank line, the body. */
 export const draftText = ({ subject, body }: { subject: string; body: string }): string => `Subject: ${subject}\n\n${body}`;

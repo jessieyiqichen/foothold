@@ -1,5 +1,6 @@
 // House style: no full stops; errors take no "!" and say what to do next.
 import { describe, expect, it } from "vitest";
+import { DAILY_DRAFT_LIMIT } from "./constants";
 import { DRAFT_COPY, DRAFT_ERRORS } from "./copy";
 
 const FULL_STOP = /\.(\s|$)/;
@@ -11,6 +12,11 @@ describe("draft lines", () => {
       expect(line, line).not.toMatch(/!$/);
       expect(line, line).toContain(", ");
     }
+  });
+
+  it("states the daily limit from the constant, as tries", () => {
+    expect(DRAFT_COPY.limit).toContain(`${DAILY_DRAFT_LIMIT} tries`);
+    expect(DRAFT_COPY.limit).not.toMatch(/drafts written/);
   });
 
   it("says plainly that nothing is sent", () => {

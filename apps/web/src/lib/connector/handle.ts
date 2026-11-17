@@ -1,8 +1,11 @@
 // POST /api/drafts, as logic the tests can run: the route (app/api/drafts/route.ts) passes in the signed-in person's
-// database client, the request body, the server's key and the real generateDraft. Every read and write is made with
-// the person's own token, so row-level security decides what they reach; the model sees only their own resume.
+// database client, the request's content type and body, the server's key and the real generateDraft. Every read is
+// made with the person's own token, so row-level security decides what they reach; the model sees only their own
+// resume. The one write is the try, taken by the database (fh_take_draft_run). The draft is not saved here: the
+// person's browser saves it with its own client, whose token is refreshed, since a slow model call can outlive the
+// token this request came with (reviewer, 2026-11-16).
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { DAILY_DRAFT_LIMIT, DRAFT_CONFLICT, DRAFT_RUNS_TABLE, DRAFTS_TABLE, FIT_DAYS, RESUME_CAP } from "./constants";
+import { FIT_DAYS, RESUME_CAP, TAKE_RUN_RPC } from "./constants";
 import { DRAFT_COPY } from "./copy";
 import type { Draft, DraftFailure, DraftInput, Generate } from "./types";
 
@@ -11,10 +14,11 @@ export type HandleDb = Pick<SupabaseClient, "from" | "rpc">;
 export interface HandleDeps {
   db: HandleDb;
   userId: string;
+  /** The request's Content-Type header. */
+  contentType: string | null;
   body: unknown;
   apiKey: string | undefined;
   generate: Generate;
-  now: Date;
 }
 
 export type DraftAnswer = { status: number; body: { draft: Draft } | { error: string } };
@@ -31,8 +35,8 @@ export function parseCompanyId(body: unknown): number | null {
   return typeof id === "number" && Number.isSafeInteger(id) && id > 0 ? id : null;
 }
 
-/** Midnight UTC at the start of `now`'s day: the daily limit counts from here, the same for everyone. */
-export const utcDayStart = (now: Date): Date => new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+/** Whether a Content-Type header says JSON (a charset is allowed). */
+export const isJson = (contentType: string | null): boolean => (contentType ?? "").split(";")[0].trim().toLowerCase() === "application/json";
 
 const FAILURES: Record<DraftFailure, [number, string]> = {
   rate_limited: [429, DRAFT_COPY.busy],
@@ -72,25 +76,15 @@ async function gather(db: HandleDb, userId: string, companyId: number): Promise<
   };
 }
 
-/** Whether the person may write another draft today; records the run when they may. */
-async function takeRun(db: HandleDb, companyId: number, now: Date): Promise<boolean> {
-  const counted = await db.from(DRAFT_RUNS_TABLE).select("at", { count: "exact", head: true }).gte("at", utcDayStart(now).toISOString());
-  check("today's drafts", counted);
-  if ((counted.count ?? 0) >= DAILY_DRAFT_LIMIT) return false;
-  check("a new run", await db.from(DRAFT_RUNS_TABLE).insert({ company_id: companyId }));
-  return true;
+/** Takes one of today's tries; the database counts and refuses under a lock, so parallel requests cannot pass it. */
+async function takeRun(db: HandleDb, companyId: number): Promise<boolean> {
+  return check("a try", await db.rpc(TAKE_RUN_RPC, { p_company: companyId })) === true;
 }
 
-/** Keeps the draft for the card to load next time. A failure here is logged, and the person still gets the draft. */
-async function keep(db: HandleDb, companyId: number, draft: Draft): Promise<void> {
-  const row = { company_id: companyId, subject: draft.subject, body: draft.body, resume_quote: draft.resumeQuote, company_quote: draft.companyQuote, model: draft.model };
-  const { error } = await db.from(DRAFTS_TABLE).upsert(row, { onConflict: DRAFT_CONFLICT });
-  if (error) console.error(`Foothold drafts: could not save the draft: ${error.message}`);
-}
-
-/** POST /api/drafts: refuses what it must before the model is called, counts the run, writes, keeps, answers. */
+/** POST /api/drafts: refuses what it must before the model is called, takes a try, writes, answers. */
 export async function handleDraftRequest(signedIn: Pick<HandleDeps, "db" | "userId"> | null, deps: Omit<HandleDeps, "db" | "userId">): Promise<DraftAnswer> {
   if (!signedIn) return refuse(401, DRAFT_COPY.signedOut);
+  if (!isJson(deps.contentType)) return refuse(415, DRAFT_COPY.notJson);
   const companyId = parseCompanyId(deps.body);
   if (companyId === null) return refuse(400, DRAFT_COPY.badCompany);
   if (!deps.apiKey) {
@@ -101,13 +95,12 @@ export async function handleDraftRequest(signedIn: Pick<HandleDeps, "db" | "user
   try {
     const input = await gather(db, userId, companyId);
     if ("status" in input) return input;
-    if (!(await takeRun(db, companyId, deps.now))) return refuse(429, DRAFT_COPY.limit);
+    if (!(await takeRun(db, companyId))) return refuse(429, DRAFT_COPY.limit);
     const result = await deps.generate(input, { apiKey: deps.apiKey }).catch((cause: unknown) => {
       console.error("Foothold drafts: the model call threw", cause instanceof Error ? cause.message : cause);
       return { ok: false, reason: "unavailable" } as const;
     });
     if (!result.ok) return refuse(...FAILURES[result.reason]);
-    await keep(db, companyId, result.draft);
     return { status: 200, body: { draft: result.draft } };
   } catch (cause) {
     if (!(cause instanceof ReadFailed)) console.error("Foothold drafts: unexpected failure", cause);
