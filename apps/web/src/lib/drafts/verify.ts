@@ -35,6 +35,25 @@ export const ADDRESS_OR_LINK = /[^\s@]+@[^\s@]+\.[a-z]{2,}|https?:\/\/|www\.|\b[
 /** A phone number: seven or more digits, with the usual separators and an optional country code. */
 export const PHONE = /(?:\+?\d{1,3}[\s.-]?)?(?:\(\d{2,4}\)|\d{2,4})[\s.-]?\d{3}[\s.-]?\d{3,4}\b/;
 
+/** A job title claimed as the writer's own: "I am a product manager", "I'm an experienced PM", or a sentence opening
+ *  "As a software engineer". A title followed by "intern", or with "aspiring" before it, is left alone. */
+const OWN_TITLE = /(?:\bI am|\bI'm|(?:^|[.!?]\s+)As)\s+(?:an?\s+)?(?:(?:experienced|seasoned|senior)\s+)?(?:product manager|pm|software engineer|engineer|data scientist|data analyst|analyst|researcher|designer|founder|consultant|product leader)\b(?!\s+intern)/i;
+/** Phrases that make a first email read like a template (user, 2026-11-17). Checked in this order. */
+export const STOCK_PHRASES = [
+  "hope this email finds you well", "i am writing to", "reaching out", "long admired", "always admired", "passionate about",
+  "i would love to bring", "excited to", "thrilled", "pick your brain", "leverage", "synergy", "cutting-edge", "game-changer",
+  "delve", "in today's", "metric-driven", "results-driven", "a unique blend",
+] as const;
+
+function voiceProblems(body: string): string[] {
+  const problems: string[] = [];
+  const claim = OWN_TITLE.exec(body);
+  if (claim) problems.push(`the body calls the writer "${claim[0].replace(/^[.!?]\s+/, "").trim()}"; describe them only as the resume does (a student, an intern)`);
+  const text = normal(body);
+  for (const phrase of STOCK_PHRASES) if (text.includes(phrase)) problems.push(`the body uses the stock phrase "${phrase}"`);
+  return problems;
+}
+
 /** Every problem with a draft, in a fixed order; an empty list means it may be shown. */
 export function checkDraft(d: DraftText, sources: { resume: string; company: string }): string[] {
   const problems: string[] = [];
@@ -48,6 +67,7 @@ export function checkDraft(d: DraftText, sources: { resume: string; company: str
   }
   if (ADDRESS_OR_LINK.test(d.body)) problems.push("the body must not contain an email address or a link");
   if (PHONE.test(d.body)) problems.push("the body must not contain a phone number");
+  problems.push(...voiceProblems(d.body));
   if (d.resumeQuote.length > CHARS.quote || d.companyQuote.length > CHARS.quote) problems.push(`a quote is longer than ${CHARS.quote} characters`);
   if (!quotedIn(d.resumeQuote, sources.resume)) problems.push("the resume quote is not word for word in the resume");
   if (!quotedIn(d.companyQuote, sources.company)) problems.push("the company quote is not word for word in the company description");

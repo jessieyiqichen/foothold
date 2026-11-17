@@ -78,3 +78,35 @@ describe("checkDraft: what a hostile company text could make the model write (re
     expect(problems({ resumeQuote: "Shipped RAG evals for a lecture assistant".padEnd(301, "x") })).toContain("a quote is longer than 300 characters");
   });
 });
+
+// A real draft for Figma (2026-11-17) opened "Hello, I am a product manager" for a student who had interned as a PM,
+// and leaned on "reaching out because I have long admired": the user asked for drafts that state who they are
+// truthfully and do not read like a template
+describe("checkDraft: who the writer says they are, and stock phrases", () => {
+  const base = {
+    subject: "Voice agents and evals",
+    body: Array.from({ length: 90 }, (_, i) => `w${i}`).join(" "),
+    resumeQuote: "Shipped RAG evals for a lecture assistant",
+    companyQuote: "voice AI agents for Indian businesses",
+  };
+  const problems = (body: string) => checkDraft({ ...base, body: `${body} ${base.body}` }, { resume, company });
+
+  it("refuses a job title claimed as the writer's own", () => {
+    for (const claim of ["Hello, I am a product manager with an economics background.", "I'm a data scientist.", "As a software engineer, I", "I am an experienced PM"]) {
+      expect(problems(claim).some((p) => p.startsWith("the body calls the writer"))).toBe(true);
+    }
+  });
+  it("keeps a title in a true frame: an intern, a student, a role at the company", () => {
+    for (const ok of ["As a PM intern at Droi I shipped", "I am a master's student who interned as a product manager.", "Your product manager role caught my eye"]) {
+      expect(problems(ok)).toEqual([]);
+    }
+  });
+  it("names each stock phrase it finds", () => {
+    expect(problems("I am reaching out because I have long admired Figma.")).toEqual([
+      'the body uses the stock phrase "reaching out"', 'the body uses the stock phrase "long admired"',
+    ]);
+    expect(problems("I hope this email finds you well. I am passionate about AI")).toEqual([
+      'the body uses the stock phrase "hope this email finds you well"', 'the body uses the stock phrase "passionate about"',
+    ]);
+  });
+});
