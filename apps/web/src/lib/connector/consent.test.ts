@@ -12,6 +12,12 @@ function storage(broken = false): ConsentStorage & { items: Map<string, string> 
 }
 
 describe("draft consent, kept in the browser for each person", () => {
+  it("does not count an agreement given before what is sent changed (2026-11-21)", () => {
+    const store = storage();
+    store.items.set(consentKey("user_2abc"), "yes");
+    expect(hasConsent("user_2abc", store)).toBe(false);
+  });
+
   it("is one key per Clerk user", () => {
     expect(consentKey("user_2abc")).toBe("foothold.draftConsent.user_2abc");
   });

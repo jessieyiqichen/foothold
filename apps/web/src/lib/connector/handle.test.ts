@@ -15,6 +15,10 @@ interface World {
   person?: unknown;
   /** The fh_postings row a chosen role_id reads. */
   posting?: unknown;
+  /** The person's rows in fh_draft_edits, newest first. */
+  edits?: unknown;
+  /** The person's saved draft for the company (fh_drafts). */
+  saved?: unknown;
   /** What fh_take_draft_run answers: true while today's tries are not used up. */
   allowed?: unknown;
   fail?: string;
@@ -40,6 +44,18 @@ function fakeDb(world: World) {
     from: (table: string) => ({
       select: (columns: string) => ({
         eq: (column: string, value: unknown) => ({
+          eq: (column2: string, value2: unknown) => ({
+            maybeSingle: () => {
+              calls.push([table, columns, column, value, column2, value2]);
+              return answer(table, table === "fh_drafts" ? world.saved ?? null : null);
+            },
+          }),
+          order: () => ({
+            limit: (n: number) => {
+              calls.push([table, columns, column, value, n]);
+              return answer(table, world.edits ?? []);
+            },
+          }),
           maybeSingle: () => {
             calls.push([table, columns, column, value]);
             return answer(table, table === "fh_profiles" ? world.profile ?? null : table === "fh_postings" ? world.posting ?? null : world.company ?? null);
@@ -112,6 +128,10 @@ describe("handleDraftRequest: the normal path", () => {
         company: { name: "Acme AI", oneLiner: "Agents for hospital billing", description: "Acme builds agents for hospital billing teams." },
         roles: [{ title: "Associate Product Manager" }],
         person: { name: "Dana Lee", role: "Founder" },
+        pitch: null,
+        posting: null,
+        edits: [],
+        avoid: null,
       },
       { apiKey: "test-key" },
     );
@@ -230,10 +250,11 @@ describe("handleDraftRequest: a chosen role", () => {
     run({ ...ready, posting }, { body: { company_id: 812, consent: true, role_id } });
 
   it("writes about the chosen role only", async () => {
-    const { promise, calls, generate } = withRole(5501, { id: 5501, company_id: 812, title: "Data Analyst", closed_at: null });
+    const { promise, calls, generate } = withRole(5501, { id: 5501, company_id: 812, title: "Data Analyst", text: "You will build dashboards.", closed_at: null });
     expect((await promise).status).toBe(200);
     expect(generate.mock.calls[0][0].roles).toEqual([{ title: "Data Analyst" }]);
-    expect(calls).toContainEqual(["fh_postings", "id, company_id, title, closed_at", "id", 5501]);
+    expect(generate.mock.calls[0][0].posting).toEqual({ title: "Data Analyst", text: "You will build dashboards." });
+    expect(calls).toContainEqual(["fh_postings", "id, company_id, title, text, closed_at", "id", 5501]);
   });
   it("takes the role id as digits too", async () => {
     const { promise, generate } = withRole("5501", { id: 5501, company_id: 812, title: "Data Analyst", closed_at: null });
@@ -268,5 +289,30 @@ describe("handleDraftRequest: a chosen role", () => {
     expect(await promise).toEqual({ status: 502, body: { error: DRAFT_COPY.readFailed } });
     expect(generate).not.toHaveBeenCalled();
     expect(tookRun(calls)).toEqual([]);
+  });
+});
+
+// The drafts' harness (user, 2026-11-21): the person's one-line intro, their newest edits, and "Try another angle"
+describe("handleDraftRequest: what the harness passes on", () => {
+  it("passes the person's intro and their newest edits, read as them", async () => {
+    const edits = [{ before_subject: "Hi", before_body: "Old", after_subject: "Hello", after_body: "New" }, { before_subject: "x" }];
+    const { promise, calls, generate } = run({ ...ready, profile: { resume_text: RESUME, pitch: "UChicago MA student" }, edits });
+    expect((await promise).status).toBe(200);
+    expect(generate.mock.calls[0][0]).toMatchObject({ pitch: "UChicago MA student", edits: [{ before: { subject: "Hi", body: "Old" }, after: { subject: "Hello", body: "New" } }] });
+    expect(calls).toContainEqual(["fh_draft_edits", "before_subject, before_body, after_subject, after_body", "user_id", USER, 5]);
+  });
+  it("for another angle, reads the saved draft's resume line itself, and refuses anything but true before any try", async () => {
+    const ok = run({ ...ready, saved: { resume_quote: "Built dashboards in SQL" } }, { body: { company_id: 812, consent: true, another: true } });
+    expect((await ok.promise).status).toBe(200);
+    expect(ok.generate.mock.calls[0][0].avoid).toBe("Built dashboards in SQL");
+    expect(ok.calls).toContainEqual(["fh_drafts", "resume_quote", "user_id", USER, "company_id", 812]);
+    const none = run(ready, { body: { company_id: 812, consent: true, another: true } });
+    expect((await none.promise).status).toBe(200);
+    expect(none.generate.mock.calls[0][0].avoid).toBeNull();
+    for (const another of [3, "yes", "Built dashboards in SQL"]) {
+      const bad = run(ready, { body: { company_id: 812, consent: true, another } });
+      expect(await bad.promise).toEqual({ status: 400, body: { error: DRAFT_COPY.badAngle } });
+      expect(tookRun(bad.calls)).toEqual([]);
+    }
   });
 });

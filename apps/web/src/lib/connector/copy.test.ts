@@ -26,10 +26,10 @@ describe("draft lines", () => {
     expect(DRAFT_COPY.unverified).toBe("The draft didn't hold up to checking, try again");
   });
 
-  it("says what is sent where before the first draft, in the agreed words, one sentence a line", () => {
+  it("says what is sent where before the first draft, in the agreed words (2026-11-16, changed with the harness on 2026-11-21, pending the user's yes), one sentence a line", () => {
     expect(CONSENT_LINES).toEqual([
-      "To write this, Foothold sends your resume's experience to Google Gemini",
-      "Your name, email, phone and links are taken out first",
+      "To write this, Foothold sends your resume's experience to Google Gemini, with your one line about you and the changes you made to earlier messages",
+      "Your name, email, phone, links and sign-offs are taken out first",
       "On Gemini's free tier, Google may keep what is sent and people at Google may read it",
       "You must be 18 or older",
     ]);

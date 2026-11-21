@@ -5,7 +5,9 @@
 export type ConsentStorage = Pick<Storage, "getItem" | "setItem">;
 
 const PREFIX = "foothold.draftConsent.";
-const AGREED = "yes";
+/** The version of what was agreed to. It changed on 2026-11-21, when the one line about you and the kept changes were
+ *  added to what is sent (review): an earlier "yes" no longer counts, so everyone is asked again. */
+const AGREED = "yes-2026-11-21";
 
 export const consentKey = (userId: string): string => `${PREFIX}${userId}`;
 

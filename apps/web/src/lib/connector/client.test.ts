@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DRAFTS_TABLE, DRAFT_PATH } from "./constants";
 import { DRAFT_COPY } from "./copy";
-import { draftText, isEdited, loadSavedDraft, requestDraft, rowToDraft, saveDraft, type DraftsDb } from "./client";
+import { draftText, isEdited, loadSavedDraft, requestDraft, rowToDraft, saveDraft, saveEdit, type DraftsDb } from "./client";
 
 const DRAFT = { subject: "Product intern at Acme", body: "Hi Dana,\n\nI read...", resumeQuote: "Built dashboards in SQL", companyQuote: "Agents for hospital billing", model: "gemini-2.5-flash" };
 const ROW = { subject: DRAFT.subject, body: DRAFT.body, resume_quote: DRAFT.resumeQuote, company_quote: DRAFT.companyQuote, model: DRAFT.model };
@@ -27,6 +27,12 @@ describe("requestDraft: asking the server route for a draft", () => {
     const fetcher = answer(200, { draft: DRAFT });
     await requestDraft(812, fetcher, 5501);
     expect(fetcher).toHaveBeenCalledWith(DRAFT_PATH, expect.objectContaining({ body: JSON.stringify({ company_id: 812, consent: true, role_id: 5501 }) }));
+  });
+
+  it("asks for another angle, without sending any resume text", async () => {
+    const fetcher = answer(200, { draft: DRAFT });
+    await requestDraft(812, fetcher, 5501, true);
+    expect(fetcher).toHaveBeenCalledWith(DRAFT_PATH, expect.objectContaining({ body: JSON.stringify({ company_id: 812, consent: true, role_id: 5501, another: true }) }));
   });
 
   it("shows the route's own line when it refuses", async () => {
@@ -96,5 +102,27 @@ describe("isEdited", () => {
 describe("draftText: what Copy puts on the clipboard", () => {
   it("is the subject line and the body", () => {
     expect(draftText({ subject: "Hello", body: "Hi Dana" })).toBe("Subject: Hello\n\nHi Dana");
+  });
+});
+
+describe("saveEdit: how the person changed a draft, kept when they press Copy", () => {
+  const before = { subject: "Hi", body: "Old text" };
+  const db = (error: { message: string } | null) => {
+    const insert = vi.fn(async () => ({ error }));
+    return { db: { from: vi.fn(() => ({ insert })) } as unknown as DraftsDb, insert };
+  };
+  it("keeps a real change, with the company", async () => {
+    const { db: d, insert } = db(null);
+    expect(await saveEdit(d, 812, before, { subject: "Hi", body: "New text" })).toBe(true);
+    expect(insert).toHaveBeenCalledWith({ company_id: 812, before_subject: "Hi", before_body: "Old text", after_subject: "Hi", after_body: "New text" });
+  });
+  it("keeps nothing when nothing changed or a field was emptied, and says so when the database refuses", async () => {
+    const { db: d, insert } = db(null);
+    expect(await saveEdit(d, 812, before, before)).toBe(false);
+    expect(await saveEdit(d, 812, before, { subject: "Hi", body: "  " })).toBe(false);
+    expect(insert).not.toHaveBeenCalled();
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await saveEdit(db({ message: "no" }).db, 812, before, { subject: "Hi", body: "New" })).toBe(false);
+    logged.mockRestore();
   });
 });

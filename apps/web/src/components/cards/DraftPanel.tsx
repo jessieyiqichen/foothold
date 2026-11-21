@@ -18,38 +18,47 @@ import { useDraft } from "./useDraft";
  *  couldn't load says so. Before a person's first draft, a dialog says what is sent to Google Gemini and asks them to
  *  agree; a line under the button always says it. Foothold never sends anything; the line under it says so. */
 export function DraftPanel({ companyId, userId, withDb, roleId = null, note }: { companyId: number; userId: string | null; withDb: WithDb; roleId?: number | null; note?: string }) {
-  const { view, write, edit } = useDraft(companyId, withDb, roleId);
+  const { view, write, edit, remember } = useDraft(companyId, withDb, roleId);
   const { draft, shown, writing, error, unsaved, loaded, loadFailed } = view;
   const id = `draft-${companyId}`;
   const [asking, setAsking] = useState<"replace" | "consent" | null>(null);
+  // What the person asked for: a fresh draft, or one away from the current draft's resume line ("Try another angle")
+  const [another, setAnother] = useState(false);
 
   // Asked at the moment of the click: the agreement lives in this browser's storage, read only here
-  const start = () => (hasConsent(userId) ? void write() : setAsking("consent"));
-  const again = () => (draft && shown && isEdited(draft, shown) ? setAsking("replace") : start());
+  const start = (away: boolean) => (hasConsent(userId) ? void write(away) : setAsking("consent"));
+  const ask = (away: boolean) => {
+    setAnother(away);
+    if (draft && shown && isEdited(draft, shown)) setAsking("replace");
+    else start(away);
+  };
   const agree = () => {
     rememberConsent(userId);
     setAsking(null);
-    void write();
+    void write(another);
   };
   return (
     <Part id={id} title={DRAFT_COPY.heading}>
       {note && <p className="font-mono text-xs text-muted">{note}</p>}
-      {draft && shown && <DraftEditor shown={shown} onChange={edit} id={id} />}
+      {draft && shown && <DraftEditor shown={shown} onChange={edit} onCopied={remember} id={id} />}
       {loadFailed && <p role="alert" className="text-sm font-bold text-danger">{DRAFT_COPY.loadFailed}</p>}
       <p role="status" className="font-mono text-xs text-ink">{writing ? DRAFT_COPY.writing : ""}</p>
       {error && <p role="alert" className="text-sm font-bold text-danger">{error}</p>}
       {unsaved && draft && <p role="alert" className="text-sm font-bold text-danger">{DRAFT_COPY.notKept}</p>}
       {loaded && (
-        <Button variant={draft ? "ghost" : "secondary"} className="self-start" onClick={again} disabled={!canWrite(view)}>
-          {draft ? DRAFT_COPY.again : DRAFT_COPY.write}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {draft && <Button variant="secondary" onClick={() => ask(true)} disabled={!canWrite(view)}>{DRAFT_COPY.angle}</Button>}
+          <Button variant={draft ? "ghost" : "secondary"} onClick={() => ask(false)} disabled={!canWrite(view)}>
+            {draft ? DRAFT_COPY.again : DRAFT_COPY.write}
+          </Button>
+        </div>
       )}
       <p className="font-mono text-[11px] leading-4 text-muted">{DRAFT_COPY.sendsLine}</p>
       <p className="font-mono text-[11px] leading-4 text-muted">{DRAFT_COPY.neverSends}</p>
       <PaperDialog open={asking === "replace"} title={DRAFT_COPY.replaceTitle} closeLabel={DRAFT_COPY.keepEdits} onClose={() => setAsking(null)}>
         <div className="flex flex-col items-start gap-4">
           <p>{DRAFT_COPY.replaceBody}</p>
-          <Button onClick={() => { setAsking(null); start(); }}>{DRAFT_COPY.replace}</Button>
+          <Button onClick={() => { setAsking(null); start(another); }}>{DRAFT_COPY.replace}</Button>
         </div>
       </PaperDialog>
       {/* Escape and the close key are "Not now": nothing is sent, nothing is kept */}
@@ -66,17 +75,20 @@ export function DraftPanel({ companyId, userId, withDb, roleId = null, note }: {
 interface DraftEditorProps {
   shown: Shown;
   onChange: (text: Shown) => void;
+  /** After a copy: keeps how the person changed the draft, for the next one; false when it could not. */
+  onCopied: () => Promise<boolean>;
   id: string;
 }
 
-/** The draft as text the person edits and copies. Edits stay on the page. */
-function DraftEditor({ shown, onChange, id }: DraftEditorProps) {
+/** The draft as text the person edits and copies. Edits stay on the page; copying a changed draft keeps the change. */
+function DraftEditor({ shown, onChange, onCopied, id }: DraftEditorProps) {
   const [copied, setCopied] = useState<string | null>(null);
 
   async function copy() {
     try {
       await navigator.clipboard.writeText(draftText(shown));
       setCopied(DRAFT_COPY.copied);
+      if (!(await onCopied())) setCopied(DRAFT_COPY.editNotKept);
     } catch (cause) {
       console.error("Foothold drafts: the clipboard refused", cause);
       setCopied(DRAFT_COPY.copyFailed);

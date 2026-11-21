@@ -2,7 +2,7 @@
 // ever called on the server, where the key is.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fail, ok, type Result } from "../profile/types";
-import { DRAFT_COLUMNS, DRAFT_CONFLICT, DRAFT_PATH, DRAFTS_TABLE } from "./constants";
+import { DRAFT_COLUMNS, DRAFT_CONFLICT, DRAFT_PATH, DRAFTS_TABLE, EDITS_TABLE } from "./constants";
 import { DRAFT_COPY } from "./copy";
 import type { Draft } from "./types";
 
@@ -23,12 +23,13 @@ const ROW_KEYS = { subject: "subject", body: "body", resumeQuote: "resume_quote"
 
 export const rowToDraft = (row: unknown): Draft | null => readDraft(row, ROW_KEYS);
 
-/** Asks the server for a draft for one company, about the chosen role when there is one, saying the person agreed to send their experience to Gemini; the
+/** Asks the server for a draft for one company, about the chosen role when there is one and, for "Try another
+ *  angle", away from the saved draft's resume line, saying the person agreed to send their experience to Gemini; the
  *  card calls this only after they have. A refusal comes back with the route's own line. */
-export async function requestDraft(companyId: number, fetcher: typeof fetch = fetch, roleId: number | null = null): Promise<Result<Draft>> {
+export async function requestDraft(companyId: number, fetcher: typeof fetch = fetch, roleId: number | null = null, another = false): Promise<Result<Draft>> {
   try {
     const response = await fetcher(DRAFT_PATH, {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(roleId === null ? { company_id: companyId, consent: true } : { company_id: companyId, consent: true, role_id: roleId }),
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ company_id: companyId, consent: true, ...(roleId === null ? {} : { role_id: roleId }), ...(another ? { another: true } : {}) }),
     });
     const answer: unknown = await response.json().catch(() => null);
     const draft = response.ok && isRecord(answer) ? readDraft(answer.draft, ANSWER_KEYS) : null;
@@ -78,3 +79,21 @@ export const isEdited = (draft: { subject: string; body: string }, shown: { subj
 
 /** What Copy puts on the clipboard: the subject line, a blank line, the body. */
 export const draftText = ({ subject, body }: { subject: string; body: string }): string => `Subject: ${subject}\n\n${body}`;
+
+type Text = { subject: string; body: string };
+
+/** Keeps how the person changed a draft, as they press Copy, so the next draft is written more like them (the
+ *  harness, user 2026-11-21). Saved with their own client; the database keeps their five newest. False, logged, when
+ *  it fails or there was no change: the draft on the page is untouched either way. */
+export async function saveEdit(db: DraftsDb, companyId: number, before: Text, after: Text): Promise<boolean> {
+  if (!isEdited(before, after) || !filled(after.subject) || !filled(after.body)) return false;
+  try {
+    const row = { company_id: companyId, before_subject: before.subject, before_body: before.body, after_subject: after.subject, after_body: after.body };
+    const { error } = await db.from(EDITS_TABLE).insert(row);
+    if (error) throw new Error(error.message);
+    return true;
+  } catch (cause) {
+    console.error(`Foothold drafts: could not keep the edit: ${cause instanceof Error ? cause.message : String(cause)}`);
+    return false;
+  }
+}

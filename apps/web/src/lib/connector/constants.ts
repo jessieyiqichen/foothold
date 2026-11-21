@@ -16,3 +16,11 @@ export const DAILY_DRAFT_LIMIT = 10;
 export const RESUME_CAP = RESUME_MAX;
 /** The card's roles are the company's fresh ones, as on the card itself. */
 export const FIT_DAYS = 60;
+/** How the person changed earlier drafts (supabase/migrations/20261121140000_foothold_draft_harness.sql): the newest
+ *  EDITS_KEPT are kept there and passed to the next draft. */
+export const EDITS_TABLE = "fh_draft_edits";
+export const EDITS_KEPT = 5;
+/** "Try another angle" sends the current draft's resume line; longer than a quote can be, and it is refused. */
+export const AVOID_MAX = 1000;
+/** The one-line intro, as fh_profiles.pitch allows. */
+export const PITCH_MAX = 300;
