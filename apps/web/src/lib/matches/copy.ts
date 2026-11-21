@@ -18,6 +18,7 @@ export const MATCHES_COPY = {
 
   why: "Why this is here",
   noShared: "It is the kind of work you picked",
+  posting: "Posting",
   newTab: "(opens in a new tab)",
   showingMore: "Loading more…",
   moreFailed: "More matches didn't load, check your connection and try again",

@@ -8,10 +8,11 @@ import { TODAY_PATH } from "@/lib/cards/constants";
 import { CARDS_COPY, DECISION_LABEL } from "@/lib/cards/copy";
 import type { SavedCard } from "@/lib/cards/types";
 import { MATCHES_PATH } from "@/lib/matches/constants";
-import type { WithDb } from "@/components/auth/useSessionDb";
-import { ContactPart, RolesPart } from "./CardParts";
-import { DraftPanel } from "./DraftPanel";
-import { Blurb } from "./Expandable";
+import Link from "next/link";
+import { ShortCard } from "@/components/company/ShortCard";
+import { buttonClass } from "@/components/ui/Button";
+import { companyHref } from "@/lib/company/constants";
+import { COMPANY_COPY } from "@/lib/company/copy";
 import { UndoBar } from "./UndoBar";
 import { useSaved } from "./useSaved";
 
@@ -25,40 +26,28 @@ interface SavedCardProps {
   card: SavedCard;
   busy: boolean;
   error: string | null;
-  onReached: () => void;
   onRemove: () => void;
-  withDb: WithDb;
-  userId: string | null;
 }
 
-/** A compact card: the name, its decision, the line about the company, who to contact and the roles, then the
- *  changes. Straight and untilted: it is a list item. */
-function SavedCardView({ card, busy, error, onReached, onRemove, withDb, userId }: SavedCardProps) {
-  const id = (part: string) => `saved-${card.companyId}-${part}`;
+/** A saved company as a short card (user, 2026-11-21): its decision as a tile, Open for its page, where the roles,
+ *  the message and "I reached out" are, and Remove. */
+function SavedCardView({ card, busy, error, onRemove }: SavedCardProps) {
+  const tag = <span className={`px-1.5 py-0.5 font-mono text-[11px] leading-4 ${DECISION_TILE[card.decision]}`}>{DECISION_LABEL[card.decision]}</span>;
   return (
-    <li className="flex flex-col gap-3 border-2 border-ink bg-surface p-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id={id("name")} className="text-xl font-black tracking-[-0.02em] break-words text-ink">{card.name}</h2>
-        <span className={`px-1.5 py-0.5 font-mono text-[11px] leading-4 ${DECISION_TILE[card.decision]}`}>{DECISION_LABEL[card.decision]}</span>
-      </div>
-      {card.oneLiner && <Blurb text={card.oneLiner} className="text-[15px] text-ink" />}
-      <ContactPart card={card} id={id("contact")} />
-      <RolesPart card={card} id={id("roles")} />
-      <DraftPanel companyId={card.companyId} userId={userId} withDb={withDb} />
-      {error && <p role="alert" className="text-sm font-bold text-danger">{error}</p>}
-      <div className="flex flex-wrap items-center gap-3 border-t border-hairline pt-3">
-        {card.decision === "saved" && <Button variant="secondary" onClick={onReached} disabled={busy} aria-label={`${CARDS_COPY.markReached}: ${card.name}`}>{CARDS_COPY.markReached}</Button>}
-        <Button variant="ghost" onClick={onRemove} disabled={busy} aria-label={`${CARDS_COPY.remove} ${card.name}`}>{CARDS_COPY.remove}</Button>
-      </div>
-    </li>
+    <ShortCard card={card} tag={tag}>
+      <Link href={companyHref(card.companyId, card.roles[0]?.id ?? null)} className={buttonClass({})}>{COMPANY_COPY.open} →</Link>
+      <Button variant="ghost" onClick={onRemove} disabled={busy} aria-label={`${CARDS_COPY.remove} ${card.name}`}>{CARDS_COPY.remove}</Button>
+      {error && <p role="alert" className="w-full text-sm font-bold text-danger">{error}</p>}
+    </ShortCard>
   );
 }
 
-/** Saved (`/saved`): the companies saved or reached out to, newest first, with all roles linked quietly at the foot. */
+/** Saved (`/saved`): the companies saved or reached out to, newest first, as short cards that open their pages; all
+ *  roles linked quietly at the foot. */
 export function SavedScreen() {
   const profile = useProfile();
   const ready = profile.state.kind === "ready";
-  const { state, busy, error, removed, retry, markReached, remove, undoRemove, dismissUndo } = useSaved(profile.withDb, ready);
+  const { state, busy, error, removed, retry, remove, undoRemove, dismissUndo } = useSaved(profile.withDb, ready);
   const failed = profile.state.kind === "failed" ? profile.state : state.kind === "failed" ? state : null;
 
   return (
@@ -80,7 +69,7 @@ export function SavedScreen() {
           <ul className="flex flex-col gap-4">
             {state.cards.map((card) => (
               <SavedCardView key={card.companyId} card={card} busy={busy === card.companyId} error={error?.companyId === card.companyId ? error.message : null}
-                onReached={() => markReached(card)} onRemove={() => remove(card)} withDb={profile.withDb} userId={profile.userId} />
+                onRemove={() => remove(card)} />
             ))}
           </ul>
         )}
