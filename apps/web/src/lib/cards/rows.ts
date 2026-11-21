@@ -70,8 +70,9 @@ function rowToPerson(row: unknown): CardPerson | null {
   };
 }
 
-/** A row as a card, or null when the company cannot be named or a field is of the wrong type. */
-export function rowToCard(row: unknown): CompanyCard | null {
+/** A row as a card, or null when the company cannot be named or a field is of the wrong type. A card keeps
+ *  MAX_ROLES_ON_CARD roles; the company page keeps more. */
+export function rowToCard(row: unknown, maxRoles: number = MAX_ROLES_ON_CARD): CompanyCard | null {
   if (!isRecord(row)) return null;
   const companyId = companyIdOf(row.company_id);
   const { name, shared, score, roles } = row;
@@ -88,7 +89,7 @@ export function rowToCard(row: unknown): CompanyCard | null {
   return {
     companyId, name: name.trim(), ...(facts as { [K in keyof typeof facts]: Exclude<(typeof facts)[K], undefined> }),
     website: httpsUrl(row.website), investors: [...investors], shared: [...shared], score: rank,
-    roles: roles.map(rowToRole).filter((r): r is CardRole => r !== null).slice(0, MAX_ROLES_ON_CARD),
+    roles: roles.map(rowToRole).filter((r): r is CardRole => r !== null).slice(0, maxRoles),
     person: rowToPerson(row.person),
     foundersUrl: foundersUrl(row.founders_url),
   };
@@ -98,7 +99,7 @@ export function rowToCard(row: unknown): CompanyCard | null {
 export function readCards(data: unknown): { cards: CompanyCard[]; dropped: number } | null {
   if (!Array.isArray(data)) return null;
   const seen = new Set<number>();
-  const cards = data.map(rowToCard).filter((card): card is CompanyCard => {
+  const cards = data.map((r) => rowToCard(r)).filter((card): card is CompanyCard => {
     if (!card || seen.has(card.companyId)) return false;
     seen.add(card.companyId);
     return true;
