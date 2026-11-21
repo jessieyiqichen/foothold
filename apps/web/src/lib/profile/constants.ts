@@ -52,3 +52,5 @@ export const GROUP_FAMILIES: Record<string, Family> = {
 export const OTHER_GROUP = "other";
 /** Group names as written in the vocabulary, where plain capitalising reads wrong. */
 export const GROUP_LABELS: Record<string, string> = { ai: "AI", condition: "Degrees and eligibility", [OTHER_GROUP]: "Other" };
+/** The one-line intro's limit, as fh_profiles.pitch allows (supabase/migrations/20261121140000_foothold_draft_harness.sql). */
+export const PITCH_MAX = 300;

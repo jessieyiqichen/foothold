@@ -8,12 +8,14 @@ import type { Family } from "@/lib/profile/roles";
 import type { TagEdits } from "@/lib/profile/tagEdits";
 import type { Profile, Result } from "@/lib/profile/types";
 import { ResumeEditor } from "./ResumeEditor";
+import { MemoryPanel } from "./MemoryPanel";
+import { PitchEditor } from "./PitchEditor";
 import { SavedProfile } from "./SavedProfile";
 import { useProfile } from "./useProfile";
 
 /** What the screen does with a profile, and the one line saying what just happened. */
 function useProfileActions() {
-  const { state, retry, save, saveEdits, pickFamilies, remove } = useProfile();
+  const { state, retry, save, saveEdits, pickFamilies, keepPitch, remove, userId, withDb } = useProfile();
   const [replacing, setReplacing] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -40,19 +42,20 @@ function useProfileActions() {
   }
   const editTags = (edits: TagEdits) => said(saveEdits(edits));
   const chooseFamilies = (families: Family[]) => said(pickFamilies(families));
+  const savePitch = (pitch: string) => said(keepPitch(pitch));
 
   function setReplacingTo(on: boolean) {
     if (on) setNotice(null);
     setReplacing(on);
   }
 
-  return { state, retry, replacing, notice, saveDraft, deleteResume, editTags, chooseFamilies, setReplacingTo };
+  return { state, retry, replacing, notice, saveDraft, deleteResume, editTags, chooseFamilies, savePitch, setReplacingTo, userId, withDb };
 }
 
 /** The profile page: loading, couldn't load, no resume yet (the editor), a saved profile, or replacing it (the editor
  *  again, starting from what is saved). */
 export function ProfileScreen() {
-  const { state, retry, replacing, notice, saveDraft, deleteResume, editTags, chooseFamilies, setReplacingTo } = useProfileActions();
+  const { state, retry, replacing, notice, saveDraft, deleteResume, editTags, chooseFamilies, savePitch, setReplacingTo, userId, withDb } = useProfileActions();
 
   return (
     <div className="flex w-full flex-col gap-6 lg:max-w-3xl">
@@ -69,7 +72,14 @@ export function ProfileScreen() {
       {state.kind === "ready" && (state.profile === null || replacing ? (
         <ResumeEditor initial={state.profile} onSave={saveDraft} onCancel={state.profile ? () => setReplacingTo(false) : undefined} />
       ) : (
-        <SavedProfile profile={state.profile} onEdit={editTags} onFamilies={chooseFamilies} onReplace={() => setReplacingTo(true)} onDelete={deleteResume} />
+        <SavedProfile profile={state.profile} onEdit={editTags} onFamilies={chooseFamilies} onReplace={() => setReplacingTo(true)} onDelete={deleteResume}>
+          <div className="border-t-2 border-ink pt-5">
+            <PitchEditor profile={state.profile} userId={userId} onSave={savePitch} />
+          </div>
+          <div className="border-t-2 border-ink pt-5">
+            <MemoryPanel userId={userId} withDb={withDb} />
+          </div>
+        </SavedProfile>
       ))}
     </div>
   );

@@ -74,6 +74,25 @@ export const PROFILE_COPY = {
   tooManyFamilies: `That would be more than ${MAX_FAMILIES_WORD}, take one off to pick another`,
   familiesFailed: "That didn't save and your picks are as they were, check your connection and try again",
   levelsFailed: "That filter didn't save and your matches are as they were, check your connection and try again",
+  pitchTitle: "Your one line",
+  pitchIntro: "Who you are and what you want, in your own words: every message Foothold drafts opens from it",
+  pitchLabel: "One line about you",
+  pitchPlaceholder: "UChicago MA student (econ), interned as a PM on AI assistants, looking for AI product roles",
+  pitchSuggest: "Suggest from my resume",
+  pitchSuggesting: "Reading your resume…",
+  pitchSave: "Save",
+  pitchSaved: "Saved, your next message opens from it",
+  pitchCheck: "Read it before you save: every word should be true and sound like you",
+  pitchFailed: "Your line didn't save, check your connection and try again",
+  memoryTitle: "How you edit messages",
+  memoryIntro: "When you change a message and copy it, Foothold keeps the change so the next one sounds more like you; only you can see these, and only the five newest are kept",
+  memoryEmpty: "Nothing kept yet, change a message and copy it",
+  memoryClear: "Clear",
+  memoryCleared: "Cleared, the next message starts fresh",
+  memoryFailed: "These didn't load, check your connection and try again",
+  memoryClearFailed: "That didn't clear, check your connection and try again",
+  memoryBefore: "Foothold wrote",
+  memoryAfter: "You changed it to",
   tagsFull: `A profile holds ${MAX_TAGS} skills, take one off to add another`,
 };
 
@@ -83,7 +102,7 @@ export const PROFILE_ERRORS = [
   PROFILE_COPY.locked, PROFILE_COPY.unreadable, PROFILE_COPY.emptyText, PROFILE_COPY.tooShort, PROFILE_COPY.tooLong,
   PROFILE_COPY.loadFailed, PROFILE_COPY.saveFailed, PROFILE_COPY.deleteFailed, PROFILE_COPY.signedOut,
   PROFILE_COPY.editFailed, PROFILE_COPY.changedElsewhere, PROFILE_COPY.tagsFull,
-  PROFILE_COPY.tooManyFamilies, PROFILE_COPY.familiesFailed, PROFILE_COPY.levelsFailed,
+  PROFILE_COPY.tooManyFamilies, PROFILE_COPY.familiesFailed, PROFILE_COPY.levelsFailed, PROFILE_COPY.pitchFailed, PROFILE_COPY.memoryFailed, PROFILE_COPY.memoryClearFailed,
 ];
 
 export const removeLabel = (tag: string, mine: boolean) => (mine ? `Remove ${tag}, ${PROFILE_COPY.yours}` : `Remove ${tag}`);

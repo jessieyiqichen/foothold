@@ -8,7 +8,7 @@ import { checkFamilies, familiesDraft, foundResult, levelsDraft, markAfter, read
 
 const profile = (over: Partial<Profile> = {}): Profile => ({
   resumeText: "Product work with SQL and user research. ".repeat(8), resumeName: "resume.pdf", tags: ["sql", "user research"],
-  tagsAdded: [], tagsRemoved: [], families: [], levels: [], tagsVersion: 2, updatedAt: "2026-11-13T10:00:00.000Z", ...over,
+  tagsAdded: [], tagsRemoved: [], families: [], levels: [], pitch: null, tagsVersion: 2, updatedAt: "2026-11-13T10:00:00.000Z", ...over,
 });
 const at = (p: Profile) => p.updatedAt;
 

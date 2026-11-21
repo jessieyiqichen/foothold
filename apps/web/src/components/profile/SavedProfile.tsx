@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { PaperDialog } from "@/components/ui/PaperDialog";
 import { PROFILE_COPY, savedLine } from "@/lib/profile/copy";
@@ -16,11 +16,13 @@ interface SavedProfileProps {
   onFamilies: (families: Family[]) => Promise<Result<Profile>>;
   onReplace: () => void;
   onDelete: () => Promise<Result<null>>;
+  /** Sections shown under the saved line: the one-line intro and the kept edits. */
+  children?: ReactNode;
 }
 
 /** A saved profile: when it was saved, its skills, and the two things to do with it. Deleting removes everything at
  *  once, so it asks first (design rules: Confirm for deleting everything, Undo only for one item). */
-export function SavedProfile({ profile, onEdit, onFamilies, onReplace, onDelete }: SavedProfileProps) {
+export function SavedProfile({ profile, onEdit, onFamilies, onReplace, onDelete, children }: SavedProfileProps) {
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,6 +47,7 @@ export function SavedProfile({ profile, onEdit, onFamilies, onReplace, onDelete 
   return (
     <div className="flex flex-col gap-6">
       <p className="font-mono text-xs tabular-nums text-muted">{savedLine(profile.updatedAt, profile.resumeName)}</p>
+      {children}
       <div className="border-t-2 border-ink pt-5">
         <DirectionPicker profile={profile} onSave={onFamilies} />
       </div>

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useSessionDb, type WithDb } from "@/components/auth/useSessionDb";
 import { PROFILE_COPY } from "@/lib/profile/copy";
 import type { Family, Level } from "@/lib/profile/roles";
-import { deleteProfile, loadProfile, saveFamilies, saveLevels, saveProfile, saveTagEdits, type Db } from "@/lib/profile/store";
+import { deleteProfile, loadProfile, saveFamilies, saveLevels, savePitch, saveProfile, saveTagEdits, type Db } from "@/lib/profile/store";
 import { editsOf, type TagEdits } from "@/lib/profile/tagEdits";
 import { fail, type Profile, type Result } from "@/lib/profile/types";
 
@@ -72,6 +72,7 @@ export function useProfile() {
   const saveEdits = useCallback((edits: TagEdits) => change(PROFILE_COPY.editFailed, (db, id, row) => saveTagEdits(db, id, row, edits)), [change]);
   const pickFamilies = useCallback((families: Family[]) => change(PROFILE_COPY.familiesFailed, (db, id, row) => saveFamilies(db, id, row, families)), [change]);
   const filterLevels = useCallback((levels: Level[]) => change(PROFILE_COPY.levelsFailed, (db, id, row) => saveLevels(db, id, row, levels)), [change]);
+  const keepPitch = useCallback((pitch: string) => change(PROFILE_COPY.pitchFailed, (db, id, row) => savePitch(db, id, row, pitch)), [change]);
 
   const remove = useCallback(async (): Promise<Result<null>> => {
     if (!userId) return fail(PROFILE_COPY.signedOut);
@@ -82,5 +83,5 @@ export function useProfile() {
 
   // The proxy sends a signed-out visitor to sign in before this page; this covers a session that ended while it was open
   const shown: ProfileState = isLoaded && !userId ? { kind: "failed", message: PROFILE_COPY.signedOut } : state;
-  return { state: shown, userId, retry, save, saveEdits, pickFamilies, filterLevels, remove, withDb };
+  return { state: shown, userId, retry, save, saveEdits, pickFamilies, filterLevels, keepPitch, remove, withDb };
 }

@@ -1,7 +1,7 @@
 // A person's profile row, read and written as that person. Row-level security lets them reach only the row whose
 // user_id is their own; the filters below name that row, they are not what protects it.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { PROFILE_COLUMNS, PROFILE_TABLE } from "./constants";
+import { PITCH_MAX, PROFILE_COLUMNS, PROFILE_TABLE } from "./constants";
 import { PROFILE_COPY } from "./copy";
 import { cleanFamilies, cleanLevels } from "./directions";
 import { checkResumeText, cleanResumeText, displayName } from "./resumeText";
@@ -27,7 +27,10 @@ export function rowToProfile(row: unknown): Profile | null {
   return {
     resumeText: text, resumeName: name, tags: [...tags], tagsAdded: edits.added, tagsRemoved: edits.removed,
     // Absent on a row from before a person could pick directions and levels: that reads as none picked
-    families: cleanFamilies(row.families), levels: cleanLevels(row.levels), tagsVersion: version, updatedAt,
+    families: cleanFamilies(row.families), levels: cleanLevels(row.levels),
+    // Absent on a row from before the one-line intro (2026-11-21): none saved
+    pitch: typeof row.pitch === "string" && row.pitch.trim() ? row.pitch : null,
+    tagsVersion: version, updatedAt,
   };
 }
 
@@ -111,6 +114,12 @@ export function saveFamilies(db: Db, userId: string, loaded: Profile, families: 
 /** Saves the levels the person filters matches by: only that column. An empty list means every level. */
 export function saveLevels(db: Db, userId: string, loaded: Profile, levels: readonly Level[]): Promise<Result<Profile>> {
   return updateLoaded(db, userId, loaded, { levels: cleanLevels(levels) }, "change the level filter of", PROFILE_COPY.levelsFailed);
+}
+
+/** Saves the person's one-line intro: only that column, trimmed, at most PITCH_MAX characters; empty clears it. */
+export function savePitch(db: Db, userId: string, loaded: Profile, pitch: string): Promise<Result<Profile>> {
+  const line = pitch.replace(/\s+/g, " ").trim().slice(0, PITCH_MAX);
+  return updateLoaded(db, userId, loaded, { pitch: line || null }, "change the one-line intro of", PROFILE_COPY.pitchFailed);
 }
 
 /** Removes the person's row: the resume text, its name and its tags, all of it. */

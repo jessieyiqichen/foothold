@@ -21,6 +21,8 @@ export interface Profile {
   families: Family[];
   /** The levels the person filters matches by; empty means every level. */
   levels: Level[];
+  /** The person's one line about themself, in their own words; every draft opens from it. Null until saved. */
+  pitch: string | null;
   /** The vocabulary version the tags came from (`SKILLS_VERSION` when saved). */
   tagsVersion: number;
   updatedAt: string;

@@ -80,7 +80,7 @@ describe("rowToProfile: a row is checked before it is shown", () => {
   it("reads a well-formed row", () => {
     expect(rowToProfile(savedRow)).toEqual({
       resumeText: savedRow.resume_text, resumeName: "resume.pdf", tags: ["python", "sql"], tagsAdded: ["tableau"], tagsRemoved: ["accounting"],
-      families: ["product", "data"], levels: ["intern", "entry"], tagsVersion: SKILLS_VERSION, updatedAt: "2026-11-11T18:00:00.000Z",
+      families: ["product", "data"], levels: ["intern", "entry"], pitch: null, tagsVersion: SKILLS_VERSION, updatedAt: "2026-11-11T18:00:00.000Z",
     });
     expect(rowToProfile({ ...savedRow, resume_name: null })?.resumeName).toBeNull();
   });
