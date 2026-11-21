@@ -32,3 +32,33 @@ export function resumeForModel(text: string): string {
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
+
+/** A closing line after which an email's sign-off follows: the name, a title, contact lines. */
+const SIGN_OFF = /^\s*(?:best|best regards|regards|kind regards|warm regards|thanks|thank you|many thanks|cheers|sincerely|all the best|yours)\b[^\n]{0,20}$/i;
+/** An email's greeting line ("Hi Dana,"): it names the recipient. */
+const GREETING = /^\s*(?:hi|hello|hey|dear)\b[^\n]{0,60}[,!:]?\s*$/i;
+
+/** The person's name from the first line of their resume, when that line looks like one; null otherwise. */
+export function nameFrom(resume: string): string | null {
+  const first = resume.split(/\r?\n/).find((l) => l.trim() !== "")?.trim() ?? "";
+  return first && looksLikeName(first) ? first : null;
+}
+
+const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** Text the person wrote themself (their one-line intro, their edits to drafts) as it may go to the model: no
+ *  greeting line, nothing from a sign-off on, no line naming a way to reach them, no address, link or phone number,
+ *  and not their name, as the resume's first line gives it, nor any word of it (review, 2026-11-21: a sign-off carried
+ *  the name and a WeChat id). */
+export function withoutContacts(text: string, name: string | null = null): string {
+  const lines = text.split(/\r?\n/);
+  const end = lines.findIndex((l) => SIGN_OFF.test(l));
+  const kept = (end === -1 ? lines : lines.slice(0, end))
+    // A greeting only when more follows it: a one-line subject "Hello" is kept
+    .filter((l, i) => !(i === lines.findIndex((x) => x.trim() !== "") && GREETING.test(l) && lines.filter((x) => x.trim() !== "").length > 1))
+    .filter((l) => !CONTACT_LABEL.test(l));
+  let out = kept.join("\n").replace(LINKS, "").replace(PHONES, "");
+  const words = (name ?? "").split(/\s+/).filter((w) => w.length >= 2);
+  for (const w of words) out = out.replace(new RegExp(`(?<![\\p{L}])${escape(w)}(?![\\p{L}])`, "giu"), "");
+  return out.replace(/[ \t]+\n/g, "\n").replace(/[ \t]{2,}/g, " ").trim();
+}

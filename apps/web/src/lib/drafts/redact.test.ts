@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resumeForModel } from "./redact";
+import { nameFrom, resumeForModel, withoutContacts } from "./redact";
 
 const resume = [
   "Jessie Chen",
@@ -35,5 +35,21 @@ describe("resumeForModel", () => {
   });
   it("drops Chinese contact labels too", () => {
     expect(resumeForModel("陈亦奇\n电话：13476171356\n微信：someone\n产品实习生，负责 AI 助手质量诊断")).toBe("产品实习生，负责 AI 助手质量诊断");
+  });
+});
+
+describe("withoutContacts: the person's own text, with no way to reach them", () => {
+  it("takes out addresses, links and phone numbers and keeps the words", () => {
+    expect(withoutContacts("I built evals, write me at jess@uchicago.edu or +1 (312) 555-0199. See jessie.dev/work")).toBe("I built evals, write me at or . See");
+  });
+  it("takes out the greeting, the sign-off and everything after it, contact lines and the person's name", () => {
+    const edit = "Hi Dana,\nI built a 30-question eval set with Jessie's team.\nWeChat: bnananaaaawow\nBest,\nJessie Chen\nUChicago";
+    const out = withoutContacts(edit, nameFrom("Jessie Chen\nMA, UChicago"));
+    expect(out).toBe("I built a 30-question eval set with 's team.");
+    expect(out).not.toMatch(/Dana|Jessie|Chen|bnananaaaawow/);
+  });
+  it("finds the name only when the resume's first line looks like one", () => {
+    expect(nameFrom("Jessie Chen\nExperience")).toBe("Jessie Chen");
+    expect(nameFrom("EXPERIENCE\nProduct intern")).toBeNull();
   });
 });

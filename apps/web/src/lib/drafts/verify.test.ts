@@ -24,7 +24,8 @@ describe("quotedIn: a quote must appear word for word in its source", () => {
 describe("checkDraft", () => {
   const ok = {
     subject: "Voice agents and evals",
-    body: Array.from({ length: 90 }, (_, i) => `w${i}`).join(" "),
+    // Opens in the first person, as every draft must (2026-11-21)
+    body: `I built ${Array.from({ length: 90 }, (_, i) => `w${i}`).join(" ")}`,
     resumeQuote: "Shipped RAG evals for a lecture assistant",
     companyQuote: "voice AI agents for Indian businesses",
   };
@@ -36,6 +37,7 @@ describe("checkDraft", () => {
     expect(checkDraft(bad, { resume, company })).toEqual([
       "the subject is empty",
       "the body has 1 words; it must have 40 to 160",
+      'the first sentence must be in the first person ("I\'m ..."), not about the writer in the third person',
       "the resume quote is not word for word in the resume",
       "the company quote is not word for word in the company description",
     ]);
@@ -52,7 +54,8 @@ describe("checkDraft", () => {
 describe("checkDraft: what a hostile company text could make the model write (review, 2026-11-16)", () => {
   const base = {
     subject: "Voice agents and evals",
-    body: Array.from({ length: 90 }, (_, i) => `w${i}`).join(" "),
+    // Opens in the first person, as every draft must (2026-11-21)
+    body: `I built ${Array.from({ length: 90 }, (_, i) => `w${i}`).join(" ")}`,
     resumeQuote: "Shipped RAG evals for a lecture assistant",
     companyQuote: "voice AI agents for Indian businesses",
   };
@@ -85,7 +88,8 @@ describe("checkDraft: what a hostile company text could make the model write (re
 describe("checkDraft: who the writer says they are, and stock phrases", () => {
   const base = {
     subject: "Voice agents and evals",
-    body: Array.from({ length: 90 }, (_, i) => `w${i}`).join(" "),
+    // Opens in the first person, as every draft must (2026-11-21)
+    body: `I built ${Array.from({ length: 90 }, (_, i) => `w${i}`).join(" ")}`,
     resumeQuote: "Shipped RAG evals for a lecture assistant",
     companyQuote: "voice AI agents for Indian businesses",
   };
@@ -147,5 +151,29 @@ describe("checkDraft: a draft about one role, asking for a chat", () => {
   it("accepts a one-line self-introduction that leads to the role", () => {
     const opening = "I'm a UChicago master's student who interned as a PM, writing about your Applied Data Researcher role.";
     expect(problems({ body: `${opening} ${base.body}` })).toEqual([]);
+  });
+});
+
+// A real draft, 2026-11-21: "An M.A. student ... is writing to apply" and the company's own "faster, better, and
+// cheaper, at scale" pasted in
+describe("checkDraft: written by the person, in their own words", () => {
+  const base = {
+    subject: "Voice agents and evals",
+    body: `I'm a student writing about your Product Manager role. ${Array.from({ length: 60 }, (_, i) => `w${i}`).join(" ")}`,
+    resumeQuote: "Shipped RAG evals for a lecture assistant",
+    companyQuote: "voice AI agents for Indian businesses",
+  };
+  const problems = (d: Partial<typeof base>) => checkDraft({ ...base, ...d }, { resume, company });
+  it("passes a first-person opening, after a greeting too", () => {
+    expect(problems({})).toEqual([]);
+    expect(problems({ body: `Hi Dana, ${base.body}` })).toEqual([]);
+  });
+  it("refuses a third-person opening", () => {
+    expect(problems({ body: `An M.A. student is writing about your Product Manager role. ${base.body}` }))
+      .toContain('the first sentence must be in the first person ("I\'m ..."), not about the writer in the third person');
+  });
+  it("refuses the company's own words pasted in", () => {
+    expect(problems({ body: `${base.body} You build voice AI agents for Indian businesses.` }))
+      .toContain("the body pastes the company's own words; say what they do in a few words of your own, or leave it out");
   });
 });

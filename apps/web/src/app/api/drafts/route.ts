@@ -2,7 +2,8 @@ import { generateDraft } from "@/lib/drafts/generate";
 import { serverDbForRequest } from "@/lib/db/server";
 import { handleDraftRequest } from "@/lib/connector/handle";
 
-/** A draft can take two model tries (generateDraft retries); the platform's default would cut it off sooner. */
+/** A draft is planned, then written, each with a retry; generateDraft starts no retry after 30 s, so one more call
+ *  (up to 25 s) still ends inside this. The platform's default would cut it off sooner. */
 export const maxDuration = 60;
 
 /** POST /api/drafts, body `{ company_id }`: a draft first message to someone at that company, written by the model

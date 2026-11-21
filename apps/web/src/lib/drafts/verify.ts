@@ -2,6 +2,8 @@
 // word in their sources, the body must be a short email, and it must carry no address or link (the user adds their
 // own). The model writes; this code decides whether what it wrote may be shown (user, 2026-11-16).
 
+import { humanProblems } from "./humanize";
+
 export interface DraftText { subject: string; body: string; resumeQuote: string; companyQuote: string }
 
 export const BODY_WORDS = { min: 40, max: 160 } as const;
@@ -76,8 +78,24 @@ function voiceProblems(body: string): string[] {
   return problems;
 }
 
+/** The first sentence, after any greeting line. */
+const firstSentence = (body: string) => body.replace(/^\s*(?:hi|hello|hey|dear)\b[^\n,]*,?\s*/i, "").split(/(?<=[.!?])\s/)[0] ?? "";
+/** A company quote this long, pasted into the body, reads as their marketing copy (2026-11-21, a real draft). */
+const PASTE_WORDS = 5;
+
+/** How it reads: written by the person ("I"), and the company's own words not pasted in (2026-11-21: a real draft
+ *  opened "An M.A. student ... is writing" and ended on "faster, better, and cheaper, at scale"). */
+function readingProblems(d: DraftText): string[] {
+  const problems: string[] = [];
+  if (!/\b(?:I|I'm|I've|my)\b/.test(firstSentence(d.body))) problems.push("the first sentence must be in the first person (\"I'm ...\"), not about the writer in the third person");
+  if (wordCount(d.companyQuote) >= PASTE_WORDS && normal(d.body).includes(normal(d.companyQuote))) {
+    problems.push("the body pastes the company's own words; say what they do in a few words of your own, or leave it out");
+  }
+  return problems;
+}
+
 /** Every problem with a draft, in a fixed order; an empty list means it may be shown. */
-export function checkDraft(d: DraftText, sources: { resume: string; company: string; roles?: readonly string[] }): string[] {
+export function checkDraft(d: DraftText, sources: { resume: string; company: string; roles?: readonly string[]; allow?: readonly string[] }): string[] {
   const problems: string[] = [];
   if (d.subject.trim().length === 0) problems.push("the subject is empty");
   if (d.subject.length > CHARS.subject) problems.push(`the subject is longer than ${CHARS.subject} characters`);
@@ -89,7 +107,7 @@ export function checkDraft(d: DraftText, sources: { resume: string; company: str
   }
   if (ADDRESS_OR_LINK.test(d.body)) problems.push("the body must not contain an email address or a link");
   if (PHONE.test(d.body)) problems.push("the body must not contain a phone number");
-  problems.push(...askProblems(d.body, sources.roles ?? []), ...voiceProblems(d.body));
+  problems.push(...askProblems(d.body, sources.roles ?? []), ...readingProblems(d), ...voiceProblems(d.body), ...humanProblems(d.body, sources.allow ?? sources.roles ?? []));
   if (d.resumeQuote.length > CHARS.quote || d.companyQuote.length > CHARS.quote) problems.push(`a quote is longer than ${CHARS.quote} characters`);
   if (!quotedIn(d.resumeQuote, sources.resume)) problems.push("the resume quote is not word for word in the resume");
   if (!quotedIn(d.companyQuote, sources.company)) problems.push("the company quote is not word for word in the company description");
