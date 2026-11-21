@@ -14,6 +14,16 @@ One Supabase project, shared with Assignments 4 and 5. Foothold's tables start w
 
 Row-level security is on for all three. Signed-in people read companies and postings; nobody but the workers (the secret key) writes; `fh_runs` is not readable from the app. Per-person tables (profiles, cards, messages) are not built yet and will be each person's own.
 
+Per-person tables, each readable and writable only by its person (row-level security on the Clerk id), none by the workers (`service_role` revoked):
+
+| Table | One row is | Notes |
+|---|---|---|
+| `fh_profiles` | A person's resume, tags, directions, levels and `pitch` | `pitch` (added 2026-11-21): their one line about themself, which every draft opens from |
+| `fh_decisions` | Saved, reached out or skipped, per company | |
+| `fh_drafts` | A person's draft message for one company | Deleted with the resume |
+| `fh_draft_runs` | One draft or intro-suggestion try | Written only through `fh_take_draft_run`, which caps tries per person and for everyone each UTC day |
+| `fh_draft_edits` | A draft as written and as the person changed it, kept when they press Copy | Added 2026-11-21. Five newest kept per person (trigger); insert limited to the text columns; deleted with the resume; shown and cleared on the profile page
+
 ## Workers
 
 | Function | Call | Does |
