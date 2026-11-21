@@ -45,7 +45,9 @@ describe("generateDraft", () => {
     await generateDraft({ ...input, resumeText: "Shipped RAG evals for a lecture assistant. " + "x".repeat(50_000) }, { apiKey: "k", fetch: f, models: ["m1"] });
     const sent = JSON.parse(String((f.mock.calls[0] as unknown as [string, RequestInit])[1].body));
     expect(sent.input.length).toBeLessThan(16_000);
-  });
+    // One 12,000-character line through the redaction patterns: about a quarter second alone, slower when the whole
+    // suite runs in parallel (it timed out once that way on 2026-11-21)
+  }, 20_000);
   it("reports a timeout or a server error as unavailable, not as a quoting problem", async () => {
     const down = vi.fn(async () => new Response("{}", { status: 503 }));
     expect(await generateDraft(input, { apiKey: "k", fetch: down, models: ["m1"] })).toEqual({ ok: false, reason: "unavailable" });
