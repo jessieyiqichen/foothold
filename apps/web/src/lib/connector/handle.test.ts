@@ -13,6 +13,8 @@ interface World {
   company?: unknown;
   fit?: unknown;
   person?: unknown;
+  /** The fh_postings row a chosen role_id reads. */
+  posting?: unknown;
   /** What fh_take_draft_run answers: true while today's tries are not used up. */
   allowed?: unknown;
   fail?: string;
@@ -40,7 +42,7 @@ function fakeDb(world: World) {
         eq: (column: string, value: unknown) => ({
           maybeSingle: () => {
             calls.push([table, columns, column, value]);
-            return answer(table, table === "fh_profiles" ? world.profile ?? null : world.company ?? null);
+            return answer(table, table === "fh_profiles" ? world.profile ?? null : table === "fh_postings" ? world.posting ?? null : world.company ?? null);
           },
         }),
       }),
@@ -218,5 +220,53 @@ describe("handleDraftRequest: the model's answers", () => {
     const generate = vi.fn(async (): Promise<DraftResult> => { throw new Error("socket hang up"); });
     expect(await run(ready, { generate }).promise).toEqual({ status: 503, body: { error: DRAFT_COPY.unavailable } });
     expect(logged).toHaveBeenCalled();
+  });
+});
+
+// The company page lets the person pick the role a draft is about (user, 2026-11-21). The role must be an open role
+// at that company; only its title goes to the model
+describe("handleDraftRequest: a chosen role", () => {
+  const withRole = (role_id: unknown, posting: unknown) =>
+    run({ ...ready, posting }, { body: { company_id: 812, consent: true, role_id } });
+
+  it("writes about the chosen role only", async () => {
+    const { promise, calls, generate } = withRole(5501, { id: 5501, company_id: 812, title: "Data Analyst", closed_at: null });
+    expect((await promise).status).toBe(200);
+    expect(generate.mock.calls[0][0].roles).toEqual([{ title: "Data Analyst" }]);
+    expect(calls).toContainEqual(["fh_postings", "id, company_id, title, closed_at", "id", 5501]);
+  });
+  it("takes the role id as digits too", async () => {
+    const { promise, generate } = withRole("5501", { id: 5501, company_id: 812, title: "Data Analyst", closed_at: null });
+    expect((await promise).status).toBe(200);
+    expect(generate.mock.calls[0][0].roles).toEqual([{ title: "Data Analyst" }]);
+  });
+  it("refuses a role at another company, a closed role, an unknown role and a role id that is not a number, before any try", async () => {
+    for (const [roleId, posting] of [
+      [5501, { id: 5501, company_id: 999, title: "Data Analyst", closed_at: null }],
+      [5501, { id: 5501, company_id: 812, title: "Data Analyst", closed_at: "2026-11-20T00:00:00Z" }],
+      [5501, null],
+      ["abc", null],
+      [-3, null],
+      [0, null],
+      [1.5, null],
+      [5501, { id: 5501, company_id: 812, title: "  ", closed_at: null }],
+      [5501, { id: 5501, company_id: 812, title: null, closed_at: null }],
+    ] as const) {
+      const { promise, calls, generate } = withRole(roleId, posting);
+      expect(await promise).toEqual({ status: 400, body: { error: DRAFT_COPY.badRole } });
+      expect(generate).not.toHaveBeenCalled();
+      expect(tookRun(calls)).toEqual([]);
+    }
+  });
+  it("writes as before when no role is chosen", async () => {
+    const { promise, generate } = withRole(null, null);
+    expect((await promise).status).toBe(200);
+    expect(generate.mock.calls[0][0].roles).toEqual([{ title: "Associate Product Manager" }]);
+  });
+  it("answers a failed read of the role without taking a try", async () => {
+    const { promise, calls, generate } = run({ ...ready, fail: "fh_postings" }, { body: { company_id: 812, consent: true, role_id: 5501 } });
+    expect(await promise).toEqual({ status: 502, body: { error: DRAFT_COPY.readFailed } });
+    expect(generate).not.toHaveBeenCalled();
+    expect(tookRun(calls)).toEqual([]);
   });
 });

@@ -11,7 +11,7 @@ import { ok } from "@/lib/profile/types";
  *  one, which this browser then saves with its own client (its token is fresh, unlike a slow request's). The fields
  *  and the person's edits stay while writing and through a refusal; they change only when a new draft arrives
  *  (lib/connector/draftView.ts). */
-export function useDraft(companyId: number, withDb: WithDb) {
+export function useDraft(companyId: number, withDb: WithDb, roleId: number | null = null) {
   const [view, dispatch] = useReducer(draftView, INITIAL_VIEW);
 
   useEffect(() => {
@@ -27,13 +27,13 @@ export function useDraft(companyId: number, withDb: WithDb) {
   const write = useCallback(async () => {
     if (view.writing) return;
     dispatch({ type: "writeStart" });
-    const result = await requestDraft(companyId);
+    const result = await requestDraft(companyId, fetch, roleId);
     if (!result.ok) return dispatch({ type: "writeFailed", message: result.message });
     const draft = result.value;
     dispatch({ type: "written", draft });
     const saved = await withDb(DRAFT_COPY.notKept, async (db) => ok(await saveDraft(db, companyId, draft)));
     dispatch({ type: "saved", ok: saved.ok && saved.value });
-  }, [companyId, view.writing, withDb]);
+  }, [companyId, roleId, view.writing, withDb]);
 
   const edit = useCallback((shown: Shown) => dispatch({ type: "edit", shown }), []);
   return { view, write, edit };

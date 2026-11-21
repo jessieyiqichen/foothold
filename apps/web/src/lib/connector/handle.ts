@@ -30,9 +30,21 @@ const text = (value: unknown): string | null => (typeof value === "string" && va
 /** The company id from the body: a positive whole number, sent as a number or as digits. */
 export function parseCompanyId(body: unknown): number | null {
   if (!isRecord(body)) return null;
-  const raw = body.company_id;
+  return positiveId(body.company_id);
+}
+
+const positiveId = (raw: unknown): number | null => {
   const id = typeof raw === "string" && /^\d+$/.test(raw) ? Number(raw) : raw;
   return typeof id === "number" && Number.isSafeInteger(id) && id > 0 ? id : null;
+};
+
+/** The role the person chose on the company page: absent or null means none chosen; anything else must be a positive
+ *  whole number (or digits), or the request is refused. */
+export function parseRoleId(body: unknown): { roleId: number | null } | null {
+  const raw = isRecord(body) ? body.role_id : undefined;
+  if (raw === undefined || raw === null) return { roleId: null };
+  const id = positiveId(raw);
+  return id === null ? null : { roleId: id };
 }
 
 /** Whether the body carries the person's agreement: `consent` must be exactly true. */
@@ -59,9 +71,16 @@ function check<T>(what: string, answer: { data: T; error: { message: string } | 
   return answer.data;
 }
 
-/** The model's input: the person's resume (capped), the company's own words, the card's roles and its person. Null
- *  when there is no resume or no such company, with the answer to give. */
-async function gather(db: HandleDb, userId: string, companyId: number): Promise<DraftInput | DraftAnswer> {
+/** The chosen role's title, read as the person: it must be an open role at this company. */
+async function chosenRole(db: HandleDb, companyId: number, roleId: number): Promise<{ title: string }[] | DraftAnswer> {
+  const row = check("the chosen role", await db.from("fh_postings").select("id, company_id, title, closed_at").eq("id", roleId).maybeSingle());
+  const fits = isRecord(row) && Number(row.company_id) === companyId && row.closed_at === null && text(row.title);
+  return fits ? [{ title: (row.title as string).trim() }] : refuse(400, DRAFT_COPY.badRole);
+}
+
+/** The model's input: the person's resume (capped), the company's own words, the chosen role (or the card's roles) and
+ *  its person. An answer instead when there is no resume, no such company, or the role is not open there. */
+async function gather(db: HandleDb, userId: string, companyId: number, roleId: number | null): Promise<DraftInput | DraftAnswer> {
   const profile = check("the profile", await db.from("fh_profiles").select("resume_text").eq("user_id", userId).maybeSingle());
   const resume = isRecord(profile) ? text(profile.resume_text) : null;
   if (!resume) return refuse(409, DRAFT_COPY.noResume);
@@ -69,8 +88,11 @@ async function gather(db: HandleDb, userId: string, companyId: number): Promise<
   if (!isRecord(company) || !text(company.name)) return refuse(404, DRAFT_COPY.badCompany);
   const fit = check("the company's roles", await db.rpc("fh_company_fit", { p_days: FIT_DAYS, p_companies: [companyId] }));
   const person = check("the company's person", await db.rpc("fh_company_person", { p_company: companyId }));
-  const roles = (Array.isArray(fit) ? fit : []).flatMap((row) => (isRecord(row) && Array.isArray(row.roles) ? row.roles : []))
+  const picked = roleId === null ? null : await chosenRole(db, companyId, roleId);
+  if (picked && "status" in picked) return picked;
+  const fitRoles = (Array.isArray(fit) ? fit : []).flatMap((row) => (isRecord(row) && Array.isArray(row.roles) ? row.roles : []))
     .flatMap((role) => (isRecord(role) && text(role.title) ? [{ title: (role.title as string).trim() }] : []));
+  const roles = picked ?? fitRoles;
   return {
     resumeText: resume.slice(0, RESUME_CAP),
     company: { name: (company.name as string).trim(), oneLiner: text(company.one_liner), description: text(company.description) },
@@ -93,13 +115,15 @@ export async function handleDraftRequest(signedIn: Pick<HandleDeps, "db" | "user
   if (!hasConsent(deps.body)) return refuse(400, DRAFT_COPY.noConsent);
   const companyId = parseCompanyId(deps.body);
   if (companyId === null) return refuse(400, DRAFT_COPY.badCompany);
+  const role = parseRoleId(deps.body);
+  if (role === null) return refuse(400, DRAFT_COPY.badRole);
   if (!deps.apiKey) {
     console.error("Foothold drafts: GEMINI_API_KEY is not set on the server");
     return refuse(503, DRAFT_COPY.noKey);
   }
   const { db, userId } = signedIn;
   try {
-    const input = await gather(db, userId, companyId);
+    const input = await gather(db, userId, companyId, role.roleId);
     if ("status" in input) return input;
     if (!(await takeRun(db, companyId))) return refuse(429, DRAFT_COPY.limit);
     const result = await deps.generate(input, { apiKey: deps.apiKey }).catch((cause: unknown) => {

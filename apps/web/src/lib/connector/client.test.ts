@@ -23,6 +23,12 @@ describe("requestDraft: asking the server route for a draft", () => {
     expect(fetcher).toHaveBeenCalledWith(DRAFT_PATH, expect.objectContaining({ method: "POST", body: JSON.stringify({ company_id: 812, consent: true }) }));
   });
 
+  it("posts the chosen role with it, when there is one", async () => {
+    const fetcher = answer(200, { draft: DRAFT });
+    await requestDraft(812, fetcher, 5501);
+    expect(fetcher).toHaveBeenCalledWith(DRAFT_PATH, expect.objectContaining({ body: JSON.stringify({ company_id: 812, consent: true, role_id: 5501 }) }));
+  });
+
   it("shows the route's own line when it refuses", async () => {
     expect(await requestDraft(812, answer(429, { error: "You've written 10 drafts today, you can write more tomorrow" }))).toEqual({
       ok: false, message: "You've written 10 drafts today, you can write more tomorrow",

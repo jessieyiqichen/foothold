@@ -21,6 +21,7 @@ export const DRAFT_COPY = {
 
   signedOut: "You're signed out, sign in again to write a draft",
   badCompany: "That company couldn't be found, reload the page and try again",
+  badRole: "That role is no longer open here, pick another one and try again",
   noResume: "Add your resume first, the draft is written from it",
   readFailed: "Your profile or this company didn't load, try again in a moment",
   limit: `No draft tries left today, you get ${DAILY_DRAFT_LIMIT} tries a day and Foothold has a shared daily total, both reset at midnight UTC`,
@@ -40,7 +41,7 @@ export const DRAFT_COPY = {
 };
 
 export const DRAFT_ERRORS = [
-  DRAFT_COPY.copyFailed, DRAFT_COPY.notKept, DRAFT_COPY.loadFailed, DRAFT_COPY.noConsent, DRAFT_COPY.notJson, DRAFT_COPY.signedOut, DRAFT_COPY.badCompany, DRAFT_COPY.noResume, DRAFT_COPY.readFailed, DRAFT_COPY.limit,
+  DRAFT_COPY.copyFailed, DRAFT_COPY.notKept, DRAFT_COPY.loadFailed, DRAFT_COPY.noConsent, DRAFT_COPY.notJson, DRAFT_COPY.signedOut, DRAFT_COPY.badCompany, DRAFT_COPY.badRole, DRAFT_COPY.noResume, DRAFT_COPY.readFailed, DRAFT_COPY.limit,
   DRAFT_COPY.noKey, DRAFT_COPY.busy, DRAFT_COPY.unavailable, DRAFT_COPY.unverified, DRAFT_COPY.badInput, DRAFT_COPY.failed,
 ];
 

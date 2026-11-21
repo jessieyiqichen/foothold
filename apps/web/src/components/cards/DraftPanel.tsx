@@ -17,8 +17,8 @@ import { useDraft } from "./useDraft";
  *  new one replaces their changes; while it is written, and if it is refused, their text stays. A saved draft that
  *  couldn't load says so. Before a person's first draft, a dialog says what is sent to Google Gemini and asks them to
  *  agree; a line under the button always says it. Foothold never sends anything; the line under it says so. */
-export function DraftPanel({ companyId, userId, withDb }: { companyId: number; userId: string | null; withDb: WithDb }) {
-  const { view, write, edit } = useDraft(companyId, withDb);
+export function DraftPanel({ companyId, userId, withDb, roleId = null, note }: { companyId: number; userId: string | null; withDb: WithDb; roleId?: number | null; note?: string }) {
+  const { view, write, edit } = useDraft(companyId, withDb, roleId);
   const { draft, shown, writing, error, unsaved, loaded, loadFailed } = view;
   const id = `draft-${companyId}`;
   const [asking, setAsking] = useState<"replace" | "consent" | null>(null);
@@ -33,6 +33,7 @@ export function DraftPanel({ companyId, userId, withDb }: { companyId: number; u
   };
   return (
     <Part id={id} title={DRAFT_COPY.heading}>
+      {note && <p className="font-mono text-xs text-muted">{note}</p>}
       {draft && shown && <DraftEditor shown={shown} onChange={edit} id={id} />}
       {loadFailed && <p role="alert" className="text-sm font-bold text-danger">{DRAFT_COPY.loadFailed}</p>}
       <p role="status" className="font-mono text-xs text-ink">{writing ? DRAFT_COPY.writing : ""}</p>

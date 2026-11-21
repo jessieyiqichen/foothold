@@ -23,12 +23,12 @@ const ROW_KEYS = { subject: "subject", body: "body", resumeQuote: "resume_quote"
 
 export const rowToDraft = (row: unknown): Draft | null => readDraft(row, ROW_KEYS);
 
-/** Asks the server for a draft for one company, saying the person agreed to send their experience to Gemini; the
+/** Asks the server for a draft for one company, about the chosen role when there is one, saying the person agreed to send their experience to Gemini; the
  *  card calls this only after they have. A refusal comes back with the route's own line. */
-export async function requestDraft(companyId: number, fetcher: typeof fetch = fetch): Promise<Result<Draft>> {
+export async function requestDraft(companyId: number, fetcher: typeof fetch = fetch, roleId: number | null = null): Promise<Result<Draft>> {
   try {
     const response = await fetcher(DRAFT_PATH, {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ company_id: companyId, consent: true }),
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(roleId === null ? { company_id: companyId, consent: true } : { company_id: companyId, consent: true, role_id: roleId }),
     });
     const answer: unknown = await response.json().catch(() => null);
     const draft = response.ok && isRecord(answer) ? readDraft(answer.draft, ANSWER_KEYS) : null;
