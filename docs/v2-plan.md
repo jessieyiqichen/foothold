@@ -42,3 +42,4 @@ What I saw myself while using it on 2026-11-17:
 
 - More hiring systems: measured gains were small (log.md, 2026-11-11).
 - A full redesign of the front end: after the harness and the people search, so the design is of real content.
+- Builder's Board (A5) as a signal, not a page (user asked, 2026-11-21): a "just launched on Hacker News or Product Hunt" line on a card, and a ready opening for the draft. Waits because the overlap is small: from 2026-10-31 to 11-17 the board's 2,163 HN items matched 31 Foothold companies by domain, and its Product Hunt and GitHub links point at those sites, not the companies. Needs Product Hunt's API for each product's own website, and fits best once the harness looks for an angle. Later still: Product Hunt launches as a source of new companies, through data-scout.

@@ -59,4 +59,5 @@ Read the database, read logs, run the tests. Read-only, without going through th
 | Date | Role | Doing | State |
 |---|---|---|---|
 | 2026-11-10 | lead | Jobs worker (fh-jobs): batches over every company | In progress |
+| 2026-11-21 | lead | v2 step 1, one flow and one card: `fh_company` migration, `/companies/[id]` and `/roles/[id]`, Today as a list, Saved and All roles linking to the company page, a chosen role for drafts. Touches `apps/web/src/` and `supabase/migrations/20261121100000_foothold_company_page.sql`; the user agreed the design question by question | Not committed |
 | 2026-11-11 | ci-baseline (one-off session, branch `chore/ci-baseline`) | CI workflow, `typecheck` script, README "Checks"; touches `.github/`, `package.json`, `README.md`, `apps/web/src/lib/harness/guard.test.ts` | Committed, not pushed |
