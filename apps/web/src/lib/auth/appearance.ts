@@ -32,6 +32,10 @@ export const clerkAppearance = {
   // box hides what sticks out, and the fields reach its edges, so it would cut the sides off the focus ring and the
   // keys' edges (user, 2026-10-26)
   elements: {
+    // The sign-in dialog on public pages (2026-11-22) has no AuthScreen sheet behind it, so it draws its own: with the
+    // card taken away below, the form would otherwise sit see-through on the page
+    modalContent: "w-[min(26rem,calc(100vw-2rem))] border-2 border-ink bg-surface px-6 py-5 shadow-[6px_6px_0_var(--color-ink)]",
+    modalBackdrop: "bg-ink/60",
     rootBox: "w-full",
     cardBox: "w-full overflow-visible border-0 bg-transparent shadow-none",
     card: "border-0 bg-transparent px-0 py-2 shadow-none",

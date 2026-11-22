@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { HOME_PATH, isPublicPath } from "./routes";
+import { HOME_PATH, isPublicPath, PUBLIC_HOME_PATH } from "./routes";
+import { MATCHES_PATH } from "../matches/constants";
 import { TODAY_PATH } from "../cards/constants";
 import { PROFILE_PATH } from "../profile/constants";
 
@@ -11,8 +12,26 @@ describe("isPublicPath: which pages a signed-out visitor may open", () => {
     }
   });
 
+  // Jobs and Companies open to signed-out visitors (user, 2026-11-21); "/" is a page that sends each visitor on
+  it("opens Jobs, Companies, every company page and every role page", () => {
+    for (const path of ["/matches", "/companies", "/companies/4677", "/roles/68783"]) {
+      expect(isPublicPath(path), path).toBe(true);
+    }
+  });
+
+  it("opens \"/\" itself, which sends each visitor on, and nothing that only starts with a slash", () => {
+    expect(isPublicPath("/")).toBe(true);
+    expect(isPublicPath("//today")).toBe(false);
+  });
+
+  it("keeps closed what depends on the person: Today, Saved, Profile, the first visit", () => {
+    for (const path of ["/today", "/saved", "/profile", "/start", "/companies-mine", "/roles-mine"]) {
+      expect(isPublicPath(path), path).toBe(false);
+    }
+  });
+
   it("closes every page that shows a person's goals", () => {
-    for (const path of ["/", "/goals", "/goals/new", "/session", "/reminders", "/progress/abc"]) {
+    for (const path of ["/goals", "/goals/new", "/session", "/reminders", "/progress/abc"]) {
       expect(isPublicPath(path), path).toBe(false);
     }
   });
@@ -34,8 +53,10 @@ describe("HOME_PATH: the front door", () => {
     expect(isPublicPath(HOME_PATH)).toBe(false);
   });
 
-  it("is where next.config.ts sends \"/\"", () => {
-    const config = readFileSync(new URL("../../../next.config.ts", import.meta.url), "utf8");
-    expect(config).toContain(`{ source: "/", destination: "${HOME_PATH}", permanent: false }`);
+  it("is where \"/\" sends a signed-in visitor, and Jobs where it sends a signed-out one", () => {
+    const page = readFileSync(new URL("../../app/page.tsx", import.meta.url), "utf8");
+    expect(page).toContain("redirect(userId ? HOME_PATH : PUBLIC_HOME_PATH)");
+    expect(PUBLIC_HOME_PATH).toBe(MATCHES_PATH);
+    expect(isPublicPath(PUBLIC_HOME_PATH)).toBe(true);
   });
 });

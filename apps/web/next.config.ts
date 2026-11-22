@@ -24,9 +24,6 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@foothold/core"],
   // The front door is today's five (2026-11-14); the same path as HOME_PATH in src/lib/auth/routes.ts, which
   // routes.test.ts checks
-  async redirects() {
-    return [{ source: "/", destination: "/today", permanent: false }];
-  },
   async headers() {
     return [{ source: "/:path*", headers: SECURITY_HEADERS }];
   },

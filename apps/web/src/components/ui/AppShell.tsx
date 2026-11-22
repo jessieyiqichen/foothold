@@ -1,4 +1,5 @@
-import { UserButton } from "@clerk/nextjs";
+import { Show, SignInButton, UserButton } from "@clerk/nextjs";
+import { SIGN_IN_LABEL } from "@/lib/company/copy";
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 import { HOME_PATH } from "@/lib/auth/routes";
@@ -12,7 +13,7 @@ import { Tape } from "./art/Tape";
 const FRAME = "max-w-xl lg:max-w-6xl lg:px-8";
 const WIDTHS = { narrow: FRAME, medium: FRAME, wide: FRAME };
 
-/** The signed-in shell: the wordmark on the left, taped on at a slight tilt with its shape (the one front-facing piece
+/** The shell, signed in or out (a signed-out visitor sees Jobs, Companies and Sign in): the wordmark on the left, taped on at a slight tilt with its shape (the one front-facing piece
  *  of the header), the navigation keys beside it, the account button on the right, an ink rule under them, then the
  *  page. Tape & Tile (user, 2026-11-13). */
 export function AppShell({ children, width = "narrow" }: { children: ReactNode; width?: keyof typeof WIDTHS }) {
@@ -32,9 +33,18 @@ export function AppShell({ children, width = "narrow" }: { children: ReactNode; 
           <Nav />
         </Suspense>
         {/* Clerk's own account button: the person's picture, with Manage account and Sign out behind it. The box
-            keeps its place while Clerk loads, so the header never shifts */}
-        <div className="ml-auto flex size-9 items-center justify-center">
-          <UserButton />
+            keeps its place while Clerk loads, so the header never shifts. Show, not SignedIn/SignedOut: those throw in
+            Clerk Core 3 (review, 2026-11-22) */}
+        <div className="ml-auto flex min-w-9 items-center justify-center">
+          <Show when="signed-in"><UserButton /></Show>
+          <Show when="signed-out">
+            {/* A signed-out visitor (Jobs and Companies are open): sign in in a dialog and stay on this page */}
+            <SignInButton mode="modal" forceRedirectUrl={HOME_PATH} signUpForceRedirectUrl={HOME_PATH}>
+              <button type="button" className="keycap inline-flex min-h-10 items-center border-2 border-line bg-ink px-3 text-sm font-bold text-surface focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus">
+                {SIGN_IN_LABEL}
+              </button>
+            </SignInButton>
+          </Show>
         </div>
       </header>
       <main id="main" className="flex flex-1 flex-col pt-7 text-[15px] leading-6">
