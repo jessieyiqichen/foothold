@@ -33,6 +33,7 @@ export function rowToMatch(row: unknown): Match | null {
     id: String(id), title: title.trim(), companyName: company, url,
     locations: (locations ?? []).map((place) => place.trim()).filter(Boolean),
     postedAt, family: familyOf(family), level: levelOf(level), shared: [...shared], score,
+    ...("company_id" in row ? { companyId: typeof row.company_id === "number" ? row.company_id : typeof row.company_id === "string" && /^\d+$/.test(row.company_id) ? Number(row.company_id) : null } : {}),
   };
 }
 

@@ -5,6 +5,9 @@ export interface Match {
   id: string;
   title: string;
   companyName: string | null;
+  /** The company the role is at, when the row says (the public list does); null when it has none, such as some Hacker
+   *  News posts, whose title then opens the posting itself. */
+  companyId?: number | null;
   /** The posting on the company's own job board; always https. */
   url: string;
   /** Every place the same role is open in. */

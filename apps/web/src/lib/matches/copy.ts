@@ -7,7 +7,7 @@ const count = (n: number) => n.toLocaleString("en-US");
 /** What the matches page says. House style: no full stops, errors without "!" and each with what to do next
  *  (copy.test.ts). */
 export const MATCHES_COPY = {
-  title: "All roles",
+  title: "Jobs",
   loading: "Finding your matches…",
   tryAgain: "Try again",
   loadFailed: "Your matches didn't load, check your connection and try again",

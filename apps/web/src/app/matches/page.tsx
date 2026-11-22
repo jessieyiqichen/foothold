@@ -4,10 +4,10 @@ import { MatchesScreen } from "@/components/matches/MatchesScreen";
 import { AppShell } from "@/components/ui/AppShell";
 import { MATCHES_COPY } from "@/lib/matches/copy";
 
-export const metadata: Metadata = { title: "All roles · Foothold" };
+export const metadata: Metadata = { title: "Jobs · Foothold" };
 
-/** Signed-in only: `src/proxy.ts` sends a signed-out visitor to sign in before any page not listed as public, and
- *  fh_roles answers only for the caller's own profile whatever the page does. The filters live in the URL, read with
+/** Jobs, open to signed-out visitors since 2026-11-21: they read fh_public_roles (titles, places, dates, links), a
+ *  signed-in person fh_roles, which answers only for their own profile. The filters live in the URL, read with
  *  useSearchParams, so the screen sits in a Suspense boundary: the shell still renders ahead of it. */
 export default function MatchesPage() {
   return (
