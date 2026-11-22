@@ -6,7 +6,7 @@ import { idFromPath } from "@/lib/company/constants";
 
 export const metadata: Metadata = { title: "Company · Foothold" };
 
-/** One company's page. Signed-in only (`src/proxy.ts`); fh_company answers for the caller. `?role=` chooses a role. */
+/** One company's page. Open to signed-out visitors since 2026-11-21: they read it through fh_public_company, with nothing personal. `?role=` chooses a role. */
 export default async function CompanyPage({ params, searchParams }: PageProps<"/companies/[id]">) {
   const { id } = await params;
   const { role } = await searchParams;

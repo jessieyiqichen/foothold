@@ -14,6 +14,7 @@ export const COMPANY_COPY = {
   posting: "Posting",
   aboutRole: "About",
   noRoleChosen: "No open role listed, the message is about the company",
+  noRoles: "No open roles listed right now",
 
   save: "Save",
   saved: "Saved",
@@ -38,3 +39,6 @@ export const aboutLine = (title: string): string => `${COMPANY_COPY.aboutRole}: 
 
 /** The picker's button for the roles past the first few. */
 export const moreRolesLine = (n: number): string => `+${n} more ${n === 1 ? "role" : "roles"}`;
+
+/** The header's key for a signed-out visitor. */
+export const SIGN_IN_LABEL = "Sign in";

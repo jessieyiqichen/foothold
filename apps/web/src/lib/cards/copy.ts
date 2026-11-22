@@ -88,7 +88,7 @@ export function sourceLine(source: PersonSource, seenAt: string, timeZone?: stri
   return `from ${SOURCE_WORDS[source]}, seen ${day}`;
 }
 
-const stageWords = (stage: string | null): string | null =>
+export const stageWords = (stage: string | null): string | null =>
   stage === null ? null : Object.hasOwn(STAGE_WORDS, stage) ? STAGE_WORDS[stage] : stage;
 
 export function investorsLine(investors: readonly string[]): string {

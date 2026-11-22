@@ -19,6 +19,14 @@ describe("loadCompany", () => {
     await loadCompany(a.db, { role: 41 });
     expect(a.rpc).toHaveBeenLastCalledWith("fh_company", { p_company: null, p_role: 41 });
   });
+  it("reads a signed-out visitor's page through the public function, with nothing personal", async () => {
+    const pub = { company_id: 812, name: "Acme AI", one_liner: "Agents", website: "https://acme.ai", team_size: null, batch: "W24", stage: "Early",
+      investors: [], last_posted_at: null, recent_roles: 1, roles: [row.roles[0]], founders_url: null };
+    const a = db({ data: [pub], error: null });
+    const r = await loadCompany(a.db, { company: 812 }, "public");
+    expect(a.rpc).toHaveBeenCalledWith("fh_public_company", { p_company: 812, p_role: null });
+    expect(r.ok && r.value).toMatchObject({ bestRole: null, decision: null, card: { name: "Acme AI", person: null, shared: [] } });
+  });
   it("answers null when there is no such company", async () => {
     expect(await loadCompany(db({ data: [], error: null }).db, { company: 1 })).toEqual({ ok: true, value: null });
   });

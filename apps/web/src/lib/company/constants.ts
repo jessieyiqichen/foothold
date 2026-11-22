@@ -1,5 +1,7 @@
 /** One company's page: Today, All roles and Saved all lead here; saving and writing happen here (user, 2026-11-21). */
 export const COMPANY_RPC = "fh_company";
+/** The same page for a signed-out visitor: company facts and roles only (20261122100000_foothold_public_browse.sql). */
+export const PUBLIC_COMPANY_RPC = "fh_public_company";
 /** /companies/[id] opens a company; /roles/[id] opens the company of that role, with the role chosen. */
 export const COMPANIES_PATH = "/companies";
 export const ROLES_PATH = "/roles";

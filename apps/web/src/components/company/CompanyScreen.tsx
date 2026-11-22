@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useSessionDb } from "@/components/auth/useSessionDb";
 import { ContactPart, DoingPart, OutLink, WhyPart } from "@/components/cards/CardParts";
+import { LockedPart } from "@/components/public/SignInPrompt";
 import { DraftPanel } from "@/components/cards/DraftPanel";
 import { Blurb } from "@/components/cards/Expandable";
 import { Button } from "@/components/ui/Button";
@@ -11,6 +12,7 @@ import { aboutLine, COMPANY_COPY } from "@/lib/company/copy";
 import { startingRole } from "@/lib/company/roles";
 import type { CompanyBy, CompanyPage } from "@/lib/company/types";
 import { CompanyActions } from "./CompanyActions";
+import { PublicRoles } from "./PublicRoles";
 import { RolePicker } from "./RolePicker";
 import { useCompany } from "./useCompany";
 
@@ -18,12 +20,20 @@ import { useCompany } from "./useCompany";
  *  here, and saving and writing happen here (user, 2026-11-21). The decision keys sit under the name; then why it
  *  fits, the open roles with one chosen, the message about that role, who to contact and how the company is doing. */
 export function CompanyScreen({ by, askedRole }: { by: CompanyBy; askedRole: string | null }) {
+  const { userId } = useSessionDb();
+  // A new mode (signing in or out on this page) starts the page afresh, so one mode's data never shows in the other
+  return <CompanyBody key={userId ? "mine" : "public"} by={by} askedRole={askedRole} />;
+}
+
+function CompanyBody({ by, askedRole }: { by: CompanyBy; askedRole: string | null }) {
   const { isLoaded, userId, withDb } = useSessionDb();
-  const { state, busy, error, retry, setDecision } = useCompany(by, withDb, isLoaded && userId !== null);
+  const mode = userId ? "mine" : "public";
+  const { state, busy, error, retry, setDecision } = useCompany(by, withDb, isLoaded, mode);
 
   if (state.kind === "loading") return <p className="font-mono text-xs text-muted">{COMPANY_COPY.loading}</p>;
   if (state.kind === "failed") return <Failed message={state.message} onRetry={retry} />;
   if (state.kind === "missing") return <Missing byRole={"role" in by} postingUrl={state.postingUrl} />;
+  if (mode === "public") return <PublicCompanyView page={state.page} />;
   return (
     <CompanyView page={state.page} askedRole={askedRole} busy={busy} error={error} onDecide={setDecision} userId={userId} withDb={withDb} />
   );
@@ -59,6 +69,25 @@ function CompanyView({ page, askedRole, busy, error, onDecide, userId, withDb }:
         roleId={role ? Number(role.id) : null} note={role ? aboutLine(roleTitle(role)) : COMPANY_COPY.noRoleChosen}
       />
       <ContactPart card={card} id={id("contact")} />
+      <DoingPart card={card} id={id("doing")} />
+    </article>
+  );
+}
+
+/** A company page for a signed-out visitor (user, 2026-11-21): the company and every open role are open; why it fits,
+ *  who to contact, the message and Save are behind sign-in, which brings them back to this page. */
+function PublicCompanyView({ page }: { page: CompanyPage }) {
+  const { card } = page;
+  const id = (part: string) => `company-${card.companyId}-${part}`;
+  return (
+    <article aria-labelledby={id("name")} className="flex w-full max-w-2xl flex-col gap-4 border-2 border-ink bg-surface p-5 shadow-[6px_6px_0_var(--color-ink)] sm:p-7">
+      <div className="flex flex-col gap-2">
+        <h1 id={id("name")} className="text-3xl leading-tight font-black tracking-[-0.03em] break-words text-ink">{card.name}</h1>
+        {card.oneLiner && <Blurb text={card.oneLiner} className="text-base text-ink" />}
+        {card.website && <OutLink href={card.website} className="self-start font-mono text-xs">{card.website.replace(/^https:\/\/(www\.)?/, "")}</OutLink>}
+      </div>
+      <LockedPart />
+      <PublicRoles roles={card.roles} id={id("roles")} />
       <DoingPart card={card} id={id("doing")} />
     </article>
   );

@@ -6,7 +6,7 @@ import { idFromPath } from "@/lib/company/constants";
 
 export const metadata: Metadata = { title: "Company · Foothold" };
 
-/** A role from All roles opens its company's page with that role chosen. Signed-in only (`src/proxy.ts`). */
+/** A role from All roles opens its company's page with that role chosen. Open to signed-out visitors since 2026-11-21. */
 export default async function RolePage({ params }: PageProps<"/roles/[id]">) {
   const { id } = await params;
   const role = idFromPath(id);

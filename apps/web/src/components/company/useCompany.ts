@@ -16,7 +16,7 @@ export type CompanyState =
   | { kind: "ready"; page: CompanyPage };
 
 /** One company's page, read as the person, with their decision on it saved or taken back from the page. */
-export function useCompany(by: CompanyBy, withDb: WithDb, enabled: boolean) {
+export function useCompany(by: CompanyBy, withDb: WithDb, enabled: boolean, mode: "mine" | "public" = "mine") {
   const [state, setState] = useState<CompanyState>({ kind: "loading" });
   const [attempt, setAttempt] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -26,12 +26,13 @@ export function useCompany(by: CompanyBy, withDb: WithDb, enabled: boolean) {
   useEffect(() => {
     if (!enabled) return;
     let live = true;
-    withDb(COMPANY_COPY.loadFailed, (db) => loadCompany(db, by)).then((result) => {
+    withDb(COMPANY_COPY.loadFailed, (db) => loadCompany(db, by, mode)).then((result) => {
       if (!live) return;
       if (!result.ok) return setState({ kind: "failed", message: result.message });
       if (result.value) return setState({ kind: "ready", page: result.value });
       // A role with no company page: the page links to the posting instead
-      if (!("role" in by)) return setState({ kind: "missing", postingUrl: null });
+      // A signed-out visitor cannot read postings directly; their list links such roles to the posting already
+      if (!("role" in by) || mode === "public") return setState({ kind: "missing", postingUrl: null });
       void withDb(COMPANY_COPY.loadFailed, async (db) => ok(await loadPostingUrl(db, by.role))).then((url) => {
         if (live) setState({ kind: "missing", postingUrl: url.ok ? url.value : null });
       });
@@ -41,7 +42,7 @@ export function useCompany(by: CompanyBy, withDb: WithDb, enabled: boolean) {
     };
     // `by` is read through its key, so a new object for the same page does not read it again
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, withDb, enabled, attempt]);
+  }, [key, withDb, enabled, attempt, mode]);
 
   const retry = useCallback(() => {
     setState({ kind: "loading" });
