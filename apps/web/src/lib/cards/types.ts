@@ -1,4 +1,5 @@
 import type { Family, Level } from "../profile/roles";
+import type { Signals } from "../signals/types";
 import type { Decision, PersonSource } from "./constants";
 
 /** A role on a card: the evidence that the company fits. */
@@ -13,6 +14,8 @@ export interface CardRole {
   family: Family | null;
   level: Level;
   shared: string[];
+  /** What the posting's own text says, each with its quote; absent when it says none or could not be read. */
+  signals?: Signals;
 }
 
 /** The one person to reach at a company, only through a route they published themself. */

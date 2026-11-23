@@ -9,6 +9,7 @@ import { levelLabel } from "@/lib/matches/copy";
 import { LEVEL_TILE_CLASS } from "@/lib/matches/tiles";
 import { OutLink, Part } from "@/components/cards/CardParts";
 import { pickerRoles } from "@/lib/company/roles";
+import { SignalLine } from "@/components/roles/SignalLine";
 
 const TOGGLE = "self-start font-mono text-xs text-link underline underline-offset-4 hover:text-ink focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
@@ -46,6 +47,7 @@ function RoleChoice({ role, name, checked, best, onChoose }: { role: CardRole; n
       />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <label htmlFor={`${name}-${role.id}`} className="cursor-pointer text-base leading-snug font-bold break-words text-ink">{roleTitle(role)}</label>
+        <SignalLine signals={role.signals} />
         <p id={`${name}-${role.id}-about`} className="flex flex-wrap items-center gap-2 font-mono text-xs text-muted">
           {best && <span className="bg-tile-mustard px-1.5 py-0.5 text-[11px] leading-4 text-ink">{COMPANY_COPY.bestFit}</span>}
           <span className={LEVEL_TILE_CLASS}>{levelLabel(role.level)}</span>

@@ -4,9 +4,10 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ROLES_COPY, showRoles } from "@/lib/roles/copy";
 import { hiddenControls } from "@/lib/roles/landing";
-import { kindPanel, levelPanel, placePanel, postedPanel, type ControlsProps } from "./FilterControls";
+import { kindPanel, levelPanel, placePanel, postedPanel, postingToggles, salaryPanel, visaPanel, type ControlsProps } from "./FilterControls";
+import { ToggleChecks } from "./SignalPanels";
 
-/** On a phone, the four filters in one sheet from the bottom of the screen, each change applied at once. The browser's
+/** On a phone, every filter in one sheet from the bottom of the screen, each change applied at once. The browser's
  *  own dialog: focus moves in, Escape or Done closes it, and focus goes back to the Filters button. */
 export function FilterSheet({ label, pressed, total, ...props }: ControlsProps & { label: string; pressed: boolean; total?: number | null }) {
   const [open, setOpen] = useState(false);
@@ -38,6 +39,9 @@ export function FilterSheet({ label, pressed, total, ...props }: ControlsProps &
             {!hidden.levels && <div className="pt-4">{levelPanel(props, true, none)}</div>}
             <div className="pt-4">{postedPanel(props, true, none, "roles-sheet-posted")}</div>
             {!hidden.place && <div className="pt-4">{placePanel(props, true, none, "roles-sheet-place")}</div>}
+            <div className="pt-4">{visaPanel(props, true, none, "roles-sheet-visa")}</div>
+            <div className="pt-4">{salaryPanel(props, true, none, "roles-sheet-salary")}</div>
+            <div className="pt-4"><ToggleChecks {...postingToggles(props)} /></div>
             <div className="pt-4"><Button className="w-full" onClick={() => setOpen(false)}>{showRoles(total ?? null)}</Button></div>
           </div>
         )}

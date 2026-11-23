@@ -1,0 +1,43 @@
+# Second signals sample (v2 held-out), drawn 2026-11-22 after the v1 hand check: 40 open ATS postings, one per company,
+# no company from sample-ids.txt, ordered by md5(source_id || 'pick2') within each rough-regex stratum.
+# stratum source_id
+other ashby:vibe:86a0d406-178b-4ad7-9ef5-c68738f06553
+other ashby:citizen:6651c456-6b07-4f06-b710-15a4bd5d4c6a
+other ashby:method:fcaa3cbe-269e-4be2-87e9-f91662c727b6
+other ashby:facilityos:2100b0c8-33cf-4954-9a74-18de623a81fc
+other ashby:tuesday-labs:e5b0b3d9-3fd2-4d30-8ff2-dc394d393972
+other ashby:uplane:49df14a1-3321-4e82-b85f-d0ecc51ef982
+salary greenhouse:meshopticaltechnologies:4134349009
+salary ashby:eragon:67d4c846-336e-4a73-9ff7-7d7416fd7a58
+salary ashby:minerva:b06da930-2eac-4eb2-b8ba-78868cda2889
+salary greenhouse:seenhealth:5459344008
+salary ashby:aurelian:1e6f8a55-b636-4224-961f-fa315c6f2467
+salary ashby:webflow:0efb9a8a-3267-4e74-90d2-2d44e7930ab7
+salary ashby:distyl:fe44469c-0f27-408c-878c-5e296b7db50e
+salary ashby:legionhealth:9e25b121-04b6-4643-9b5d-7b648d89d3d2
+salary greenhouse:fanaticsinc:4283862009
+salary ashby:switchboard:6d225281-7be5-4966-b37e-5920890ffc97
+salary greenhouse:wisetack:4754606005
+salary greenhouse:nurix:8887158002
+visa ashby:blee:832c4e82-f2cc-4fd5-ab89-08164bbcdd2c
+visa ashby:momentic:10d2e5d6-ebe1-43a6-b543-5131717f4ecd
+visa ashby:eleos:d9ba4f7e-fb9d-4f62-81bb-d26aac352cf1
+visa ashby:nabla:14d4060f-a1cb-4633-a667-b08b8cb98b3c
+visa greenhouse:inversionspace:4621019005
+visa ashby:bevel:36ddb15e-5787-4b6c-a147-cd3829e6cfe8
+visa ashby:solveintelligence:510cafb8-922a-45fd-8340-6aa89191ea47
+visa greenhouse:nuancelabs:4470870009
+visa ashby:fuse:bac78943-8667-4650-a193-0005cd7841f5
+visa lever:charmindustrial:bc5ca6b3-a7b0-415d-8b73-c18958ce84df
+years lever:delfidiagnostics:b5a10e26-49f3-4bbe-b703-cbe032305283
+years ashby:cambio:dfdb0559-954d-4539-a340-159957736ad3
+years greenhouse:salesloft:8384845
+years ashby:second-front-systems:4df6d490-238a-470a-834b-118ab3883203
+years ashby:cambly:7c5667aa-57e4-4312-bc9e-d969a7566259
+years lever:backerkit:5b2795ea-d464-4c45-ab2f-fe6bc441d8f1
+years ashby:cloaked:f749ab20-4fa2-45e8-8ef6-aba01f0a645e
+years ashby:airbyte:9af619c8-163a-4170-bac6-6ceee93558fe
+years greenhouse:collahealth:4303978009
+years ashby:gigi:46e8dd52-6b56-4e14-9980-ed74058c9c2c
+years greenhouse:project44:8348941
+years ashby:vital-lyfe:ae222b6b-51f5-4d95-9493-9809f14fb466

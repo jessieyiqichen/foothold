@@ -11,12 +11,18 @@ const parse = (query: string) => parseFilters(new URLSearchParams(query));
 describe("parseFilters and filtersToQuery: the filters live in the URL", () => {
   it("reads an empty query as the defaults: the profile's kinds of work and levels, the last 60 days, best fit", () => {
     expect(parse("")).toEqual(DEFAULT_FILTERS);
-    expect(DEFAULT_FILTERS).toEqual({ query: "", families: null, levels: null, days: 60, place: "", sort: "fit" });
+    expect(DEFAULT_FILTERS).toEqual({
+      query: "", families: null, levels: null, days: 60, place: "", sort: "fit",
+      hideYears: null, visa: null, minSalary: null, equity: false, k401: false,
+    });
     expect(filtersToQuery(DEFAULT_FILTERS)).toBe("");
   });
 
   it("round-trips every filter", () => {
-    const filters: RoleFilters = { query: "product analyst", families: ["product", "data"], levels: ["entry"], days: 7, place: "New York", sort: "newest" };
+    const filters: RoleFilters = {
+      query: "product analyst", families: ["product", "data"], levels: ["entry"], days: 7, place: "New York", sort: "newest",
+      hideYears: false, visa: "sponsors", minSalary: 100000, equity: true, k401: true,
+    };
     expect(parse(filtersToQuery(filters))).toEqual(filters);
   });
 
@@ -66,14 +72,17 @@ describe("triggerLabel and isFiltering: what a dropdown's trigger shows", () => 
   });
 
   it("is pressed when the filter narrows anything", () => {
-    expect(isFiltering(DEFAULT_FILTERS, profile)).toEqual({ families: true, levels: true, days: true, place: false });
-    expect(isFiltering({ ...DEFAULT_FILTERS, families: [], levels: [], days: null }, { families: [], levels: [] })).toEqual({ families: false, levels: false, days: false, place: false });
+    expect(isFiltering(DEFAULT_FILTERS, profile)).toEqual({ families: true, levels: true, days: true, place: false, years: true, visa: false, salary: false, equity: false, k401: false });
+    expect(isFiltering({ ...DEFAULT_FILTERS, families: [], levels: [], days: null }, { families: [], levels: [] }))
+      .toEqual({ families: false, levels: false, days: false, place: false, years: false, visa: false, salary: false, equity: false, k401: false });
+    expect(isFiltering({ ...DEFAULT_FILTERS, visa: "sponsors", minSalary: 80000, equity: true, k401: true }, profile))
+      .toMatchObject({ visa: true, salary: true, equity: true, k401: true });
     expect(isFiltering({ ...DEFAULT_FILTERS, place: "remote" }, profile).place).toBe(true);
   });
 });
 
 describe("activeChips: only what the person changed here, each with a way to take it off", () => {
-  const filters: RoleFilters = { query: "analyst", families: null, levels: ["entry"], days: 30, place: "remote", sort: "newest" };
+  const filters: RoleFilters = { ...DEFAULT_FILTERS, query: "analyst", families: null, levels: ["entry"], days: 30, place: "remote", sort: "newest" };
 
   it("lists the search, levels picked here, a changed age and the place; the profile's own picks and the default 60 days are not chips", () => {
     expect(activeChips(filters, profile).map((chip) => chip.label)).toEqual(["“analyst”", "New grad or junior", "Last 30 days", "Remote"]);
@@ -99,6 +108,18 @@ describe("activeChips: only what the person changed here, each with a way to tak
   it("clears to nothing", () => {
     expect(activeChips(clearAll(filters), profile)).toEqual([]);
   });
+
+  it("lists the posting filters after the place, and clears them too", () => {
+    const signals = { ...filters, visa: "sponsors", minSalary: 120000, equity: true } as RoleFilters;
+    expect(activeChips(signals, profile).map((c) => c.label).slice(-3)).toEqual(["Sponsors visas", "Salary $120k+", "Equity"]);
+    expect(activeChips(signals, profile).find((c) => c.label === "Equity")?.without).toEqual({ ...signals, equity: false });
+    expect(clearAll(signals)).toMatchObject({ visa: null, minSalary: null, equity: false, k401: false, hideYears: null });
+  });
+
+  it("clears the years filter off for a profile it is on by default for, and leaves the sort", () => {
+    expect(clearAll(filters, profile)).toMatchObject({ hideYears: false, sort: "newest" });
+    expect(activeChips(clearAll(filters, profile), profile).map((c) => c.label)).toEqual(["Showing roles needing years"]);
+  });
 });
 
 describe("what the triggers and the phone button say", () => {
@@ -111,8 +132,9 @@ describe("what the triggers and the phone button say", () => {
   });
 
   it("counts every narrowing filter for the phone's Filters button, the profile's included", () => {
-    expect(narrowingCount(DEFAULT_FILTERS, profile)).toBe(5);
-    expect(narrowingCount(clearAll(DEFAULT_FILTERS), profile)).toBe(0);
+    expect(narrowingCount(DEFAULT_FILTERS, profile)).toBe(6);
+    expect(narrowingCount(clearAll(DEFAULT_FILTERS, profile), profile)).toBe(0);
+    expect(narrowingCount({ ...DEFAULT_FILTERS, equity: true }, { families: [], levels: [] })).toBe(2);
   });
 });
 
@@ -131,9 +153,23 @@ describe("rolesArgs and facetsArgs: what fh_roles and fh_roles_facets are asked"
   });
 
   it("sends the person's picks, an empty list for none, and Remote as its special value", () => {
-    const filters: RoleFilters = { query: "  analyst ", families: [], levels: ["entry"], days: null, place: "Remote", sort: "newest" };
+    const filters: RoleFilters = { ...DEFAULT_FILTERS, query: "  analyst ", families: [], levels: ["entry"], days: null, place: "Remote", sort: "newest" };
     expect(rolesArgs(filters, 50)).toEqual({ p_families: [], p_levels: ["entry"], p_days: null, p_query: "analyst", p_place: "remote", p_sort: "newest", p_limit: 50, p_offset: 50 });
     expect(facetsArgs(filters)).toEqual({ p_families: [], p_levels: ["entry"], p_days: null, p_query: "analyst", p_place: "remote" });
+  });
+
+  it("adds the posting filters' parameters only when one is set", () => {
+    const filters: RoleFilters = { ...DEFAULT_FILTERS, hideYears: true, minSalary: 150000 };
+    expect(rolesArgs(filters, 0)).toMatchObject({ p_hide_years: true, p_min_salary: 150000 });
+    expect(facetsArgs(filters)).toMatchObject({ p_hide_years: true, p_min_salary: 150000 });
+    expect(Object.keys(facetsArgs(DEFAULT_FILTERS))).toEqual(["p_families", "p_levels", "p_days", "p_query", "p_place"]);
+  });
+
+  it("asks to hide roles needing years for an intern or entry profile at its default, and not once it is off", () => {
+    expect(rolesArgs(DEFAULT_FILTERS, 0, profile.levels)).toMatchObject({ p_hide_years: true });
+    expect(facetsArgs(DEFAULT_FILTERS, profile.levels)).toMatchObject({ p_hide_years: true });
+    expect(facetsArgs({ ...DEFAULT_FILTERS, hideYears: false }, profile.levels)).not.toHaveProperty("p_hide_years");
+    expect(facetsArgs(DEFAULT_FILTERS, ["senior"])).not.toHaveProperty("p_hide_years");
   });
 
   it("sends a typed place as typed, trimmed", () => {

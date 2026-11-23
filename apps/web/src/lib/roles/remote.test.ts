@@ -31,6 +31,15 @@ describe("loadRoles", () => {
     expect(result).toMatchObject({ ok: true, value: { total: 807 } });
   });
 
+  it("asks to hide roles needing years for an intern or entry profile, in the list and in the counts", async () => {
+    const { db, calls } = fakeDb([row]);
+    await loadRoles(db, DEFAULT_FILTERS, 0, ["entry"]);
+    await loadFacets(db, DEFAULT_FILTERS, ["entry"]);
+    expect(calls.map((call) => (call as [string, object])[1])).toEqual([
+      expect.objectContaining({ p_hide_years: true }), expect.objectContaining({ p_hide_years: true }),
+    ]);
+  });
+
   it("gives a line and logs the cause when the request fails", async () => {
     expect(await loadRoles(fakeDb(null, true).db, DEFAULT_FILTERS, 0)).toEqual({ ok: false, message: MATCHES_COPY.loadFailed });
     expect(logged).toHaveBeenCalled();

@@ -9,6 +9,7 @@ import { COMPANY_COPY, moreRolesLine } from "@/lib/company/copy";
 import { ROLES_SHOWN } from "@/lib/company/roles";
 import { levelLabel } from "@/lib/matches/copy";
 import { LEVEL_TILE_CLASS } from "@/lib/matches/tiles";
+import { SignalLine } from "@/components/roles/SignalLine";
 
 const TOGGLE = "self-start font-mono text-xs text-link underline underline-offset-4 hover:text-ink focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
@@ -27,6 +28,7 @@ export function PublicRoles({ id, roles }: { id: string; roles: CardRole[] }) {
             return (
               <li key={role.id} className="flex flex-col gap-1">
                 <OutLink href={role.url} className="text-base font-bold">{roleTitle(role)}</OutLink>
+                <SignalLine signals={role.signals} />
                 <p className="flex flex-wrap items-center gap-2 font-mono text-xs text-muted">
                   <span className={LEVEL_TILE_CLASS}>{levelLabel(role.level)}</span>
                   {age && <span>Posted {age}</span>}

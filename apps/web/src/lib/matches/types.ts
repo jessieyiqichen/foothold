@@ -1,4 +1,5 @@
 import type { Family, Level } from "../profile/roles";
+import type { Signals } from "../signals/types";
 
 /** One role matched to the signed-in person, as the page shows it. */
 export interface Match {
@@ -19,6 +20,9 @@ export interface Match {
   /** The skills the person and the posting share: the reason the role is listed. */
   shared: string[];
   score: number;
+  /** What the posting's own text says (years, salary, visa, equity, 401(k)), each with its quote; absent when it
+   *  says none of them or the answer could not be read. */
+  signals?: Signals;
 }
 
 /** One answer from the database, or several put together by "Show more". */

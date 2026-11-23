@@ -91,8 +91,10 @@ export function lockedChips(filters: RoleFilters, profile: ProfilePicks, preset:
   return activeChips(unset(filters, preset), profile).map((chip) => ({ ...chip, without: lockedFilters(chip.without, preset) }));
 }
 
-/** Clear all, keeping the preset (and, as on Jobs, the sort). */
-export const lockedClearAll = (filters: RoleFilters, preset: Preset | undefined): RoleFilters => lockedFilters(clearAll(filters), preset);
+/** Clear all, keeping the preset (and, as on Jobs, the sort); with the profile, the years filter is switched off
+ *  explicitly as on Jobs. */
+export const lockedClearAll = (filters: RoleFilters, preset: Preset | undefined, profile?: ProfilePicks): RoleFilters =>
+  lockedFilters(clearAll(filters, profile), preset);
 
 /** The phone's Filters count without the preset. On a level page the profile's levels do not apply, so they are not
  *  counted either. */

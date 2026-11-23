@@ -27,15 +27,16 @@ async function ask<T>(db: RolesDb, name: string, args: object, read: (data: unkn
 }
 
 /** One page of roles for the filters, starting `offset` rows in; rows are read and checked as on the matches list. */
-export function loadRoles(db: RolesDb, filters: RoleFilters, offset: number): Promise<Result<MatchesPage>> {
-  return ask(db, ROLES_RPC, rolesArgs(filters, offset), (data) => {
+export function loadRoles(db: RolesDb, filters: RoleFilters, offset: number, levels: readonly string[] = []): Promise<Result<MatchesPage>> {
+  return ask(db, ROLES_RPC, rolesArgs(filters, offset, levels), (data) => {
     const page = readMatches(data);
     if (page && page.dropped > 0) console.error(`Foothold: left out ${page.dropped} rows from ${ROLES_RPC} that could not be read`);
     return page;
   }, MATCHES_COPY.loadFailed);
 }
 
-/** The counts beside each option for the filters. A failure leaves the options without counts. */
-export function loadFacets(db: RolesDb, filters: RoleFilters): Promise<Result<Facets>> {
-  return ask(db, FACETS_RPC, facetsArgs(filters), readFacets, MATCHES_COPY.loadFailed);
+/** The counts beside each option for the filters. A failure leaves the options without counts. `levels`: the profile's,
+ *  for the years filter's default. */
+export function loadFacets(db: RolesDb, filters: RoleFilters, levels: readonly string[] = []): Promise<Result<Facets>> {
+  return ask(db, FACETS_RPC, facetsArgs(filters, levels), readFacets, MATCHES_COPY.loadFailed);
 }

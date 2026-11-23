@@ -16,6 +16,12 @@ export const REMOTE_PLACE = "remote";
 export const LANDING_PATH = { internships: "/jobs/internships", newGrad: "/jobs/new-grad", remote: "/jobs/remote" } as const;
 export const LANDING_PATHS: readonly string[] = Object.values(LANDING_PATH);
 export const PLACE_PICKS = ["Remote", "San Francisco", "New York"] as const;
+/** The visa filter: roles whose posting says it sponsors, or every role but those for citizens only. */
+export const VISA_FILTERS = ["sponsors", "not_citizens_only"] as const;
+export type VisaFilter = (typeof VISA_FILTERS)[number];
+/** Minimum salary choices, USD a year; compared with the top of the posted range (docs/judge-signals.md). */
+export const SALARY_CHOICES = [60000, 80000, 100000, 120000, 150000, 200000] as const;
+export type SalaryChoice = (typeof SALARY_CHOICES)[number] | null;
 /** Longest search and place kept from the URL or the field. */
 export const MAX_TEXT = 100;
 /** How long typing waits before the search runs. */

@@ -28,4 +28,8 @@ describe("All roles' filter lines", () => {
     expect(ROLES_COPY.levelCaption).toBe("Level is read from the job title");
     expect(ROLES_COPY.placeLabel).toBe("Place in the posting");
   });
+
+  it("says a minimum salary leaves out roles that state none", () => {
+    expect(ROLES_COPY.salaryHint).toBe("Only roles that state a salary; compared with the top of the range, in US dollars a year");
+  });
 });

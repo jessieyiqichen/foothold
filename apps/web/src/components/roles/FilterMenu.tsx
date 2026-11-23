@@ -12,7 +12,7 @@ interface FilterMenuProps {
   children: (close: () => void) => ReactNode;
 }
 
-const TRIGGER =
+export const TRIGGER =
   "keycap inline-flex min-h-10 items-center gap-1.5 border-2 border-line px-3 text-sm font-bold text-ink " +
   "focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus";
 

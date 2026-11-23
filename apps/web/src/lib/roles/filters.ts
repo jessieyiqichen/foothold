@@ -3,8 +3,13 @@
 // (`kind=`) means no filter. Everything here is pure.
 import { FAMILIES, LEVELS, type Family, type Level } from "../profile/roles";
 import { DAY_CHOICES, DEFAULT_DAYS, MAX_TEXT, REMOTE_PLACE, ROLES_PAGE_SIZE, SORTS, type DayChoice, type Sort } from "./constants";
+import {
+  clearedSignals, DEFAULT_SIGNAL_FILTERS, effectiveHideYears, parseSignalFilters, signalArgs, signalChips, signalNarrowing, writeSignalFilters,
+  type SignalFilters,
+} from "./signalFilters";
 
-export interface RoleFilters {
+/** The search, the profile-led filters, and what the posting's own text says (signalFilters.ts). */
+export interface RoleFilters extends SignalFilters {
   query: string;
   /** null: as on the profile. */
   families: Family[] | null;
@@ -21,7 +26,7 @@ export interface ProfilePicks {
   levels: readonly Level[];
 }
 
-export const DEFAULT_FILTERS: RoleFilters = { query: "", families: null, levels: null, days: DEFAULT_DAYS, place: "", sort: "fit" };
+export const DEFAULT_FILTERS: RoleFilters = { query: "", families: null, levels: null, days: DEFAULT_DAYS, place: "", sort: "fit", ...DEFAULT_SIGNAL_FILTERS };
 
 const KEYS = { query: "q", families: "kind", levels: "level", days: "posted", place: "place", sort: "sort" } as const;
 const text = (value: string | null) => (value ?? "").trim().slice(0, MAX_TEXT);
@@ -47,6 +52,7 @@ export function parseFilters(params: URLSearchParams): RoleFilters {
     days: parseDays(params.get(KEYS.days)),
     place: text(params.get(KEYS.place)),
     sort: (SORTS as readonly string[]).includes(sort ?? "") ? (sort as Sort) : "fit",
+    ...parseSignalFilters(params),
   };
 }
 
@@ -59,6 +65,7 @@ export function filtersToQuery(filters: RoleFilters): string {
   if (filters.days !== DEFAULT_DAYS) params.set(KEYS.days, filters.days === null ? "any" : String(filters.days));
   if (filters.place) params.set(KEYS.place, filters.place);
   if (filters.sort !== "fit") params.set(KEYS.sort, filters.sort);
+  writeSignalFilters(params, filters);
   return params.toString().replace(/%2C/g, ",");
 }
 
@@ -73,13 +80,22 @@ export function isFiltering(filters: RoleFilters, profile: ProfilePicks) {
     levels: effectiveLevels(filters, profile).length > 0,
     days: filters.days !== null,
     place: filters.place !== "",
+    years: effectiveHideYears(filters, profile.levels),
+    visa: filters.visa !== null,
+    salary: filters.minSalary !== null,
+    equity: filters.equity,
+    k401: filters.k401,
   };
 }
 
 export const applyChange = (filters: RoleFilters, change: Partial<RoleFilters>): RoleFilters => ({ ...filters, ...change });
 
-/** Every filter off; the sort stays, since it does not filter. */
-export const clearAll = (filters: RoleFilters): RoleFilters => ({ ...DEFAULT_FILTERS, families: [], levels: [], days: null, sort: filters.sort });
+const NO_LEVELS: readonly string[] = [];
+
+/** Every filter off; the sort stays, since it does not filter. The years filter is switched off explicitly where the
+ *  profile would turn it on. */
+export const clearAll = (filters: RoleFilters, profile?: ProfilePicks): RoleFilters =>
+  ({ ...DEFAULT_FILTERS, families: [], levels: [], days: null, sort: filters.sort, ...clearedSignals(profile?.levels ?? NO_LEVELS) });
 
 export const isRemote = (place: string): boolean => place.trim().toLowerCase() === REMOTE_PLACE;
 export const daysLabel = (days: DayChoice): string => (days === null ? "Any time" : `Last ${days} days`);
@@ -111,7 +127,7 @@ export function activeChips(filters: RoleFilters, profile: ProfilePicks): Chip[]
   }
   if (filters.days !== null && filters.days !== DEFAULT_DAYS) chips.push({ key: "posted", label: daysLabel(filters.days), without: { ...filters, days: DEFAULT_DAYS } });
   if (filters.place) chips.push({ key: "place", label: isRemote(filters.place) ? "Remote" : `Place: ${filters.place}`, without: { ...filters, place: "" } });
-  return chips;
+  return [...chips, ...signalChips(filters)];
 }
 
 const PLACE_TRIGGER_MAX = 16;
@@ -128,17 +144,21 @@ export function placeTrigger(place: string): string {
 /** Every filter that narrows the list, the profile's picks included: the number on the phone's Filters button. */
 export function narrowingCount(filters: RoleFilters, profile: ProfilePicks): number {
   const on = isFiltering(filters, profile);
-  return effectiveFamilies(filters, profile).length + effectiveLevels(filters, profile).length + (on.days ? 1 : 0) + (on.place ? 1 : 0);
+  return effectiveFamilies(filters, profile).length + effectiveLevels(filters, profile).length + (on.days ? 1 : 0) + (on.place ? 1 : 0)
+    + signalNarrowing(filters, profile.levels);
 }
 
 const placeArg = (place: string): string | null => (place.trim() ? (isRemote(place) ? REMOTE_PLACE : place.trim()) : null);
 
-/** fh_roles_facets' arguments: null kinds of work and levels mean the profile's, read by the database itself. */
-export function facetsArgs(filters: RoleFilters) {
+/** fh_roles_facets' arguments: null kinds of work and levels mean the profile's, read by the database itself. The
+ *  posting filters' parameters are added only when on; `levels`, the profile's, decide the years filter's default. */
+export function facetsArgs(filters: RoleFilters, levels: readonly string[] = NO_LEVELS) {
   return {
     p_families: filters.families, p_levels: filters.levels, p_days: filters.days,
     p_query: filters.query.trim() || null, p_place: placeArg(filters.place),
+    ...signalArgs(filters, levels),
   };
 }
 
-export const rolesArgs = (filters: RoleFilters, offset: number) => ({ ...facetsArgs(filters), p_sort: filters.sort, p_limit: ROLES_PAGE_SIZE, p_offset: offset });
+export const rolesArgs = (filters: RoleFilters, offset: number, levels: readonly string[] = NO_LEVELS) =>
+  ({ ...facetsArgs(filters, levels), p_sort: filters.sort, p_limit: ROLES_PAGE_SIZE, p_offset: offset });

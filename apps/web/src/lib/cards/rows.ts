@@ -1,6 +1,7 @@
 // Rows from fh_today and fh_saved, checked before use: the page shows nothing it has not read field by field. Links
 // are https only, and mail opens only for a contact the database calls an email.
 import { FAMILIES, LEVELS, type Family, type Level } from "../profile/roles";
+import { readSignals } from "../signals/parse";
 import { FOUNDERS_HOST, MAX_ROLES_ON_CARD, PERSON_SOURCES, type PersonSource } from "./constants";
 import type { CardPerson, CardRole, CompanyCard, SavedCard } from "./types";
 
@@ -47,10 +48,12 @@ function rowToRole(row: unknown): CardRole | null {
   // family: each is kept and shown without what it lacks, never dropped with its company (reviewer, 2026-11-14)
   if (posted === undefined || named === undefined || !(family === null || family === undefined || typeof family === "string")) return null;
   if (typeof level !== "string" || !isStrings(shared)) return null;
+  const signals = readSignals(row.signals, row.needs_years);
   return {
     id: String(id), title: named?.trim() || null, url, postedAt: posted, shared: [...shared],
     family: typeof family === "string" ? FAMILIES.find((f) => f.id === family)?.id ?? ("other" satisfies Family) : null,
     level: LEVELS.find((l) => l.id === level)?.id ?? ("unspecified" satisfies Level),
+    ...(signals ? { signals } : {}),
   };
 }
 

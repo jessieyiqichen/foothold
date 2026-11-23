@@ -24,6 +24,15 @@ describe("loadPublicRoles: Jobs for a signed-out visitor", () => {
     expect(args).toMatchObject({ p_families: [], p_levels: [], p_offset: 50 });
     expect(args).not.toHaveProperty("p_sort");
   });
+  it("keeps each role's signals, and sends the posting filters only when one is set", async () => {
+    const signals = { salary: { min: 90000, max: 120000, currency: "USD", period: "year", ote: false, quote: "$90k to $120k a year." } };
+    const { db: d, rpc } = db([{ ...row, signals }, { ...row, id: 8 }]);
+    const r = await loadPublicRoles(d, { ...DEFAULT_FILTERS, minSalary: 100000 }, 0);
+    expect(r.ok && r.value.matches.map((m) => m.signals)).toEqual([signals, undefined]);
+    expect(rpc).toHaveBeenCalledWith("fh_public_roles", expect.objectContaining({ p_min_salary: 100000 }));
+    expect(publicRolesArgs(DEFAULT_FILTERS, 0)).not.toHaveProperty("p_hide_years");
+    expect(publicRolesArgs(DEFAULT_FILTERS, 0)).not.toHaveProperty("p_min_salary");
+  });
   it("says so when it cannot read them", async () => {
     expect(await loadPublicRoles(db(null, { message: "no" }).db, DEFAULT_FILTERS, 0)).toEqual({ ok: false, message: PUBLIC_COPY.loadFailed });
   });

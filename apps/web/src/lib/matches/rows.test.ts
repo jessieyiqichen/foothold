@@ -16,6 +16,17 @@ describe("rowToMatch: a row from fh_matches is checked before it is shown", () =
     });
   });
 
+  it("reads the posting's signals, and a row with none, null or malformed signals as having none", () => {
+    const signals = { years: { min: 4, required: true, quote: "4+ years." }, equity: { quote: "Equity." } };
+    expect(rowToMatch({ ...row, signals })?.signals).toEqual({ ...signals, years: { ...signals.years, needs: true } });
+    expect(rowToMatch({ ...row, signals, needs_years: false })?.signals?.years?.needs).toBe(false);
+    for (const bad of [undefined, null, {}, "x", { years: { min: "4" } }]) {
+      const match = rowToMatch({ ...row, signals: bad });
+      expect(match, String(bad)).not.toBeNull();
+      expect(match && "signals" in match, String(bad)).toBe(false);
+    }
+  });
+
   it("accepts a text id, no company, no places and no date", () => {
     expect(rowToMatch({ ...row, id: "a-1", company_name: null, locations: null, posted_at: null }))
       .toMatchObject({ id: "a-1", companyName: null, locations: [], postedAt: null });

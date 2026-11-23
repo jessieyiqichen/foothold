@@ -21,8 +21,13 @@ export type RolesState =
  *  screen, dimmed, so a filter change never empties or moves the page. */
 /** `mode` "public": a signed-out visitor's list (fh_public_roles, newest first, no counts beside the options, which need
  *  a profile). */
-export function useRoles(filters: RoleFilters, version: string, withDb: WithDb, mode: "mine" | "public" = "mine") {
-  const load = mode === "public" ? loadPublicRoles : loadRoles;
+/** `levels`: the profile's, which decide whether roles needing years are hidden by default (the server reads a missing
+ *  p_hide_years as off). A signed-out visitor has none. */
+export function useRoles(filters: RoleFilters, version: string, withDb: WithDb, mode: "mine" | "public" = "mine", levels: readonly string[] = []) {
+  const load = useCallback(
+    (db: Parameters<typeof loadRoles>[0], f: RoleFilters, offset: number) => (mode === "public" ? loadPublicRoles(db, f, offset) : loadRoles(db, f, offset, levels)),
+    [mode, levels],
+  );
   const [state, setState] = useState<RolesState>({ kind: "loading" });
   const [facets, setFacets] = useState<Facets | null>(null);
   const [more, setMore] = useState<"loading" | "failed" | null>(null);
@@ -37,7 +42,7 @@ export function useRoles(filters: RoleFilters, version: string, withDb: WithDb, 
     });
     // The counts are a help, not the list: without them the options simply show no number
     if (mode === "mine") {
-      withDb(MATCHES_COPY.loadFailed, (db) => loadFacets(db, filters)).then((result) => {
+      withDb(MATCHES_COPY.loadFailed, (db) => loadFacets(db, filters, levels)).then((result) => {
         if (live) setFacets(result.ok ? result.value : null);
       });
     }

@@ -59,7 +59,7 @@ function ResultLine({ total, sort, onSort }: { total: number | null; sort: Sort 
 function Roles({ profile, withDb, mode = "mine", landing }: { profile: ProfilePicks & { updatedAt: string }; mode?: "mine" | "public"; landing?: LandingPage } & Pick<ReturnType<typeof useProfile>, "withDb">) {
   const preset = landing?.preset;
   const { filters, query, setFilters } = useRoleFilters(preset);
-  const { state, facets, more, refreshing, retry, showMore } = useRoles(filters, `${query}|${profile.updatedAt}`, withDb, mode);
+  const { state, facets, more, refreshing, retry, showMore } = useRoles(filters, `${query}|${profile.updatedAt}`, withDb, mode, profile.levels);
   const ready = state.kind === "ready" ? state : null;
   const controls = { filters, profile, facets, onChange: setFilters, preset };
   return (

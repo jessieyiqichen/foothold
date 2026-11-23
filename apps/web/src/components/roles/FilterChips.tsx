@@ -20,7 +20,7 @@ export function FilterChips({ filters, profile, onChange, preset }: { filters: R
           </li>
         ))}
       </ul>
-      <Button variant="ghost" onClick={() => onChange(lockedClearAll(filters, preset))}>{ROLES_COPY.clearAll}</Button>
+      <Button variant="ghost" onClick={() => onChange(lockedClearAll(filters, preset, profile))}>{ROLES_COPY.clearAll}</Button>
     </div>
   );
 }

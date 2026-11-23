@@ -4,11 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { inputClass } from "@/components/ui/Field";
 import { MAX_TEXT, SEARCH_DEBOUNCE_MS } from "@/lib/roles/constants";
 import { filtersButton, ROLES_COPY } from "@/lib/roles/copy";
+import { salaryTrigger, visaTrigger } from "@/lib/roles/signalFilters";
 import { effectiveFamilies, effectiveLevels, isFiltering, placeTrigger, postedTrigger, triggerLabel } from "@/lib/roles/filters";
 import { hiddenControls, lockedNarrowing } from "@/lib/roles/landing";
-import { kindPanel, levelPanel, placePanel, postedPanel, type ControlsProps } from "./FilterControls";
+import { kindPanel, levelPanel, placePanel, postedPanel, postingToggles, salaryPanel, visaPanel, type ControlsProps } from "./FilterControls";
 import { FilterMenu } from "./FilterMenu";
 import { FilterSheet } from "./FilterSheet";
+import { ToggleKeys } from "./SignalPanels";
 
 /** The search box: typing waits ~300 ms before the search runs. Follows the URL when it changes elsewhere (a chip
  *  removed, back), adjusted while rendering as React recommends. */
@@ -37,9 +39,10 @@ function SearchBox({ filters, onChange }: Pick<ControlsProps, "filters" | "onCha
   );
 }
 
-/** The search box on its own row, full width; under it the four filters as dropdowns (from 640px), or one Filters
- *  button that opens a sheet (on a phone). Quieter than the rest of the page: thin edges, keys only on the triggers,
- *  no tape. Posted and Location name their value on the trigger ("Last 60 days", "Remote"). */
+/** The search box on its own row, full width; under it the four filters as dropdowns and, on a second row, what the
+ *  posting says (visa, minimum salary, and the three on-off keys) (from 640px), or one Filters button that opens a
+ *  sheet (on a phone). Quieter than the rest of the page: thin edges, keys only on the triggers, no tape. Posted,
+ *  Location, Visa and Minimum salary name their value on the trigger ("Last 60 days", "Remote", "$120k+"). */
 export function RolesToolbar({ total, ...props }: ControlsProps & { total: number | null }) {
   const { filters, profile } = props;
   const on = isFiltering(filters, profile);
@@ -61,6 +64,15 @@ export function RolesToolbar({ total, ...props }: ControlsProps & { total: numbe
         {!hidden.place && <FilterMenu label={placeTrigger(filters.place)} pressed={on.place} align="right">
           {(close) => placePanel(props, false, close, "roles-place")}
         </FilterMenu>}
+      </div>
+      <div role="group" aria-label={ROLES_COPY.postingSays} className="hidden flex-wrap items-center gap-2 sm:flex">
+        <FilterMenu label={visaTrigger(filters.visa)} pressed={on.visa}>
+          {(close) => visaPanel(props, false, close, "roles-visa")}
+        </FilterMenu>
+        <FilterMenu label={salaryTrigger(filters.minSalary)} pressed={on.salary}>
+          {(close) => salaryPanel(props, false, close, "roles-salary")}
+        </FilterMenu>
+        <ToggleKeys {...postingToggles(props)} />
       </div>
       <div className="sm:hidden">
         <FilterSheet label={filtersButton(narrowing)} pressed={narrowing > 0} total={total} {...props} />

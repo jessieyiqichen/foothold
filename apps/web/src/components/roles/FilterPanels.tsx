@@ -8,12 +8,12 @@ import { ROLES_COPY, showRoles } from "@/lib/roles/copy";
 import { pickedTotal } from "@/lib/roles/facets";
 import { daysLabel } from "@/lib/roles/filters";
 
-const count = (n: number | undefined) => (n === undefined ? "" : n.toLocaleString("en-US"));
-const ROW = "flex min-h-10 cursor-pointer items-center gap-3 px-1 text-sm text-ink hover:bg-wash has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-focus";
-const BOX = "size-4 shrink-0 accent-ink";
+export const count = (n: number | undefined) => (n === undefined ? "" : n.toLocaleString("en-US"));
+export const ROW = "flex min-h-10 cursor-pointer items-center gap-3 px-1 text-sm text-ink hover:bg-wash has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-focus";
+export const BOX = "size-4 shrink-0 accent-ink";
 
 /** Clear and Show N roles at the foot of a panel; hidden in the phone's sheet, where each change applies at once. */
-function Foot({ onClear, onApply, total, live }: { onClear: () => void; onApply: () => void; total: number | null; live: boolean }) {
+export function Foot({ onClear, onApply, total, live }: { onClear: () => void; onApply: () => void; total: number | null; live: boolean }) {
   if (live) return null;
   return (
     <div className="mt-3 flex items-center justify-between gap-3 border-t border-hairline pt-3">

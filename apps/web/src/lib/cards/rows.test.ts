@@ -32,6 +32,17 @@ describe("rowToCard: a row from fh_today is checked before it is shown", () => {
     expect(rowToCard({ ...row, score: null })?.score).toBe(0);
   });
 
+  it("reads a role's signals, and leaves them off a role with none or malformed ones", () => {
+    const signals = { visa: { value: "sponsors", quote: "We sponsor H-1B visas." } };
+    const card = rowToCard({ ...row, roles: [{ ...row.roles[0], signals }, { ...row.roles[1], signals: { visa: { value: "maybe" } } }] });
+    expect(card?.roles[0].signals).toEqual(signals);
+    expect(card?.roles).toHaveLength(2);
+    const years = { min: 1, required: true, quote: "1+ years of SQL." };
+    const withYears = rowToCard({ ...row, roles: [{ ...row.roles[0], signals: { years }, needs_years: true }] });
+    expect(withYears?.roles[0].signals?.years?.needs).toBe(true);
+    expect(card && "signals" in card.roles[1]).toBe(false);
+  });
+
   it("keeps a role with no family, as one the daily refresh wrote before labelling it", () => {
     expect(rowToCard({ ...row, roles: [{ ...row.roles[0], family: null }] })?.roles[0]).toMatchObject({ id: "41", family: null });
   });

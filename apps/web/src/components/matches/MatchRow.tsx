@@ -3,6 +3,7 @@ import { roleHref } from "@/lib/company/constants";
 import { familyLabel, levelLabel, MATCHES_COPY, placesLine, postedLine } from "@/lib/matches/copy";
 import { familyTileClass, LEVEL_TILE_CLASS } from "@/lib/matches/tiles";
 import type { Match } from "@/lib/matches/types";
+import { SignalLine } from "@/components/roles/SignalLine";
 
 const TITLE = "-my-1.5 inline-block py-1.5 break-words text-ink underline-offset-4 hover:text-link hover:underline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus";
 /** A shared skill: a quiet mono chip. */
@@ -26,6 +27,7 @@ export function MatchRow({ match, personal = true }: { match: Match; personal?: 
           <Link href={roleHref(match.id)} className={TITLE}>{match.title}</Link>
         )}
       </h3>
+      <SignalLine signals={match.signals} />
       <p className="font-mono text-xs leading-5 break-words text-muted">
         {details}
         {details && " · "}

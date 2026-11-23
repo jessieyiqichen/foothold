@@ -9,6 +9,7 @@ One Supabase project, shared with Assignments 4 and 5. Foothold's tables start w
 | `fh_companies` | A company on one list | `source` (yc, hn, vc) + `source_id`; `domain` (for merging the same company across lists); `one_liner`, `tags`, `team_size`, `is_hiring`; `lists` (the VC boards naming it); `ats`, `ats_slug`, `ats_jobs`, `ats_checked_at` once its job board has been looked for | Workers only |
 | `fh_postings` | A posting | `source` (hn: a "Who is hiring" comment; ats: a role on the company's own board) + `source_id`; `company_id`; `title`, `location`, `text` (cut at 6,000 characters for ats); `url`; `emails`, `author` (hn) | Workers only |
 | `fh_runs` | A worker run | `source`, `ok`, `rows_written`, `error` | Workers only |
+| `fh_posting_signals` | What one posting's text says: years, salary, visa, equity, 401(k) (added 2026-11-22, `docs/judge-signals.md`) | `posting_id`; each value with its quote (copied word for word, checked by the table and by `fh_set_signals`); `text_md5`; `pending` sentences for the model; `model_tries` | `fh-signals` only |
 
 `fh_postings.tags` holds a posting's skill tags and `tags_version` the vocabulary version they came from (see Matching below).
 
@@ -32,6 +33,7 @@ Per-person tables, each readable and writable only by its person (row-level secu
 | `fh-jobs` | `{"task":"vc","board":"accel"}` | Reads one VC board's company list (Getro) into `fh_companies`, one row per domain |
 | `fh-jobs` | `{"task":"ats","limit":25}` | Claims the next unchecked companies (hiring ones first), tries each one's likely board names on Ashby, Greenhouse and Lever, writes the roles found. At most 300 roles a company |
 | `fh-roles` | `{"limit":500}` | Labels the next postings with a family and a level read from the title (`packages/core/src/roles.ts`). The call that labels the last ones recounts `fh_tag_counts`. A call with nothing to do writes nothing. `scripts/run-jobs.sh roles` runs it until none is left |
+| `fh-signals` | `{"task":"rules","limit":500}`; `{"task":"model","limit":50}` with header `x-fh-worker-key` | Rules: reads open postings with no signals row, an older `SIGNALS_VERSION` or changed text, writes values and quotes; free, a call with nothing to do writes nothing. Model: settles the `pending` sentences with Gemini (`gemini-3.5-flash-lite`), at most 5 requests a call, a row given up after 3 failed replies; needs the secrets `FH_WORKER_KEY` and `GEMINI_API_KEY` |
 | `fh-jobs` | `{"task":"tag","limit":300}` | Tags the next postings whose tags are older than the current vocabulary. `scripts/run-jobs.sh tag` runs it until none is left |
 
 ## Matching a person to postings
@@ -102,6 +104,7 @@ There is no Supabase CLI here: a worker is deployed by uploading its files. `fh-
 |---|---|---|
 | `fh-jobs` | `supabase/functions/fh-jobs/index.ts` | that file, `supabase/functions/fh-jobs/lib/parse.ts`, `packages/core/src/skills.ts`, `packages/core/src/tags.ts` |
 | `fh-roles` | `supabase/functions/fh-roles/index.ts` | that file, `supabase/functions/fh-roles/lib/batch.ts`, `packages/core/src/roles.ts` |
+| `fh-signals` | `supabase/functions/fh-signals/index.ts` | that file and `supabase/functions/fh-signals/lib/*.ts` (not the tests or `fixtures/`); it imports nothing from `packages/core` |
 | `fh-scout` | `index.ts` | its own folder only; it imports nothing from `packages/core` |
 
 `fh-jobs` as deployed is still version 4, from before the restructure and before the four new hiring systems; the code in the repo has not run on Supabase yet. `fh-layout-check` is the throwaway: it now answers 410 behind a key and can be deleted from the dashboard.

@@ -98,7 +98,7 @@ describe("lockedQuery: the URL never carries the preset", () => {
   });
 
   it("keeps the rest", () => {
-    const filters: RoleFilters = { query: "ml", families: ["data"], levels: ["entry"], days: 7, place: "remote", sort: "newest" };
+    const filters: RoleFilters = { ...DEFAULT_FILTERS, query: "ml", families: ["data"], levels: ["entry"], days: 7, place: "remote", sort: "newest" };
     expect(lockedQuery(filters, REMOTE)).toBe("q=ml&kind=data&level=entry&posted=7&sort=newest");
     expect(lockedQuery(filters, INTERN)).toBe("q=ml&kind=data&posted=7&place=remote&sort=newest");
   });

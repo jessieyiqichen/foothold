@@ -9,7 +9,7 @@ The four design decisions were made with the user on 2026-11-10, one at a time: 
 | Role | Brief | May change only | Does not touch |
 |---|---|---|---|
 | lead (the session talking to the user) | `AGENTS.md` | `docs/`, `README.md`, `AGENTS.md`, `log.md`, `.claude/`, `scripts/` | Code owned by another role, unless that role is not running |
-| data-scout | `.claude/agents/data-scout.md` | `supabase/functions/fh-scout/`, `supabase/functions/fh-jobs/`, `supabase/functions/fh-roles/`, `supabase/migrations/*foothold*` (migrations for per-person tables that a page owns, such as `fh_profiles`, `fh_drafts` and `fh_draft_runs`, are web-ui's; one that spans both, like matching, is data-scout's and always goes to `reviewer`) | `apps/web/src/`, `evals/` |
+| data-scout | `.claude/agents/data-scout.md` | `supabase/functions/fh-scout/`, `supabase/functions/fh-jobs/`, `supabase/functions/fh-roles/`, `supabase/functions/fh-signals/`, `supabase/migrations/*foothold*` (migrations for per-person tables that a page owns, such as `fh_profiles`, `fh_drafts` and `fh_draft_runs`, are web-ui's; one that spans both, like matching, is data-scout's and always goes to `reviewer`) | `apps/web/src/`, `evals/` |
 | judge-eval | `.claude/agents/judge-eval.md` | `supabase/functions/fh-judge/`, `evals/`, `apps/web/src/lib/judge/` | Data workers, pages |
 | web-ui | `.claude/agents/web-ui.md` | `apps/web/src/app/`, `apps/web/src/components/`, `apps/web/src/lib/` (not `apps/web/src/lib/judge/`), `apps/web/e2e/`, migrations for the per-person tables a page owns | the rest of `supabase/` |
 | (shared) | none | `packages/core/` belongs to the lead: the vocabulary is reviewed by the user, and a change there re-tags every posting and every profile. Another role proposes a change, the lead makes it | |
@@ -58,6 +58,7 @@ Read the database, read logs, run the tests. Read-only, without going through th
 
 | Date | Role | Doing | State |
 |---|---|---|---|
+| 2026-11-22 | foothold·招聘原文提取 (side session, worktree `../foothold-judge-extract`, branch `judge-extract`) | v2 Judge signals (years, salary, visa, equity, 401(k)) with quotes, `docs/judge-signals.md`: `fh_posting_signals` migration, `supabase/functions/fh-signals/`, `evals/signals/`, Jobs filters and role lines in `apps/web/src/`, the matching functions. Design agreed by the user question by question | Done 2026-11-22: applied, deployed, rules run over all open postings, squash-merged into main |
 | 2026-11-10 | lead | Jobs worker (fh-jobs): batches over every company | In progress |
 | 2026-11-22 | web-ui (session "foothold·实习应届远程专题页", worktree `../foothold-landing-pages`, branch `landing-pages`) | Internship, new-grad and remote landing pages on Jobs: new routes, a small entry point, public paths in `lib/auth/routes.ts`; no database change. Design agreed by the user question by question (3 questions); reviewed; the user saw it locally (port 3102) signed in and out | Committed on branch `landing-pages`, not pushed; ready to merge |
 | 2026-11-22 | lead | Jobs and Companies open to signed-out visitors: `20261122100000_foothold_public_browse.sql` (four definer functions for anon), public paths, the Companies page, signed-out Jobs and company pages, the numbers strip. Design agreed by the user question by question; reviewed | Not committed |
