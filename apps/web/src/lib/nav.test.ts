@@ -42,4 +42,13 @@ describe("isCurrentLink: which link is marked as the page you are on", () => {
     expect(isCurrentLink(saved, "/savedsearch")).toBe(false);
     expect(isCurrentLink(today, null)).toBe(false);
   });
+
+  it("marks Jobs on its three landing pages, but not on Nudge's old /jobs or anything else under it", () => {
+    for (const path of ["/jobs/internships", "/jobs/new-grad", "/jobs/remote"]) {
+      expect(isCurrentLink(roles, path), path).toBe(true);
+      expect(isCurrentLink(today, path), path).toBe(false);
+    }
+    expect(isCurrentLink(roles, "/jobs")).toBe(false);
+    expect(isCurrentLink(roles, "/jobs/other")).toBe(false);
+  });
 });

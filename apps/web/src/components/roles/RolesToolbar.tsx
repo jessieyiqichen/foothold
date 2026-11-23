@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { inputClass } from "@/components/ui/Field";
 import { MAX_TEXT, SEARCH_DEBOUNCE_MS } from "@/lib/roles/constants";
 import { filtersButton, ROLES_COPY } from "@/lib/roles/copy";
-import { effectiveFamilies, effectiveLevels, isFiltering, narrowingCount, placeTrigger, postedTrigger, triggerLabel } from "@/lib/roles/filters";
+import { effectiveFamilies, effectiveLevels, isFiltering, placeTrigger, postedTrigger, triggerLabel } from "@/lib/roles/filters";
+import { hiddenControls, lockedNarrowing } from "@/lib/roles/landing";
 import { kindPanel, levelPanel, placePanel, postedPanel, type ControlsProps } from "./FilterControls";
 import { FilterMenu } from "./FilterMenu";
 import { FilterSheet } from "./FilterSheet";
@@ -42,7 +43,8 @@ function SearchBox({ filters, onChange }: Pick<ControlsProps, "filters" | "onCha
 export function RolesToolbar({ total, ...props }: ControlsProps & { total: number | null }) {
   const { filters, profile } = props;
   const on = isFiltering(filters, profile);
-  const narrowing = narrowingCount(filters, profile);
+  const narrowing = lockedNarrowing(filters, profile, props.preset);
+  const hidden = hiddenControls(props.preset);
   return (
     <div className="flex flex-col gap-3">
       <SearchBox filters={filters} onChange={props.onChange} />
@@ -50,15 +52,15 @@ export function RolesToolbar({ total, ...props }: ControlsProps & { total: numbe
         <FilterMenu label={triggerLabel(ROLES_COPY.kind, effectiveFamilies(filters, profile).length)} pressed={on.families}>
           {(close) => kindPanel(props, false, close)}
         </FilterMenu>
-        <FilterMenu label={triggerLabel(ROLES_COPY.level, effectiveLevels(filters, profile).length)} pressed={on.levels}>
+        {!hidden.levels && <FilterMenu label={triggerLabel(ROLES_COPY.level, effectiveLevels(filters, profile).length)} pressed={on.levels}>
           {(close) => levelPanel(props, false, close)}
-        </FilterMenu>
+        </FilterMenu>}
         <FilterMenu label={postedTrigger(filters.days)} pressed={on.days} align="right">
           {(close) => postedPanel(props, false, close, "roles-posted")}
         </FilterMenu>
-        <FilterMenu label={placeTrigger(filters.place)} pressed={on.place} align="right">
+        {!hidden.place && <FilterMenu label={placeTrigger(filters.place)} pressed={on.place} align="right">
           {(close) => placePanel(props, false, close, "roles-place")}
-        </FilterMenu>
+        </FilterMenu>}
       </div>
       <div className="sm:hidden">
         <FilterSheet label={filtersButton(narrowing)} pressed={narrowing > 0} total={total} {...props} />

@@ -4,6 +4,7 @@ import { FAMILIES, LEVELS } from "@/lib/profile/roles";
 import type { Facets } from "@/lib/roles/facets";
 import { effectiveFamilies, effectiveLevels, type ProfilePicks, type RoleFilters } from "@/lib/roles/filters";
 import { ROLES_COPY } from "@/lib/roles/copy";
+import type { Preset } from "@/lib/roles/landing";
 import { ChoicesPanel, DaysPanel, PlacePanel } from "./FilterPanels";
 
 export interface ControlsProps {
@@ -11,6 +12,8 @@ export interface ControlsProps {
   profile: ProfilePicks;
   facets: Facets | null;
   onChange: (next: RoleFilters) => void;
+  /** A landing page's locked filter (lib/roles/landing.ts): its control is hidden, it has no chip, Clear all keeps it. */
+  preset?: Preset;
 }
 
 /** The four filters' panels, one function each, shared by the desktop dropdowns and the phone's sheet. `live` applies

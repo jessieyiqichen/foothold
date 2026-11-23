@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ROLES_COPY, showRoles } from "@/lib/roles/copy";
+import { hiddenControls } from "@/lib/roles/landing";
 import { kindPanel, levelPanel, placePanel, postedPanel, type ControlsProps } from "./FilterControls";
 
 /** On a phone, the four filters in one sheet from the bottom of the screen, each change applied at once. The browser's
@@ -18,6 +19,7 @@ export function FilterSheet({ label, pressed, total, ...props }: ControlsProps &
     if (!open && dialog.open) dialog.close();
   }, [open]);
   const none = () => {};
+  const hidden = hiddenControls(props.preset);
   return (
     <>
       <button type="button" aria-haspopup="dialog" aria-expanded={open} aria-pressed={pressed} onClick={() => setOpen(true)}
@@ -33,9 +35,9 @@ export function FilterSheet({ label, pressed, total, ...props }: ControlsProps &
         {open && (
           <div className="flex flex-col gap-4 divide-y divide-hairline">
             {kindPanel(props, true, none)}
-            <div className="pt-4">{levelPanel(props, true, none)}</div>
+            {!hidden.levels && <div className="pt-4">{levelPanel(props, true, none)}</div>}
             <div className="pt-4">{postedPanel(props, true, none, "roles-sheet-posted")}</div>
-            <div className="pt-4">{placePanel(props, true, none, "roles-sheet-place")}</div>
+            {!hidden.place && <div className="pt-4">{placePanel(props, true, none, "roles-sheet-place")}</div>}
             <div className="pt-4"><Button className="w-full" onClick={() => setOpen(false)}>{showRoles(total ?? null)}</Button></div>
           </div>
         )}
