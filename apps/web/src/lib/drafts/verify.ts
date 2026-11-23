@@ -7,6 +7,8 @@ import { humanProblems } from "./humanize";
 export interface DraftText { subject: string; body: string; resumeQuote: string; companyQuote: string }
 
 export const BODY_WORDS = { min: 40, max: 160 } as const;
+/** A short subject is opened more (Boomerang: 3 to 4 words best, 2016); 8 leaves room for the role's title. */
+export const SUBJECT_WORDS = 8;
 /** Character caps, below the database's own checks, so a draft that passes here can always be saved. */
 export const CHARS = { subject: 150, body: 1500, quote: 300 } as const;
 /** A quote shorter than this says nothing a reader could check. */
@@ -45,6 +47,8 @@ export const STOCK_PHRASES = [
   "hope this email finds you well", "i am writing to", "reaching out", "long admired", "always admired", "passionate about",
   "i would love to bring", "excited to", "thrilled", "pick your brain", "leverage", "synergy", "cutting-edge", "game-changer",
   "delve", "in today's", "metric-driven", "results-driven", "a unique blend",
+  // Generic openers and apologies (First Round, 530 recruiter emails; career centres, 2026-11-22)
+  "sorry to bother", "i know you're busy", "hope you don't mind", "impressed with your", "came across your profile",
 ] as const;
 
 /** A request for a referral: the user wants a first email to ask only for a chat (2026-11-17). */
@@ -85,12 +89,33 @@ const PASTE_WORDS = 5;
 
 /** How it reads: written by the person ("I"), and the company's own words not pasted in (2026-11-21: a real draft
  *  opened "An M.A. student ... is writing" and ended on "faster, better, and cheaper, at scale"). */
-function readingProblems(d: DraftText): string[] {
+/** A resume bullet's opening verb: a sentence that starts with one has no subject (eval baseline, 2026-11-22). */
+const RESUME_VERB = /^(Built|Owned|Shipped|Led|Designed|Created|Launched|Developed|Managed|Drove|Analy[sz]ed|Ran|Delivered|Prototyped|Wrote|Reduced|Increased|Improved|Implemented|Founded|Grew|Diagnosed|Automated|Conducted|Defined)\b/;
+/** Six words in a row from the company's own text is their copy, even when the words around it change. */
+const COPY_WORDS = 6;
+
+const words = (s: string) => normal(s).replace(/[^a-z0-9' ]+/g, " ").split(" ").filter(Boolean);
+
+/** The first run of COPY_WORDS words the body shares with the company's text, or null. */
+function copiedRun(body: string, company: string): string | null {
+  const from = words(company);
+  const runs = new Set<string>();
+  for (let i = 0; i + COPY_WORDS <= from.length; i++) runs.add(from.slice(i, i + COPY_WORDS).join(" "));
+  const mine = words(body);
+  for (let i = 0; i + COPY_WORDS <= mine.length; i++) {
+    const run = mine.slice(i, i + COPY_WORDS).join(" ");
+    if (runs.has(run)) return run;
+  }
+  return null;
+}
+
+function readingProblems(d: DraftText, company: string): string[] {
   const problems: string[] = [];
   if (!/\b(?:I|I'm|I've|my)\b/.test(firstSentence(d.body))) problems.push("the first sentence must be in the first person (\"I'm ...\"), not about the writer in the third person");
-  if (wordCount(d.companyQuote) >= PASTE_WORDS && normal(d.body).includes(normal(d.companyQuote))) {
-    problems.push("the body pastes the company's own words; say what they do in a few words of your own, or leave it out");
-  }
+  const bare = d.body.split(/(?<=[.!?])\s+/).map((s) => RESUME_VERB.exec(s.trim())).find(Boolean);
+  if (bare) problems.push(`a sentence starts "${bare[1]}" with no subject, like a resume line; write it as "I ${bare[1].toLowerCase()} ..."`);
+  const pasted = wordCount(d.companyQuote) >= PASTE_WORDS && normal(d.body).includes(normal(d.companyQuote)) ? normal(d.companyQuote) : copiedRun(d.body, company);
+  if (pasted) problems.push(`the body reuses the company's own words ("${pasted}"); say what they do in a few words of your own, or leave it out`);
   return problems;
 }
 
@@ -100,6 +125,7 @@ export function checkDraft(d: DraftText, sources: { resume: string; company: str
   if (d.subject.trim().length === 0) problems.push("the subject is empty");
   if (d.subject.length > CHARS.subject) problems.push(`the subject is longer than ${CHARS.subject} characters`);
   if (ADDRESS_OR_LINK.test(d.subject)) problems.push("the subject must not contain an email address or a link");
+  if (wordCount(d.subject) > SUBJECT_WORDS) problems.push(`the subject has ${wordCount(d.subject)} words; keep it to ${SUBJECT_WORDS}`);
   if (d.body.length > CHARS.body) problems.push(`the body is longer than ${CHARS.body} characters`);
   const words = wordCount(d.body);
   if (words < BODY_WORDS.min || words > BODY_WORDS.max) {
@@ -107,7 +133,7 @@ export function checkDraft(d: DraftText, sources: { resume: string; company: str
   }
   if (ADDRESS_OR_LINK.test(d.body)) problems.push("the body must not contain an email address or a link");
   if (PHONE.test(d.body)) problems.push("the body must not contain a phone number");
-  problems.push(...askProblems(d.body, sources.roles ?? []), ...readingProblems(d), ...voiceProblems(d.body), ...humanProblems(d.body, sources.allow ?? sources.roles ?? []));
+  problems.push(...askProblems(d.body, sources.roles ?? []), ...readingProblems(d, sources.company), ...voiceProblems(d.body), ...humanProblems(d.body, sources.allow ?? sources.roles ?? []));
   if (d.resumeQuote.length > CHARS.quote || d.companyQuote.length > CHARS.quote) problems.push(`a quote is longer than ${CHARS.quote} characters`);
   if (!quotedIn(d.resumeQuote, sources.resume)) problems.push("the resume quote is not word for word in the resume");
   if (!quotedIn(d.companyQuote, sources.company)) problems.push("the company quote is not word for word in the company description");

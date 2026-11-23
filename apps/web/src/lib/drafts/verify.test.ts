@@ -174,6 +174,47 @@ describe("checkDraft: written by the person, in their own words", () => {
   });
   it("refuses the company's own words pasted in", () => {
     expect(problems({ body: `${base.body} You build voice AI agents for Indian businesses.` }))
-      .toContain("the body pastes the company's own words; say what they do in a few words of your own, or leave it out");
+      .toContain("the body reuses the company's own words (\"voice ai agents for indian businesses\"); say what they do in a few words of your own, or leave it out");
+  });
+});
+
+// The eval's baseline, 2026-11-22: "Owned a new content module from proposal to launch..." (a resume line with no
+// subject) and "Figma helps product teams create, test, and ship better designs, faster." (their copy, lightly changed)
+describe("checkDraft: no resume lines, no company copy", () => {
+  const company2 = "Figma helps the entire product team create, test, and ship better designs, faster.";
+  const base = {
+    subject: "Applied Data Researcher: evals",
+    body: `I'm a student writing about your Applied Data Researcher role. ${Array.from({ length: 60 }, (_, i) => `w${i}`).join(" ")}`,
+    resumeQuote: "Shipped RAG evals for a lecture assistant",
+    companyQuote: "voice AI agents for Indian businesses",
+  };
+  const fromFigma = "the entire product team create";
+  const problems = (body: string, c = company, quote = base.companyQuote) => checkDraft({ ...base, body, companyQuote: quote }, { resume, company: c });
+  it("refuses a sentence that starts with a resume verb and has no subject", () => {
+    expect(problems(`${base.body}. Owned a new content module from proposal to launch.`))
+      .toContain('a sentence starts "Owned" with no subject, like a resume line; write it as "I owned ..."');
+    expect(problems(`${base.body}. I owned a new content module from proposal to launch.`)).toEqual([]);
+  });
+  it("refuses six words in a row from the company's own text, even lightly changed around them", () => {
+    expect(problems(`${base.body}. Figma helps product teams create, test, and ship better designs, faster.`, company2, fromFigma))
+      .toContain("the body reuses the company's own words (\"create test and ship better designs\"); say what they do in a few words of your own, or leave it out");
+  });
+  it("keeps a shorter echo of the company's words", () => {
+    expect(problems(`${base.body}. I like how you ship better designs.`, company2, fromFigma)).toEqual([]);
+  });
+});
+
+// Research, 2026-11-22: short subjects, and the generic openers recruiters ignore (First Round)
+describe("checkDraft: subject length and generic openers", () => {
+  const base = {
+    subject: "Applied Data Researcher: evals",
+    body: `I'm a student writing about your Applied Data Researcher role. ${Array.from({ length: 60 }, (_, i) => `w${i}`).join(" ")}`,
+    resumeQuote: "Shipped RAG evals for a lecture assistant", companyQuote: "voice AI agents for Indian businesses",
+  };
+  it("refuses a subject longer than eight words", () => {
+    expect(checkDraft({ ...base, subject: "Applied Data Researcher: I built a thirty question eval set" }, { resume, company })).toContain("the subject has 10 words; keep it to 8");
+  });
+  it("refuses an apology or a generic opener", () => {
+    expect(checkDraft({ ...base, body: `${base.body}. Sorry to bother you.` }, { resume, company })).toContain('the body uses the stock phrase "sorry to bother"');
   });
 });
