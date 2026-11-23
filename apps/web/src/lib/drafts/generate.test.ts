@@ -52,6 +52,10 @@ describe("generateDraft: plan, then write", () => {
     const f = vi.fn(async (u: string, init: RequestInit) => (JSON.parse(String(init.body)).model === "m1" ? new Response("{}", { status: 404 }) : ok(u, init)));
     const r = await generateDraft(input, { apiKey: "k", fetch: f as unknown as typeof fetch, models: ["m1", "m2"] });
     expect(r.ok && r.draft.model).toBe("m2");
+    // A limit is per model: the next model is tried, and only when every one is limited does it say so
+    const firstLimited = vi.fn(async (u: string, init: RequestInit) => (JSON.parse(String(init.body)).model === "m1" ? new Response("{}", { status: 429 }) : ok(u, init)));
+    const r2 = await generateDraft(input, { apiKey: "k", fetch: firstLimited as unknown as typeof fetch, models: ["m1", "m2"] });
+    expect(r2.ok && r2.draft.model).toBe("m2");
     const limited = vi.fn(async () => new Response("{}", { status: 429 }));
     expect(await generateDraft(input, { apiKey: "k", fetch: limited, models: ["m1", "m2"] })).toEqual({ ok: false, reason: "rate_limited" });
   });

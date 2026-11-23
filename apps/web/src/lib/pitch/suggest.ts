@@ -36,6 +36,7 @@ export async function suggestPitch(resumeText: string, deps: { apiKey: string; f
   const resume = resumeForModel(resumeText.slice(0, RESUME_MAX)).replace(/[<>]/g, " ").slice(0, RESUME_MAX);
   if (!resume.trim()) return { ok: false, reason: "bad_input" };
   if (!deps.apiKey) return { ok: false, reason: "unavailable" };
+  let limited = false;
   for (const model of deps.models ?? DRAFT_MODELS) {
     let problems: string[] = [];
     let moveOn = false;
@@ -45,7 +46,8 @@ export async function suggestPitch(resumeText: string, deps: { apiKey: string; f
       if (!r.ok) {
         // A model this key cannot use, even after a refused line: the next model gets its own tries (review)
         if (r.reason === "unavailable") { moveOn = true; break; }
-        if (r.reason === "rate_limited") return { ok: false, reason: "rate_limited" };
+        // Limits are per model: the next one may still have room
+        if (r.reason === "rate_limited") { limited = true; moveOn = true; break; }
         if (r.reason === "failed") return { ok: false, reason: "unavailable" };
         problems = ["the reply was not valid JSON"];
         continue;
@@ -57,5 +59,5 @@ export async function suggestPitch(resumeText: string, deps: { apiKey: string; f
     }
     if (!moveOn && problems.length > 0) return { ok: false, reason: "unverified" };
   }
-  return { ok: false, reason: "unavailable" };
+  return { ok: false, reason: limited ? "rate_limited" : "unavailable" };
 }

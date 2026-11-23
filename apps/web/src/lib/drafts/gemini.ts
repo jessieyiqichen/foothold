@@ -33,9 +33,12 @@ export function outputText(reply: unknown): string | null {
   return texts.length > 0 ? texts.join("") : null;
 }
 
+/** 400/403/404: this model is not for this key. 500/502/503: this model is overloaded right now ("high demand", seen on
+ *  2026-11-22 on 6 of 12 eval cases). Both are "unavailable", so the caller tries the next model. 429 is the key's own
+ *  limit, the same on every model. Anything else, or no answer, is "failed". */
 function failure(status: number): AskResult {
   if (status === 429) return { ok: false, reason: "rate_limited" };
-  if (status === 400 || status === 403 || status === 404) return { ok: false, reason: "unavailable" };
+  if ([400, 403, 404, 500, 502, 503].includes(status)) return { ok: false, reason: "unavailable" };
   return { ok: false, reason: "failed" };
 }
 
@@ -51,11 +54,17 @@ export async function askGemini(req: AskRequest): Promise<AskResult> {
       }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
-    if (!res.ok) return failure(res.status);
+    if (!res.ok) {
+      // What went wrong, for whoever reads the server log: the status and the start of Google's answer, never the key
+      const detail = (await res.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 200);
+      console.error(`Foothold Gemini: ${req.model} answered ${res.status}: ${detail}`);
+      return failure(res.status);
+    }
     const text = outputText(await res.json());
     if (text === null) return { ok: false, reason: "bad_output" };
     return { ok: true, json: JSON.parse(text) };
   } catch (e) {
+    if (!(e instanceof SyntaxError)) console.error(`Foothold Gemini: ${req.model} did not answer: ${e instanceof Error ? e.name : String(e)}`);
     return e instanceof SyntaxError ? { ok: false, reason: "bad_output" } : { ok: false, reason: "failed" };
   }
 }

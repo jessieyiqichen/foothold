@@ -83,13 +83,14 @@ function writePrompt(input: DraftInput, s: PlanSources, plan: Plan, problems: st
   return [companyBlock(input, s), fence("pitch", pitch), fence("plan", clean(planText)), edits ? fence("edits", edits) : "", fence("resume", s.resume)].filter(Boolean).join("\n") + fixLine(problems);
 }
 
-type Step<T> = { ok: true; value: T } | { ok: false; reason: "next" | "rate_limited" | "unavailable" | "unverified" };
+type Step<T> = { ok: true; value: T } | { ok: false; reason: "next" | "limited" | "unavailable" | "unverified" };
 
 /** A model answer as a step outcome: a model this key cannot use moves on, a timeout or server error is
  *  "unavailable", and only a reply that was not valid JSON counts against the answer. */
 function failed(r: Exclude<AskResult, { ok: true }>): Step<never> | "retry" {
   if (r.reason === "unavailable") return { ok: false, reason: "next" };
-  if (r.reason === "rate_limited") return { ok: false, reason: "rate_limited" };
+  // A limit is per model (Google, 2026-11-22: "limit: 20 requests per day" for gemini-3.6-flash): try the next one
+  if (r.reason === "rate_limited") return { ok: false, reason: "limited" };
   if (r.reason === "failed") return { ok: false, reason: "unavailable" };
   return "retry";
 }
@@ -120,21 +121,21 @@ function readEmail(json: unknown, plan: Plan): DraftText | null {
   return { subject: straightQuotes(r.subject.trim()), body: straightQuotes(r.body.trim()), resumeQuote: plan.resumeQuote, companyQuote: plan.companyQuote };
 }
 
-/** Both steps with one model; "next" when the model is not available to this key. */
-async function withModel(input: DraftInput, deps: Deps & { startedAt: number }, model: string): Promise<DraftResult | "next"> {
+/** Both steps with one model; "next" when the model is not available to this key, "limited" when its quota is used. */
+async function withModel(input: DraftInput, deps: Deps & { startedAt: number }, model: string): Promise<DraftResult | "next" | "limited"> {
   const s = sourcesOf(input);
   const allow = [...s.roles, clean(input.company.name)];
   const planned = await step(deps, model, PLAN_SYSTEM, PLAN_SCHEMA, (p) => planPrompt(input, s, p), (json) => {
     const plan = readPlan(json);
     return plan ? { value: plan, problems: checkPlan(plan, s) } : { value: null, problems: ["the reply was missing a field"] };
   });
-  if (!planned.ok) return planned.reason === "next" ? "next" : { ok: false, reason: planned.reason };
+  if (!planned.ok) return planned.reason === "next" || planned.reason === "limited" ? planned.reason : { ok: false, reason: planned.reason };
   const plan = planned.value;
   const written = await step(deps, model, WRITE_SYSTEM, WRITE_SCHEMA, (p) => writePrompt(input, s, plan, p), (json) => {
     const d = readEmail(json, plan);
     return d ? { value: d, problems: checkDraft(d, { ...s, allow }) } : { value: null, problems: ["the reply was missing a field"] };
   });
-  if (!written.ok) return written.reason === "next" ? "next" : { ok: false, reason: written.reason };
+  if (!written.ok) return written.reason === "next" || written.reason === "limited" ? written.reason : { ok: false, reason: written.reason };
   return { ok: true, draft: { ...written.value, model } };
 }
 
@@ -142,9 +143,11 @@ export async function generateDraft(input: DraftInput, deps: Deps & { models?: r
   if (resumeText(input).trim().length === 0 || input.company.name.trim().length === 0) return { ok: false, reason: "bad_input" };
   if (!deps.apiKey) return { ok: false, reason: "unavailable" };
   const startedAt = (deps.now ?? Date.now)();
+  let limited = false;
   for (const model of deps.models ?? DRAFT_MODELS) {
     const r = await withModel(input, { ...deps, startedAt }, model);
-    if (r !== "next") return r;
+    if (r === "limited") limited = true;
+    else if (r !== "next") return r;
   }
-  return { ok: false, reason: "unavailable" };
+  return { ok: false, reason: limited ? "rate_limited" : "unavailable" };
 }

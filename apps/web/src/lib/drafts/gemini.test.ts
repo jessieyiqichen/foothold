@@ -28,10 +28,12 @@ describe("askGemini", () => {
     const body = JSON.parse(String(init.body));
     expect(body).toMatchObject({ model: "m1", system_instruction: "s", input: "i", response_format: { mime_type: "application/json", schema: { type: "object" } } });
   });
-  it("maps 429 to rate_limited, 400/403/404 to unavailable, and a reply that is not JSON to bad_output", async () => {
+  it("maps 429 to rate_limited, 400/403/404 and an overload to unavailable, and a reply that is not JSON to bad_output", async () => {
     expect(await askGemini({ ...req, fetch: answer(429, {}) })).toEqual({ ok: false, reason: "rate_limited" });
     for (const s of [400, 403, 404]) expect(await askGemini({ ...req, fetch: answer(s, {}) })).toEqual({ ok: false, reason: "unavailable" });
-    expect(await askGemini({ ...req, fetch: answer(500, {}) })).toEqual({ ok: false, reason: "failed" });
+    // An overloaded model ("high demand") moves on to the next one too (2026-11-22)
+    for (const s of [500, 502, 503]) expect(await askGemini({ ...req, fetch: answer(s, {}) })).toEqual({ ok: false, reason: "unavailable" });
+    expect(await askGemini({ ...req, fetch: answer(504, {}) })).toEqual({ ok: false, reason: "failed" });
     expect(await askGemini({ ...req, fetch: answer(200, { output_text: "not json" }) })).toEqual({ ok: false, reason: "bad_output" });
   });
   it("turns a network error or timeout into failed, never a throw", async () => {
