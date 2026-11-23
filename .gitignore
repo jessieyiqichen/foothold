@@ -48,3 +48,6 @@ next-env.d.ts
 # Playwright (step 7)
 test-results/
 playwright-report/
+
+# drafts eval runs: the letters quote the person's own resume, and the repository is public (2026-11-22)
+/evals/drafts/runs/

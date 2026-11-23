@@ -108,7 +108,7 @@ async function recentEdits(db: HandleDb, userId: string): Promise<DraftEdit[]> {
 /** The model's input: the person's resume (capped) and one-line intro, the company's own words, the chosen role and
  *  its posting (or the card's roles), its person, the person's newest edits, and a line to move away from. An answer
  *  instead when there is no resume, no such company, or the role is not open there. */
-async function gather(db: HandleDb, userId: string, companyId: number, roleId: number | null, another: boolean): Promise<DraftInput | DraftAnswer> {
+export async function gather(db: HandleDb, userId: string, companyId: number, roleId: number | null, another: boolean): Promise<DraftInput | DraftAnswer> {
   const profile = check("the profile", await db.from("fh_profiles").select("resume_text, pitch").eq("user_id", userId).maybeSingle());
   const resume = isRecord(profile) ? text(profile.resume_text) : null;
   if (!resume) return refuse(409, DRAFT_COPY.noResume);

@@ -1,0 +1,17 @@
+{
+  "about": "The drafts eval set (user, 2026-11-22): twelve open roles a real person would write about, across product, data and AI research, picked by hand on 2026-11-22, plus one role that does not fit (Adaptyv, wet-lab biology) to check the draft stays truthful instead of inventing fit. Public data only: company and posting ids. The resume is the signed-in person's own, read at run time and never stored here.",
+  "cases": [
+    { "company_id": 3475, "role_id": 7707, "company": "Bolna AI", "title": "Product Manager", "kind": "product" },
+    { "company_id": 4671, "role_id": 11988, "company": "Databricks", "title": "Product Manager, New Grad (2027) - Belgrade", "kind": "product" },
+    { "company_id": 6460, "role_id": 68832, "company": "Lemonade", "title": "Associate Insurance Product Manager, Car", "kind": "product" },
+    { "company_id": 5179, "role_id": 18045, "company": "Rhoda AI", "title": "Associate Engineering Product Manager- Robot Data Systems", "kind": "product" },
+    { "company_id": 3475, "role_id": 41908, "company": "Bolna AI", "title": "Conversation Quality Analyst", "kind": "data" },
+    { "company_id": 6834, "role_id": 29858, "company": "Celonis", "title": "Associate Value Engineer (AI-Driven Data Science & Analytics) - Orbit Program", "kind": "data" },
+    { "company_id": 6928, "role_id": 52664, "company": "Fever", "title": "Junior People Operations Data Analyst", "kind": "data" },
+    { "company_id": 5890, "role_id": 22256, "company": "iSpot.tv", "title": "Associate Data Analyst", "kind": "data" },
+    { "company_id": 1954, "role_id": 5138, "company": "Blee", "title": "Applied Scientist", "kind": "research" },
+    { "company_id": 4677, "role_id": 42764, "company": "Figma", "title": "Applied Data Researcher", "kind": "research" },
+    { "company_id": 6432, "role_id": 68783, "company": "Instacart", "title": "Applied Scientist II - Advertiser Optimization", "kind": "research" },
+    { "company_id": 1485, "role_id": 4471, "company": "Adaptyv", "title": "Research Associate, Molecular Biology", "kind": "mismatch" }
+  ]
+}
