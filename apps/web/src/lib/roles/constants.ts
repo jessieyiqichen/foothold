@@ -11,6 +11,10 @@ export const SORTS = ["fit", "newest"] as const;
 export type Sort = (typeof SORTS)[number];
 /** The one place the database matches specially, not as text. */
 export const REMOTE_PLACE = "remote";
+/** The internship, new-grad and remote pages on Jobs (user, 2026-11-22). Plain strings here, not in landing.ts, so the
+ *  proxy (lib/auth/routes.ts) does not pull the filter code in with it (review, 2026-11-22). */
+export const LANDING_PATH = { internships: "/jobs/internships", newGrad: "/jobs/new-grad", remote: "/jobs/remote" } as const;
+export const LANDING_PATHS: readonly string[] = Object.values(LANDING_PATH);
 export const PLACE_PICKS = ["Remote", "San Francisco", "New York"] as const;
 /** Longest search and place kept from the URL or the field. */
 export const MAX_TEXT = 100;

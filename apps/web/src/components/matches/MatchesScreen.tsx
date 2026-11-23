@@ -20,6 +20,9 @@ import { PUBLIC_COPY } from "@/lib/public/copy";
 import { SORTS, type Sort } from "@/lib/roles/constants";
 import { ROLES_COPY, rolesCount } from "@/lib/roles/copy";
 import { START_PATH } from "@/lib/start/constants";
+import { MATCHES_PATH } from "@/lib/matches/constants";
+import { LANDING_COPY, landingById, type LandingId, type LandingPage } from "@/lib/roles/landing";
+import { LandingLinks } from "./LandingLinks";
 import { MatchRow } from "./MatchRow";
 
 function Failed({ message, onRetry }: { message: string; onRetry: () => void }) {
@@ -52,12 +55,13 @@ function ResultLine({ total, sort, onSort }: { total: number | null; sort: Sort 
 
 /** The roles for a person with a resume: the toolbar, the active filters, the count and sort, the rows and Show more.
  *  Kind of work and level start from the profile; changing them here does not change it. While new rows are on their
- *  way the old ones stay, dimmed, so nothing jumps. */
-function Roles({ profile, withDb, mode = "mine" }: { profile: ProfilePicks & { updatedAt: string }; mode?: "mine" | "public" } & Pick<ReturnType<typeof useProfile>, "withDb">) {
-  const { filters, query, setFilters } = useRoleFilters();
+ *  way the old ones stay, dimmed, so nothing jumps. On a landing page (`landing`) one filter is locked and hidden. */
+function Roles({ profile, withDb, mode = "mine", landing }: { profile: ProfilePicks & { updatedAt: string }; mode?: "mine" | "public"; landing?: LandingPage } & Pick<ReturnType<typeof useProfile>, "withDb">) {
+  const preset = landing?.preset;
+  const { filters, query, setFilters } = useRoleFilters(preset);
   const { state, facets, more, refreshing, retry, showMore } = useRoles(filters, `${query}|${profile.updatedAt}`, withDb, mode);
   const ready = state.kind === "ready" ? state : null;
-  const controls = { filters, profile, facets, onChange: setFilters };
+  const controls = { filters, profile, facets, onChange: setFilters, preset };
   return (
     <>
       <RolesToolbar {...controls} total={ready ? ready.page.total : null} />
@@ -86,37 +90,47 @@ function Roles({ profile, withDb, mode = "mine" }: { profile: ProfilePicks & { u
 }
 
 /** All roles (`/matches`): every role that fits, with the filters in a toolbar. Someone the first visit still has a
- *  question for is sent there (`/start`) instead. */
-export function MatchesScreen() {
+ *  question for is sent there (`/start`) instead. With `landing`, one of the internship, new-grad and remote pages:
+ *  the same list, its own title and line, one filter locked. */
+export function MatchesScreen({ landing: id }: { landing?: LandingId } = {}) {
   const { isLoaded, userId: signedIn } = useSessionDb();
-  if (isLoaded && !signedIn) return <PublicJobs />;
-  return <MyJobs />;
+  const landing = id ? landingById(id) : undefined;
+  if (isLoaded && !signedIn) return <PublicJobs landing={landing} />;
+  return <MyJobs landing={landing} />;
+}
+
+/** Jobs' title with the quick links to the landing pages, or a landing page's title, its one line and the way back. */
+function Header({ landing }: { landing?: LandingPage }) {
+  // The quick links sit right under Jobs' title, ahead of the numbers and the banner (review, 2026-11-22)
+  if (!landing) return <><PageHeader title={MATCHES_COPY.title} back={null} /><LandingLinks /></>;
+  return <PageHeader title={landing.title} intro={landing.line} back={MATCHES_PATH} backLabel={LANDING_COPY.back} />;
 }
 
 /** A person who has no picks: nothing narrows the list until they choose here. */
 const NO_PICKS = { families: [], levels: [], updatedAt: "public" };
 
 /** Jobs for a signed-out visitor (user, 2026-11-21): the live numbers, what signing in adds, then every role, newest
- *  first, with the same filters. Each title opens its company's page. */
-function PublicJobs() {
+ *  first, with the same filters. Each title opens its company's page. A landing page leaves the numbers out: they
+ *  count every role and would read as the page's own count. */
+function PublicJobs({ landing }: { landing?: LandingPage }) {
   const { withDb } = useSessionDb();
   return (
     <div className="flex w-full flex-col gap-4 lg:max-w-4xl">
-      <PageHeader title={MATCHES_COPY.title} back={null} />
-      <NumbersStrip withDb={withDb} />
+      <Header landing={landing} />
+      {!landing && <NumbersStrip withDb={withDb} />}
       <JobsBanner />
-      <Roles profile={NO_PICKS} withDb={withDb} mode="public" />
+      <Roles profile={NO_PICKS} withDb={withDb} mode="public" landing={landing} />
     </div>
   );
 }
 
-function MyJobs() {
+function MyJobs({ landing }: { landing?: LandingPage }) {
   const { state, userId, retry, withDb } = useProfile();
   const firstVisit = useFirstVisitGate(state, userId);
 
   return (
     <div className="flex w-full flex-col gap-4 lg:max-w-4xl">
-      <PageHeader title={MATCHES_COPY.title} back={null} />
+      <Header landing={landing} />
       {(state.kind === "loading" || firstVisit) && <p className="font-mono text-xs text-muted">{MATCHES_COPY.loading}</p>}
       {state.kind === "failed" && <Failed message={state.message} onRetry={retry} />}
       {/* Not reached while the first visit sends anyone without a resume to /start; kept should that ever fail */}
@@ -126,7 +140,7 @@ function MyJobs() {
           <ButtonLink href={START_PATH}>{MATCHES_COPY.toProfile}</ButtonLink>
         </EmptySheet>
       )}
-      {state.kind === "ready" && !firstVisit && state.profile && <Roles profile={state.profile} withDb={withDb} />}
+      {state.kind === "ready" && !firstVisit && state.profile && <Roles profile={state.profile} withDb={withDb} landing={landing} />}
     </div>
   );
 }

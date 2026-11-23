@@ -1,10 +1,11 @@
 import { Button } from "@/components/ui/Button";
 import { ROLES_COPY, removeLabel } from "@/lib/roles/copy";
-import { activeChips, clearAll, type ProfilePicks, type RoleFilters } from "@/lib/roles/filters";
+import type { ProfilePicks, RoleFilters } from "@/lib/roles/filters";
+import { lockedChips, lockedClearAll, type Preset } from "@/lib/roles/landing";
 
 /** What is filtering now, as chips with an × each, and Clear all. Thin edges: they are labels with one small key. */
-export function FilterChips({ filters, profile, onChange }: { filters: RoleFilters; profile: ProfilePicks; onChange: (next: RoleFilters) => void }) {
-  const chips = activeChips(filters, profile);
+export function FilterChips({ filters, profile, onChange, preset }: { filters: RoleFilters; profile: ProfilePicks; onChange: (next: RoleFilters) => void; preset?: Preset }) {
+  const chips = lockedChips(filters, profile, preset);
   if (chips.length === 0) return null;
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -19,7 +20,7 @@ export function FilterChips({ filters, profile, onChange }: { filters: RoleFilte
           </li>
         ))}
       </ul>
-      <Button variant="ghost" onClick={() => onChange(clearAll(filters))}>{ROLES_COPY.clearAll}</Button>
+      <Button variant="ghost" onClick={() => onChange(lockedClearAll(filters, preset))}>{ROLES_COPY.clearAll}</Button>
     </div>
   );
 }

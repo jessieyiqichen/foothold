@@ -1,5 +1,6 @@
 import { COMPANIES_PATH, ROLES_PATH } from "../company/constants";
 import { MATCHES_PATH } from "../matches/constants";
+import { LANDING_PATHS } from "../roles/constants";
 
 /** Where Clerk's own pages live; also passed to ClerkProvider and the proxy, so a redirect never leaves for Clerk's hosted pages. */
 export const SIGN_IN_PATH = "/sign-in";
@@ -16,7 +17,9 @@ export const PUBLIC_HOME_PATH = MATCHES_PATH;
 
 export function isPublicPath(pathname: string): boolean {
   // "/" exactly, so app/page.tsx can send a signed-out visitor to Jobs (review, 2026-11-22: the proxy sent them to sign in)
-  return pathname === "/" || PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+  // The three Jobs landing pages exactly (user, 2026-11-22): /jobs itself is Nudge's old page and stays closed
+  if (pathname === "/" || LANDING_PATHS.includes(pathname)) return true;
+  return PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
 /** Where a person lands after signing in, and where "/" goes: today's five company cards, Foothold's front door

@@ -2,6 +2,7 @@ import { SAVED_PATH, TODAY_PATH } from "./cards/constants";
 import { COMPANIES_PATH } from "./company/constants";
 import { MATCHES_PATH } from "./matches/constants";
 import { PROFILE_PATH } from "./profile/constants";
+import { LANDING_PATHS } from "./roles/constants";
 
 /** The name in the header and on the sign-in card. */
 export const WORDMARK = "Foothold";
@@ -29,5 +30,8 @@ export const PUBLIC_NAV_LINKS: NavLink[] = [
 
 /** Whether a link is the page being shown; `pathname` is null while it isn't known yet (prerender fallback). */
 export function isCurrentLink({ href }: NavLink, pathname: string | null): boolean {
-  return pathname !== null && (pathname === href || pathname.startsWith(`${href}/`));
+  if (pathname === null) return false;
+  // The internship, new-grad and remote pages are part of Jobs (2026-11-22)
+  if (href === MATCHES_PATH && LANDING_PATHS.includes(pathname)) return true;
+  return pathname === href || pathname.startsWith(`${href}/`);
 }

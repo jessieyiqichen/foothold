@@ -19,6 +19,17 @@ describe("isPublicPath: which pages a signed-out visitor may open", () => {
     }
   });
 
+  // Internship, new-grad and remote pages on Jobs (user, 2026-11-22): only these three exact paths; /jobs itself is
+  // Nudge's old page and stays closed
+  it("opens the three Jobs landing pages, and nothing else under /jobs", () => {
+    for (const path of ["/jobs/internships", "/jobs/new-grad", "/jobs/remote"]) {
+      expect(isPublicPath(path), path).toBe(true);
+    }
+    for (const path of ["/jobs", "/jobs/", "/jobs/other", "/jobs/internships-x", "/jobs/internships/1", "/jobs/remote/x", "/jobsremote", "/jobs/remote/", "/Jobs/remote", "/jobs/%72emote"]) {
+      expect(isPublicPath(path), path).toBe(false);
+    }
+  });
+
   it("opens \"/\" itself, which sends each visitor on, and nothing that only starts with a slash", () => {
     expect(isPublicPath("/")).toBe(true);
     expect(isPublicPath("//today")).toBe(false);
