@@ -3,8 +3,9 @@ import type { Decision } from "@/lib/cards/constants";
 import { COMPANY_COPY } from "@/lib/company/copy";
 
 /** The person's decision on the company, under its name: Save and I reached out; once saved or reached out, the state
- *  shows as a tile with Remove to take it back. A skipped company can be saved again. */
-export function CompanyActions({ decision, busy, error, onDecide }: { decision: Decision | null; busy: boolean; error: string | null; onDecide: (decision: Decision | null) => void }) {
+ *  shows as a tile with Remove to take it back. A skipped company can be saved again. `quiet`: Save as a secondary
+ *  key, where another key on the screen is the primary one (the role page's action card). */
+export function CompanyActions({ decision, busy, error, onDecide, quiet = false }: { decision: Decision | null; busy: boolean; error: string | null; onDecide: (decision: Decision | null) => void; quiet?: boolean }) {
   const kept = decision === "saved" || decision === "reached_out";
   return (
     <div className="flex flex-col gap-2">
@@ -14,7 +15,7 @@ export function CompanyActions({ decision, busy, error, onDecide }: { decision: 
             {decision === "saved" ? COMPANY_COPY.saved : COMPANY_COPY.markedReached}
           </span>
         )}
-        {!kept && <Button onClick={() => onDecide("saved")} disabled={busy}>{busy ? COMPANY_COPY.deciding : COMPANY_COPY.save}</Button>}
+        {!kept && <Button variant={quiet ? "secondary" : "primary"} onClick={() => onDecide("saved")} disabled={busy}>{busy ? COMPANY_COPY.deciding : COMPANY_COPY.save}</Button>}
         {decision !== "reached_out" && <Button variant="secondary" onClick={() => onDecide("reached_out")} disabled={busy}>{COMPANY_COPY.reachedOut}</Button>}
         {kept && <Button variant="ghost" onClick={() => onDecide(null)} disabled={busy}>{COMPANY_COPY.remove}</Button>}
       </div>

@@ -8,10 +8,6 @@ export const COMPANY_COPY = {
   openPosting: "Open the posting",
   tryAgain: "Try again",
 
-  roles: "Open roles",
-  pickRole: "Pick the role your message is about",
-  bestFit: "Best fit",
-  posting: "Posting",
   aboutRole: "About",
   noRoleChosen: "No open role listed, the message is about the company",
   noRoles: "No open roles listed right now",
@@ -36,9 +32,6 @@ export const COMPANY_ERRORS = [COMPANY_COPY.loadFailed, COMPANY_COPY.notFound, C
 
 /** The line under the message heading: which role the message is about. */
 export const aboutLine = (title: string): string => `${COMPANY_COPY.aboutRole}: ${title}`;
-
-/** The picker's button for the roles past the first few. */
-export const moreRolesLine = (n: number): string => `+${n} more ${n === 1 ? "role" : "roles"}`;
 
 /** The header's key for a signed-out visitor. */
 export const SIGN_IN_LABEL = "Sign in";

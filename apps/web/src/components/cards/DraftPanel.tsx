@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { WithDb } from "@/components/auth/useSessionDb";
 import { Button } from "@/components/ui/Button";
 import { Field, TextArea, TextInput } from "@/components/ui/Field";
@@ -17,8 +17,12 @@ import { useDraft } from "./useDraft";
  *  new one replaces their changes; while it is written, and if it is refused, their text stays. A saved draft that
  *  couldn't load says so. Before a person's first draft, a dialog says what is sent to Google Gemini and asks them to
  *  agree; a line under the button always says it. Foothold never sends anything; the line under it says so. */
-export function DraftPanel({ companyId, userId, withDb, roleId = null, note }: { companyId: number; userId: string | null; withDb: WithDb; roleId?: number | null; note?: string }) {
+export function DraftPanel({ companyId, userId, withDb, roleId = null, note, title = DRAFT_COPY.heading, onDraft }: { companyId: number; userId: string | null; withDb: WithDb; roleId?: number | null; note?: string; title?: string; onDraft?: (saved: boolean) => void }) {
   const { view, write, edit, remember } = useDraft(companyId, withDb, roleId);
+  // Tells the page whether a draft is saved, so its key can say "Open your draft" before the panel shows
+  useEffect(() => {
+    if (view.loaded) onDraft?.(view.draft !== null);
+  }, [view.loaded, view.draft, onDraft]);
   const { draft, shown, writing, error, unsaved, loaded, loadFailed } = view;
   const id = `draft-${companyId}`;
   const [asking, setAsking] = useState<"replace" | "consent" | null>(null);
@@ -38,7 +42,7 @@ export function DraftPanel({ companyId, userId, withDb, roleId = null, note }: {
     void write(another);
   };
   return (
-    <Part id={id} title={DRAFT_COPY.heading}>
+    <Part id={id} title={title}>
       {note && <p className="font-mono text-xs text-muted">{note}</p>}
       {draft && shown && <DraftEditor shown={shown} onChange={edit} onCopied={remember} id={id} />}
       {loadFailed && <p role="alert" className="text-sm font-bold text-danger">{DRAFT_COPY.loadFailed}</p>}

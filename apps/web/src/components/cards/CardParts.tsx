@@ -22,10 +22,11 @@ export function OutLink({ href, children, className = "" }: { href: string; chil
   );
 }
 
-export function Part({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+/** One part of a card under its heading; `level` h2 where the part sits directly under the page's title. */
+export function Part({ id, title, level = "h3", children }: { id: string; title: string; level?: "h2" | "h3"; children: ReactNode }) {
   return (
     <section aria-labelledby={id} className="flex flex-col gap-2 border-t border-hairline pt-4">
-      <SectionHeading id={id} level="h3">{title}</SectionHeading>
+      <SectionHeading id={id} level={level}>{title}</SectionHeading>
       {children}
     </section>
   );

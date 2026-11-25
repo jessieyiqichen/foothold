@@ -28,18 +28,3 @@ export function JobsBanner() {
     </div>
   );
 }
-
-/** On a company page, in place of what depends on the resume: what signing in adds, and the key. */
-export function LockedPart() {
-  return (
-    <section aria-labelledby="locked-title" className="flex flex-col gap-3 border-2 border-dashed border-ink bg-wash p-4">
-      <h2 id="locked-title" className="font-condensed text-2xl leading-none font-bold tracking-[0.01em] text-ink uppercase">{PUBLIC_COPY.lockedTitle}</h2>
-      <ul className="flex flex-col gap-1.5">
-        {PUBLIC_COPY.lockedLines.map((line) => (
-          <li key={line} className="flex items-center gap-2 text-sm text-ink"><span aria-hidden="true">🔒</span>{line}</li>
-        ))}
-      </ul>
-      <div><SignInKey label={PUBLIC_COPY.lockedButton} /></div>
-    </section>
-  );
-}

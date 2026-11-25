@@ -10,9 +10,6 @@ export const PUBLIC_COPY = {
   bannerTitle: "Open roles, from company job boards and Hacker News hiring posts",
   bannerLine: "Add your resume to see which of these fit you, who to write to and a first message",
   bannerButton: "Sign in to see your matches",
-  lockedTitle: "Yours once you sign in",
-  lockedLines: ["Why it fits you, from your resume", "Who to contact there", "A first message about the role you pick", "Save it to come back to"],
-  lockedButton: "Sign in to see your matches",
 } as const;
 
 export const PUBLIC_ERRORS = [PUBLIC_COPY.statsFailed, PUBLIC_COPY.loadFailed, PUBLIC_COPY.empty] as const;

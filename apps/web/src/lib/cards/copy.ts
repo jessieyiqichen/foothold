@@ -91,12 +91,14 @@ export function sourceLine(source: PersonSource, seenAt: string, timeZone?: stri
 export const stageWords = (stage: string | null): string | null =>
   stage === null ? null : Object.hasOwn(STAGE_WORDS, stage) ? STAGE_WORDS[stage] : stage;
 
-export function investorsLine(investors: readonly string[]): string {
+/** The investors by their full names: "Accel and Y Combinator", or "A, B, C +2 more" past a few. */
+export function investorNames(investors: readonly string[]): string {
   const shown = investors.slice(0, MAX_INVESTORS_SHOWN).map((list) => (Object.hasOwn(INVESTOR_NAMES, list) ? INVESTOR_NAMES[list] : list));
   const more = investors.length - shown.length;
-  const named = more > 0 ? `${shown.join(", ")} +${more} more` : shown.length > 1 ? `${shown.slice(0, -1).join(", ")} and ${shown[shown.length - 1]}` : shown[0];
-  return `Backed by ${named}`;
+  return more > 0 ? `${shown.join(", ")} +${more} more` : shown.length > 1 ? `${shown.slice(0, -1).join(", ")} and ${shown[shown.length - 1]}` : shown[0] ?? "";
 }
+
+export const investorsLine = (investors: readonly string[]): string => `Backed by ${investorNames(investors)}`;
 
 interface Doing {
   stage: string | null;
@@ -107,14 +109,18 @@ interface Doing {
   recentRoles: number | null;
 }
 
+/** The team's head count, or null. A VC board row (investors, no YC batch) holds the board's size band, 1 to 6, not a
+ *  head count: left off. */
+export const headCountOf = ({ investors, batch, teamSize }: Pick<Doing, "investors" | "batch" | "teamSize">): number | null =>
+  investors.length > 0 && !batch ? null : teamSize;
+
 /** How the company is doing, one fact a line, leaving out what is not known. */
 export function doingLines({ stage, batch, teamSize, investors, lastPostedAt, recentRoles }: Doing, now: Date = new Date()): string[] {
   const age = ageLine(lastPostedAt, now);
   const posted = recentRoles && recentRoles > 0
     ? `${recentRoles} ${recentRoles === 1 ? "role" : "roles"} posted in the last 60 days${age ? `, the last ${age}` : ""}`
     : age ? `Last posted a role ${age}` : "";
-  // A VC board row (investors, no YC batch) holds the board's size band, 1 to 6, not a head count: left off
-  const headCount = investors.length > 0 && !batch ? null : teamSize;
+  const headCount = headCountOf({ investors, batch, teamSize });
   const lines = [
     [stageWords(stage), batch ? `YC ${batch}` : null].filter(Boolean).join(" · "),
     headCount ? `${headCount} ${headCount === 1 ? "person" : "people"}` : "",
