@@ -115,7 +115,7 @@ const NO_PICKS = { families: [], levels: [], updatedAt: "public" };
 function PublicJobs({ landing }: { landing?: LandingPage }) {
   const { withDb } = useSessionDb();
   return (
-    <div className="flex w-full flex-col gap-4 lg:max-w-4xl">
+    <div className="flex w-full flex-col gap-4">
       <Header landing={landing} />
       {!landing && <NumbersStrip withDb={withDb} />}
       <JobsBanner />
@@ -129,7 +129,7 @@ function MyJobs({ landing }: { landing?: LandingPage }) {
   const firstVisit = useFirstVisitGate(state, userId);
 
   return (
-    <div className="flex w-full flex-col gap-4 lg:max-w-4xl">
+    <div className="flex w-full flex-col gap-4">
       <Header landing={landing} />
       {(state.kind === "loading" || firstVisit) && <p className="font-mono text-xs text-muted">{MATCHES_COPY.loading}</p>}
       {state.kind === "failed" && <Failed message={state.message} onRetry={retry} />}

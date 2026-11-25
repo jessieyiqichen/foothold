@@ -29,7 +29,7 @@ export function TodayScreen() {
   if (state.kind === "failed") return <Failed message={state.message} onRetry={retry} />;
 
   return (
-    <div className="flex w-full max-w-2xl flex-col gap-4">
+    <div className="flex w-full flex-col gap-4">
       <div className="flex flex-col gap-1">
         <h1 className="text-3xl leading-tight font-black tracking-[-0.03em] text-ink">{COMPANY_COPY.todayTitle}</h1>
         <p className="font-mono text-xs text-muted">{COMPANY_COPY.todayLine}</p>

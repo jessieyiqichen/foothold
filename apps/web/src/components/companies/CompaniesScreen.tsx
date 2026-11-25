@@ -38,7 +38,7 @@ export function CompaniesScreen() {
 
   const sorts = COMPANY_SORTS.filter((s) => s !== "fit" || userId);
   return (
-    <div className="flex w-full flex-col gap-4 lg:max-w-4xl">
+    <div className="flex w-full flex-col gap-4">
       <PageHeader title={COMPANIES_COPY.title} back={null} />
       <input type="search" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={COMPANIES_COPY.search} aria-label={COMPANIES_COPY.search} maxLength={100} className={`${FIELD} w-full px-3`} />
       <div className="flex flex-wrap items-center gap-2">
@@ -91,13 +91,17 @@ export function CompaniesScreen() {
 function Row({ row }: { row: CompanyRow }) {
   const facts = [stageWords(row.stage), row.batch ? `YC ${row.batch}` : null, row.investors.length > 0 ? investorsLine(row.investors) : null].filter(Boolean).join(" · ");
   return (
-    <li className="flex min-w-0 flex-col gap-1 border-b border-hairline py-3.5 last:border-b-0">
-      <h2 className="text-[17px] leading-snug font-bold tracking-[-0.01em]">
-        <Link href={companyHref(row.companyId)} className="-my-1.5 inline-block py-1.5 break-words text-ink underline-offset-4 hover:text-link hover:underline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus">{row.name}</Link>
-      </h2>
-      {row.oneLiner && <p className="text-[15px] leading-snug text-ink">{leadSentence(row.oneLiner).lead}</p>}
-      {facts && <p className="font-mono text-xs leading-5 text-muted">{facts}</p>}
-      <p className="font-mono text-xs leading-5 text-ink">{hiringLine(row.openRoles, row.lastPostedAt)}</p>
+    <li className="flex min-w-0 flex-col gap-1 border-b border-hairline py-3.5 last:border-b-0 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] md:gap-x-10">
+      <div className="flex min-w-0 flex-col gap-1">
+        <h2 className="text-[17px] leading-snug font-bold tracking-[-0.01em]">
+          <Link href={companyHref(row.companyId)} className="-my-1.5 inline-block py-1.5 break-words text-ink underline-offset-4 hover:text-link hover:underline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus">{row.name}</Link>
+        </h2>
+        {row.oneLiner && <p className="text-[15px] leading-snug text-ink">{leadSentence(row.oneLiner).lead}</p>}
+      </div>
+      <div className="flex min-w-0 flex-col gap-1 md:pt-1">
+        {facts && <p className="font-mono text-xs leading-5 text-muted">{facts}</p>}
+        <p className="font-mono text-xs leading-5 text-ink">{hiringLine(row.openRoles, row.lastPostedAt)}</p>
+      </div>
     </li>
   );
 }

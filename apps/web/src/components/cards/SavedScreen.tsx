@@ -51,7 +51,7 @@ export function SavedScreen() {
   const failed = profile.state.kind === "failed" ? profile.state : state.kind === "failed" ? state : null;
 
   return (
-    <div className="flex w-full max-w-2xl flex-col gap-5">
+    <div className="flex w-full flex-col gap-5">
       <PageHeader title={CARDS_COPY.savedTitle} intro={CARDS_COPY.savedIntro} back={null} />
       {failed ? (
         <div className="flex flex-col items-start gap-3">
