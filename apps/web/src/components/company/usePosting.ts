@@ -10,9 +10,10 @@ export type PostingState =
   | { kind: "failed"; message: string }
   | { kind: "ready"; posting: Posting | null };
 
-/** The chosen role's posting text and place, read as the signed-in person. Each role read once per page: choosing a
- *  role seen before shows it at once. Null `roleId` (no open role) reads nothing. */
-export function usePosting(roleId: string | null, withDb: WithDb) {
+/** The chosen role's posting text and place, read as the signed-in person, or for a signed-out visitor when `mode` is
+ *  "public". Each role read once per page: choosing a role seen before shows it at once. Null `roleId` (no open role)
+ *  reads nothing. */
+export function usePosting(roleId: string | null, withDb: WithDb, mode: "mine" | "public" = "mine") {
   const [read, setRead] = useState<Readonly<Record<string, PostingState>>>({});
   const [attempt, setAttempt] = useState(0);
   const known = roleId ? read[roleId] : undefined;
@@ -21,7 +22,7 @@ export function usePosting(roleId: string | null, withDb: WithDb) {
   useEffect(() => {
     if (!roleId || settled) return;
     let live = true;
-    withDb(ROLE_PAGE_COPY.postingFailed, (db) => loadPosting(db, Number(roleId))).then((result) => {
+    withDb(ROLE_PAGE_COPY.postingFailed, (db) => loadPosting(db, Number(roleId), mode)).then((result) => {
       if (!live) return;
       const state: PostingState = result.ok ? { kind: "ready", posting: result.value } : { kind: "failed", message: result.message };
       setRead((before) => ({ ...before, [roleId]: state }));
@@ -29,7 +30,7 @@ export function usePosting(roleId: string | null, withDb: WithDb) {
     return () => {
       live = false;
     };
-  }, [roleId, settled, withDb, attempt]);
+  }, [roleId, settled, withDb, attempt, mode]);
 
   const retry = useCallback(() => {
     if (!roleId) return;

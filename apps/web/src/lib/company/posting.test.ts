@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { highlight, loadPosting, readPosting } from "./posting";
+import { highlight, loadPosting, PUBLIC_POSTING_RPC, readPosting } from "./posting";
 
 describe("highlight: the warning's sentence, marked where it appears", () => {
   const text = "We build agents.\nYou must be a US citizen.\nWe offer equity.";
@@ -61,6 +61,35 @@ describe("loadPosting", () => {
     const failed = await loadPosting(fakeDb({ data: null, error: { message: "boom" } }).db, 41);
     expect(failed.ok).toBe(false);
     expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
+  });
+});
+
+describe("loadPosting for a signed-out visitor (2026-11-24): through fh_public_posting, one row or none", () => {
+  const rpcDb = (...answers: { data: unknown; error: { message: string } | null }[]) => {
+    const rpc = vi.fn();
+    for (const answer of answers) rpc.mockResolvedValueOnce(answer);
+    return { db: { rpc } as never, rpc };
+  };
+
+  it("reads the text and place by the role's id", async () => {
+    const { db, rpc } = rpcDb({ data: [{ text: "Requirements:\n- SQL", location: "Remote" }], error: null });
+    expect(await loadPosting(db, 41, "public")).toEqual({ ok: true, value: { text: "Requirements:\n- SQL", location: "Remote" } });
+    expect(rpc).toHaveBeenCalledWith(PUBLIC_POSTING_RPC, { p_role: 41 });
+  });
+
+  it("gives null when the role is closed or has no company page (no row)", async () => {
+    expect(await loadPosting(rpcDb({ data: [], error: null }).db, 41, "public")).toEqual({ ok: true, value: null });
+  });
+
+  it("asks again once after a statement timeout, and gives a line when it still fails", async () => {
+    const timeout = { data: null, error: { message: "canceling statement due to statement timeout" } };
+    const retried = rpcDb(timeout, { data: [{ text: "Body", location: null }], error: null });
+    expect(await loadPosting(retried.db, 41, "public")).toEqual({ ok: true, value: { text: "Body", location: null } });
+    expect(retried.rpc).toHaveBeenCalledTimes(2);
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect((await loadPosting(rpcDb(timeout, timeout).db, 41, "public")).ok).toBe(false);
+    expect((await loadPosting(rpcDb({ data: [{ text: 3 }], error: null }).db, 41, "public")).ok).toBe(false);
     spy.mockRestore();
   });
 });

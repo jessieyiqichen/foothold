@@ -26,7 +26,7 @@ const hostOf = (url: string) => new URL(url).hostname.replace(/^www\./, "");
 
 /** The top of the left column (user, 2026-11-23): a small company line, the role's title, the pay in one line, then up
  *  to three quiet chips. With no open role, the company's name leads instead. */
-export function RoleHeader({ card, role, location, titleId, postingLink = false }: { card: CompanyCard; role: CardRole | null; location: string | null; titleId: string; postingLink?: boolean }) {
+export function RoleHeader({ card, role, location, titleId }: { card: CompanyCard; role: CardRole | null; location: string | null; titleId: string }) {
   const pay = salaryHeadline(role?.signals);
   const chips = role ? roleChips(location, role.level) : [];
   return (
@@ -34,7 +34,6 @@ export function RoleHeader({ card, role, location, titleId, postingLink = false 
       <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-muted">
         {role && <span className="text-sm font-bold text-ink">{card.name}</span>}
         {card.website && <OutLink href={card.website}>{hostOf(card.website)} ↗</OutLink>}
-        {postingLink && role && <OutLink href={role.url}>{ROLE_PAGE_COPY.original} ↗</OutLink>}
       </p>
       <h1 id={titleId} className="text-3xl leading-tight font-black tracking-[-0.03em] break-words text-ink sm:text-4xl">{role ? roleTitle(role) : card.name}</h1>
       {pay && <p className="text-lg font-bold text-ink">{pay}</p>}

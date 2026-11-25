@@ -33,7 +33,7 @@ function CompanyBody({ by, askedRole }: { by: CompanyBy; askedRole: string | nul
   if (state.kind === "loading") return <p className="font-mono text-xs text-muted">{COMPANY_COPY.loading}</p>;
   if (state.kind === "failed") return <Failed message={state.message} onRetry={retry} />;
   if (state.kind === "missing") return <Missing byRole={"role" in by} postingUrl={state.postingUrl} />;
-  if (mode === "public") return <PublicCompanyView page={state.page} askedRole={askedRole} />;
+  if (mode === "public") return <PublicCompanyView page={state.page} askedRole={askedRole} withDb={withDb} />;
   return (
     <CompanyView page={state.page} askedRole={askedRole} busy={busy} error={error} onDecide={setDecision} userId={userId} withDb={withDb} />
   );
@@ -76,20 +76,23 @@ function CompanyView({ page, askedRole, busy, error, onDecide, userId, withDb }:
 }
 
 /** A company page for a signed-out visitor (user, 2026-11-21; this layout 2026-11-23): the role, what its posting says
- *  at a glance, the company's facts and every open role are open; the card asks them to sign in for why it fits and
- *  the first message, which brings them back here. The posting's text is not readable signed out, so there is no
- *  "What they ask for" and the header links to the original. */
-function PublicCompanyView({ page, askedRole }: { page: CompanyPage; askedRole: string | null }) {
+ *  at a glance and what it asks for (read through fh_public_posting since 2026-11-24), the company's facts and every
+ *  open role are open; the card asks them to sign in for why it fits and the first message, which brings them back. */
+function PublicCompanyView({ page, askedRole, withDb }: { page: CompanyPage; askedRole: string | null; withDb: ViewProps["withDb"] }) {
   const { card } = page;
   const role = card.roles.find((r) => r.id === startingRole(card.roles, askedRole, null)) ?? null;
+  const { state: posting, retry } = usePosting(role?.id ?? null, withDb, "public");
+  const warnings = fitWarnings({ signals: role?.signals });
   const cells = role ? glanceCells(role.signals, role.postedAt) : [];
   const id = (part: string) => `company-${card.companyId}-${part}`;
+  const location = posting.kind === "ready" ? posting.posting?.location ?? null : null;
   return (
     <RoleLayout
       labelledBy={id("title")}
-      header={<RoleHeader card={card} role={role} location={null} titleId={id("title")} postingLink />}
+      header={<RoleHeader card={card} role={role} location={location} titleId={id("title")} />}
       card={<LockedActionCard card={card} role={role} />}
       glance={cells.length > 0 && <GlanceSection id={id("glance")} cells={cells} />}
+      asks={role && <AsksSection key={role.id} id={id("asks")} role={role} state={posting} quote={warnings[0]?.quote ?? null} onRetry={retry} />}
       roles={<MoreRoles id={id("roles")} companyName={card.name} roles={card.roles} current={role} mode="public" />}
       about={<FactsSection id={id("facts")} card={card} />}
       aboutPhone={<FactsSection id={id("facts-phone")} card={card} />}

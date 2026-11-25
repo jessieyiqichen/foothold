@@ -120,3 +120,8 @@ Known gaps, none measured yet:
 - A posting whose title changes under the same id keeps its old label until `ROLES_VERSION` is raised.
 - The same role shows twice when one copy is linked to a company row and the other is not.
 - A company's two different roles with the same title are shown as one.
+
+## Public reads (signed-out visitors)
+
+Signed-out visitors (`anon`) never read the tables. They read through security definer functions that name every column: `fh_public_stats`, `fh_public_roles`, `fh_public_company`, `fh_companies_list` (20261122100000_foothold_public_browse.sql) and, since 2026-11-24, `fh_public_posting(p_role)` (20261124100000_foothold_public_posting.sql): the text and place of one open board posting with a company page, emails taken out, for "What they ask for" on the role page. Hacker News posts are not returned. Never emails, author, links, `fh_people` or anyone's profile.
+
