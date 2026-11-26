@@ -8,9 +8,10 @@ import { Nav, NavLinks } from "./Nav";
 import { Shape } from "./art/Shape";
 import { Tape } from "./art/Tape";
 
-/** One centred column on a phone (36rem). From 1024px every page shares one desktop frame (72rem), so the wordmark and
- *  the navigation never move between pages. The width names are kept for the pages that pass them. */
-const FRAME = "max-w-xl lg:max-w-6xl lg:px-8";
+/** One centred column on a phone (36rem). From 768px every page shares one desktop frame (72rem), so the wordmark and
+ *  the navigation never move between pages, and a window between 768 and 1024px wide is not left as a narrow middle
+ *  column (user, 2026-11-24). The width names are kept for the pages that pass them. */
+const FRAME = "max-w-xl md:max-w-6xl md:px-6 lg:px-8";
 const WIDTHS = { narrow: FRAME, medium: FRAME, wide: FRAME };
 
 /** The shell, signed in or out (a signed-out visitor sees Jobs, Companies and Sign in): the wordmark on the left, taped on at a slight tilt with its shape (the one front-facing piece
