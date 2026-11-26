@@ -25,9 +25,19 @@ export const COMPANIES_ERRORS = [COMPANIES_COPY.loadFailed, COMPANIES_COPY.moreF
 
 export const companiesCount = (n: number): string => `${n.toLocaleString("en-US")} ${n === 1 ? "company" : "companies"}`;
 
+/** "70 open roles", the row's lead number; "No open roles right now" when there are none. */
+export const openRolesCount = (openRoles: number): string =>
+  openRoles === 0 ? "No open roles right now" : `${openRoles} open ${openRoles === 1 ? "role" : "roles"}`;
+
+/** "newest 2 days ago", the quiet line under the count; null with no date. */
+export function newestLine(lastPostedAt: string | null, now: Date = new Date()): string | null {
+  const age = ageLine(lastPostedAt, now);
+  return age ? `newest ${age}` : null;
+}
+
 /** "10 open roles, newest 2 days ago"; "No open roles right now" when there are none. */
 export function hiringLine(openRoles: number, lastPostedAt: string | null, now: Date = new Date()): string {
-  if (openRoles === 0) return "No open roles right now";
-  const age = ageLine(lastPostedAt, now);
-  return `${openRoles} open ${openRoles === 1 ? "role" : "roles"}${age ? `, newest ${age}` : ""}`;
+  if (openRoles === 0) return openRolesCount(0);
+  const newest = newestLine(lastPostedAt, now);
+  return `${openRolesCount(openRoles)}${newest ? `, ${newest}` : ""}`;
 }

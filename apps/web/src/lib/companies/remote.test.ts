@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { COMPANIES_COPY, companiesCount, hiringLine } from "./copy";
+import { COMPANIES_COPY, companiesCount, hiringLine, newestLine, openRolesCount } from "./copy";
 import { companiesArgs, loadCompanies, rowToCompany, type CompaniesDb } from "./remote";
 import type { CompanyFilters } from "./types";
 
@@ -31,6 +31,14 @@ describe("companies", () => {
     expect(companiesCount(1372)).toBe("1,372 companies");
     expect(hiringLine(10, "2026-11-20T00:00:00Z", new Date("2026-11-22T12:00:00Z"))).toBe("10 open roles, newest 2 days ago");
     expect(hiringLine(0, null)).toBe("No open roles right now");
+  });
+
+  it("splits the hiring line into the count and the newest, for the row's two weights (2026-11-24)", () => {
+    expect(openRolesCount(70)).toBe("70 open roles");
+    expect(openRolesCount(1)).toBe("1 open role");
+    expect(openRolesCount(0)).toBe("No open roles right now");
+    expect(newestLine("2026-11-20T00:00:00Z", new Date("2026-11-22T12:00:00Z"))).toBe("newest 2 days ago");
+    expect(newestLine(null)).toBeNull();
     for (const line of Object.values(COMPANIES_COPY)) expect(line).not.toMatch(/\.(\s|$)/);
   });
 });

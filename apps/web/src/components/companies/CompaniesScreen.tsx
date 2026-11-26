@@ -10,8 +10,9 @@ import { investorsLine, stageWords } from "@/lib/cards/copy";
 import { leadSentence } from "@/lib/cards/trim";
 import { companyHref } from "@/lib/company/constants";
 import { BACKERS, COMPANY_SORTS, STAGE_GROUPS, type CompanySort, type StageGroup } from "@/lib/companies/constants";
-import { COMPANIES_COPY, companiesCount, hiringLine } from "@/lib/companies/copy";
+import { COMPANIES_COPY, companiesCount, newestLine, openRolesCount } from "@/lib/companies/copy";
 import type { CompanyFilters, CompanyRow } from "@/lib/companies/types";
+import { LEVEL_TILE_CLASS } from "@/lib/matches/tiles";
 import { SEARCH_DEBOUNCE_MS } from "@/lib/roles/constants";
 import { useCompanies } from "./useCompanies";
 
@@ -87,20 +88,31 @@ export function CompaniesScreen() {
   );
 }
 
-/** One company: its name (the link to its page), one sentence, its stage and backers, and how it is hiring. */
+/** One company, in three weights (user, 2026-11-24): its name, the heaviest, and one quiet sentence on the left; how
+ *  many roles it has open as the lead number on the right, a link to its page, then when the newest was posted, its
+ *  stage and batch as small tiles and its backers, all quiet. */
 function Row({ row }: { row: CompanyRow }) {
-  const facts = [stageWords(row.stage), row.batch ? `YC ${row.batch}` : null, row.investors.length > 0 ? investorsLine(row.investors) : null].filter(Boolean).join(" · ");
+  const tiles = [stageWords(row.stage), row.batch ? `YC ${row.batch}` : null].filter((tile): tile is string => Boolean(tile));
+  const newest = row.openRoles > 0 ? newestLine(row.lastPostedAt) : null;
   return (
-    <li className="flex min-w-0 flex-col gap-1 border-b border-hairline py-3.5 last:border-b-0 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] md:gap-x-10">
+    <li className="flex min-w-0 flex-col gap-2 border-b border-hairline py-4 last:border-b-0 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,18rem)] md:gap-x-10">
       <div className="flex min-w-0 flex-col gap-1">
-        <h2 className="text-[17px] leading-snug font-bold tracking-[-0.01em]">
+        <h2 className="text-xl leading-tight font-black tracking-[-0.02em]">
           <Link href={companyHref(row.companyId)} className="-my-1.5 inline-block py-1.5 break-words text-ink underline-offset-4 hover:text-link hover:underline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus">{row.name}</Link>
         </h2>
-        {row.oneLiner && <p className="text-[15px] leading-snug text-ink">{leadSentence(row.oneLiner).lead}</p>}
+        {row.oneLiner && <p className="text-sm leading-snug text-muted">{leadSentence(row.oneLiner).lead}</p>}
       </div>
-      <div className="flex min-w-0 flex-col gap-1 md:pt-1">
-        {facts && <p className="font-mono text-xs leading-5 text-muted">{facts}</p>}
-        <p className="font-mono text-xs leading-5 text-ink">{hiringLine(row.openRoles, row.lastPostedAt)}</p>
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <p className="leading-tight">
+          {row.openRoles > 0 ? (
+            // The count opens the company's page, where every open role is listed (user, 2026-11-24): a link, so it
+            // looks like one and not like the name
+            <Link href={companyHref(row.companyId)} className="text-lg font-black text-link underline underline-offset-4 hover:text-ink focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus">{openRolesCount(row.openRoles)} →</Link>
+          ) : <span className="text-sm text-muted">{openRolesCount(row.openRoles)}</span>}
+          {newest && <span className="block font-mono text-xs text-muted">{newest}</span>}
+        </p>
+        {tiles.length > 0 && <p className="flex flex-wrap gap-1.5">{tiles.map((tile) => <span key={tile} className={LEVEL_TILE_CLASS}>{tile}</span>)}</p>}
+        {row.investors.length > 0 && <p className="font-mono text-[11px] leading-4 text-muted">{investorsLine(row.investors)}</p>}
       </div>
     </li>
   );
